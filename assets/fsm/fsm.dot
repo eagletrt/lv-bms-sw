@@ -1,0 +1,26 @@
+digraph "gv_fsm example" {
+    bgcolor="white"
+    layout="dot"
+    center=true
+    concentrate=false
+
+    init [
+        style="filled"
+        color="#66ff66"
+        fillcolor="#c1ffc1"
+    ]
+    flash
+    run
+    fatal [
+        style="filled"
+        color="#ff6666"
+        fillcolor="#ffc1c1"
+    ]
+
+    init -> run [label="init_to_run"]
+    init -> flash [label="init_to_flash"]
+    init -> fatal [label="init_to_fatal"]
+    flash -> fatal [label="flash_to_fatal"]
+    run -> run [label="stay"]
+    run -> fatal[label="run_to_fatal"]
+}
