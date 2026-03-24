@@ -11,6 +11,7 @@ digraph "gv_fsm example" {
     ]
     flash
     idle
+    balancing
     fatal [
         style="filled"
         color="#ff6666"
@@ -20,7 +21,11 @@ digraph "gv_fsm example" {
     init -> idle [label="init_to_idle"]
     init -> flash [label="init_to_flash"]
     init -> fatal [label="init_to_fatal"]
+    flash -> idle [label="flash_to_idle"]
     flash -> fatal [label="flash_to_fatal"]
     idle -> idle [label="stay"]
+    idle -> balancing [label="idle_to_balancing"]
     idle -> fatal[label="idle_to_fatal"]
+    balancing -> idle [label="balancing_to_idle"]
+    balancing -> fatal [label="balancing_to_falat"]
 }
