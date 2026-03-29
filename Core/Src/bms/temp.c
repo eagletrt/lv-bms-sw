@@ -21,7 +21,20 @@ enum TempReturnCode temp_init(void) {
     /*! TODO: add spec etc... */
 
     htemp = { 0 };
-    return TEMP_TEMP_RETURN_CODE_OK;
+    return TEMP_RETURN_CODE_OK;
+}
+
+enum TempReturnTempReturnCode temp_update_value(size_t idx, celsius value) {
+    EAGLETRT_UNUSED(idx);
+    EAGLETRT_UNUSED(value);
+    return TEMP_RETURN_CODE_OK;
+}
+
+enum TempReturnTempReturnCode temp_update_values(size_t idx, const celsius *values, size_t size) {
+    EAGLETRT_UNUSED(idx);
+    EAGLETRT_UNUSED(values);
+    EAGLETRT_UNUSED(size);
+    return TEMP_RETURN_CODE_OK;
 }
 
 const celsius *temp_get_temperatures(void) {
