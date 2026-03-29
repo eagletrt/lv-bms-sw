@@ -27,5 +27,5 @@ digraph "gv_fsm example" {
     idle -> balancing [label="idle_to_balancing"]
     idle -> fatal[label="idle_to_fatal"]
     balancing -> idle [label="balancing_to_idle"]
-    balancing -> fatal [label="balancing_to_falat"]
+    balancing -> fatal [label="balancing_to_fatal"]
 }
