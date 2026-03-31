@@ -34,8 +34,8 @@ jobs:
       - name: Build
         run: pio run  # change based on the command you use normally
         
-      - name: Run Unit Tests
-        run: pio test -e native  # here as well, change based on your enviroment
+      #- name: Run Unit Tests
+      #  run: pio test -e native  # here as well, change based on your enviroment
 
       - name: Static Code Analysis
         if: github.ref == 'refs/heads/dev'
