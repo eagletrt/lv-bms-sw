@@ -1,23 +1,14 @@
 /*!
  * \file            defs.h
- * \date            2026-03-24
+ * \date            2026-03-31
  * \authors         Mirko Lana [mirko.lana@eagletrt.it]
  *
- * \brief           Custom definitions.
+ * \brief           Temperature module APIs.
  */
 
 #ifndef DEFS_H
 #define DEFS_H
 
-/*!
- * \defgroup        types Type definitions for various units of measurements.
- * @{
- */
-
-typedef float celsius; /*!< Temperature value in °C */
-
-/*!
- * @}
- */
+#define DEFS_CELLS_COUNT (6U) /*!< The number of cells */
 
 #endif /*! DEFS_H */
