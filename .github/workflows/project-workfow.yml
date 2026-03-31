@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on:
       group: ci-runners
-      label: Linux
+      labels: Linux
     continue-on-error: ${{ !(github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev') }}
 
     steps:
