@@ -50,10 +50,6 @@ enum TempReturnCode temp_api_update_values(size_t idx, const celsius *values, si
     return TEMP_RC_OK;
 }
 
-const celsius *temp_api_get_temperatures(void) {
-    return htemp.temperatures;
-}
-
 celsius temp_api_get_min(void) {
     celsius min = TEMP_CHARGE_MAX_C;
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {

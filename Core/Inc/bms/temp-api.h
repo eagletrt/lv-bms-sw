@@ -22,8 +22,8 @@ void temp_api_init(void);
  * \brief            Update a single temperature value.
  * \param[in]        idx The index of the value to update.
  * \param[in]        value The new value in °C.
- * \retval           TempReturnCode TEMP_RC_OK on success, an error otherwise:
- *                   - TEMP_OUT_OF_BOUNDS if index is greater than the total number of values.
+ * \retval           TEMP_RC_OK on success.
+ * \retval           TEMP_OUT_OF_BOUNDS if index is greater than the total number of values.
  */
 enum TempReturnCode temp_api_update_value(size_t idx, celsius value);
 
@@ -32,17 +32,12 @@ enum TempReturnCode temp_api_update_value(size_t idx, celsius value);
  * \param[in]        idx The start index of the values to update.
  * \param[in]        values A pointer to the array of values to copy.
  * \param[in]        size The number of elements to copy.
- * \retval           TempReturnCode TEMP_RC_OK on success, an error otherwise:
- *                   - TEMP_RC_NULL_PTR if values is NULL;
- *                   - TEMP_RC_OUT_OF_BOUNDS if index is greater than the total number of values or if the size is too big.
+ * \retval           TempReturnCode TEMP_RC_OK on success.
+ * \retval           TEMP_RC_NULL_PTR if values is NULL.
+ * \retval           TEMP_RC_OUT_OF_BOUNDS if index is greater than the total number of values or if the size is too big.
  */
 enum TempReturnCode temp_api_update_values(size_t idx, const celsius *values, size_t size);
 
-/*!
- * \brief            Get a pointer to the array where cells temperatures are stored.
- * \retval           celsius* The pointer to the array.
- */
-const celsius *temp_api_get_temperatures(void);
 
 /*!
  * \brief            Get the minimum cell temperature.
@@ -67,9 +62,9 @@ celsius temp_api_get_avg(void);
  * \param[out]       out A pointer to the array where the values are copied into.
  * \param[in]        strart The index of the first index to copy.
  * \param[in]        size The number of values that should be copied.
- * \retval           TempReturnCode TEMP_RC_OK on success, an error otherwise:
- *                   - TEMP_RC_NULL_PTR if out is NULL;
- *                   - TEMP_RC_OUT_OF_BOUNDS if index is greater than the total number of values or if the size is too big.
+ * \retval           TempReturnCode TEMP_RC_OK on success.
+ * \retval           TEMP_RC_NULL_PTR if out is NULL.
+ * \retval           TEMP_RC_OUT_OF_BOUNDS if index is greater than the total number of values or if the size is too big.
  */
 enum TempReturnCode temp_api_dump_values(celsius *out, size_t start, size_t size);
 
@@ -78,7 +73,6 @@ enum TempReturnCode temp_api_dump_values(celsius *out, size_t start, size_t size
 #define temp_api_init() (NULL)
 #define temp_api_update_value(idx, value) (TEMP_RC_OK)
 #define temp_api_update_values(idx, values, size) (TEMP_RC_OK)
-#define temp_api_get_temperatures() (NULL)
 #define temp_api_get_min() (0.f)
 #define temp_api_get_max() (0.f)
 #define temp_api_get_avg() (0.f)

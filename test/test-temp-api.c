@@ -66,17 +66,6 @@ void check_temp_api_update_values_size_too_big(void) {
 /*! \} */
 
 /*!
- * \defgroup        temp_api_get_temperatures Test for temp_api_get_temperatures function.
- * \{
- */
-
-void check_temp_api_get_temperatures(void) {
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY(htemp.temperatures, temp_api_get_temperatures(), DEFS_CELLS_COUNT);
-}
-
-/*! \} */
-
-/*!
  * \defgroup        temp_api_get_min Test for temp_api_get_min function.
  * \{
  */
@@ -171,15 +160,6 @@ int main(void) {
     RUN_TEST(check_temp_api_update_values_null_temperatures);
     RUN_TEST(check_temp_api_update_values_index_out_of_bounds);
     RUN_TEST(check_temp_api_update_values_size_too_big);
-
-    /*! \} */
-
-    /*!
-	 * \defgroup        temp_api_get_temperatures Test for temp_api_get_temperatures function.
-	 * \{
-	 */
-
-    RUN_TEST(check_temp_api_get_temperatures);
 
     /*! \} */
 
