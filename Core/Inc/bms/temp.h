@@ -33,7 +33,6 @@ enum TempReturnCode {
  * \brief            Temperature module handler structure.
  */
 struct TempHandler {
-    bool in_charge;
     celsius temperatures[DEFS_CELLS_COUNT]; /*!< An array of temperatures in °C */
 };
 
