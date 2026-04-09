@@ -55,7 +55,7 @@ const celsius *temp_api_get_temperatures(void) {
 }
 
 celsius temp_api_get_min(void) {
-    celsius min = htemp.in_charge ? TEMP_CHARGE_MAX_C : TEMP_DISCHARGE_MAX_C;
+    celsius min = TEMP_CHARGE_MAX_C;
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
         min = EAGLETRT_API_MIN(min, htemp.temperatures[i]);
     }
@@ -64,7 +64,7 @@ celsius temp_api_get_min(void) {
 }
 
 celsius temp_api_get_max(void) {
-    celsius max = htemp.in_charge ? TEMP_CHARGE_MIN_C : TEMP_DISCHARGE_MIN_C;
+    celsius max = TEMP_DISCHARGE_MIN_C; /*! I'm using it because it's lower than TEMP_CHARGE_MIN_C */
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
         max = EAGLETRT_API_MAX(max, htemp.temperatures[i]);
     }

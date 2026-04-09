@@ -15,10 +15,10 @@
 #include "defs.h"
 #include "types.h"
 
-#define TEMP_CHARGE_MIN_C (0.f)                /*!< Minimum allowed cell temperature in °C during the charge */
-#define TEMP_CHARGE_MAX_C (60.f)               /*!< Maximum allowed cell temperature in °C during the charge */
-#define TEMP_DISCHARGE_MIN_C (-40.f)           /*!< Minimum allowed cell temperature in °C during the discharge */
-#define TEMP_DISCHARGE_MAX_C TEMP_CHARGE_MAX_C /*!< Maximum allowed cell temperature in °C during the discharge */
+#define TEMP_CHARGE_MIN_C (0.f)                /*!< Minimum allowed cell temperature in °C in charge */
+#define TEMP_CHARGE_MAX_C (60.f)               /*!< Maximum allowed cell temperature in °C in charge */
+#define TEMP_DISCHARGE_MIN_C (-40.f)           /*!< Minimum allowed cell temperature in °C in discharge */
+#define TEMP_DISCHARGE_MAX_C TEMP_CHARGE_MAX_C /*!< Maximum allowed cell temperature in °C in discharge */
 
 /*!
  * \brief            Return codes for the temperature module functions.
