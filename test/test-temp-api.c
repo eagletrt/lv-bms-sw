@@ -8,6 +8,8 @@
 
 #include "unity.h"
 
+#include <string.h>
+
 #include "temp.h"
 #include "temp-api.h"
 #include "types.h"
@@ -21,6 +23,20 @@ void setUp(void) {
 
 void tearDown() {
 }
+
+/*!
+ * \defgroup		temp_api_init Test for temp_api_init function.
+ * \{
+ */
+
+void check_temp_api_init(void) {
+    celsius temperatures[DEFS_CELLS_COUNT] = { 0.f };
+    memset(htemp.temperatures, 0xFF, DEFS_CELLS_COUNT * sizeof(*htemp.temperatures));
+    temp_api_init();
+    TEST_ASSERT_EQUAL_MEMORY(temperatures, htemp.temperatures, DEFS_CELLS_COUNT);
+}
+
+/*! \} */
 
 /*!
  * \defgroup        temp_api_update_value Test for temp_api_update_value function.
@@ -140,6 +156,15 @@ void check_temp_api_dump_values_size_too_big(void) {
 
 int main(void) {
     UNITY_BEGIN();
+
+    /*!
+     * \defgroup		temp_api_init Test for temp_api_init function.
+     * \{
+     */
+
+    RUN_TEST(check_temp_api_init);
+
+    /*! \} */
 
     /*!
      * \defgroup        temp_api_update_value Test for temp_api_update_value function.
