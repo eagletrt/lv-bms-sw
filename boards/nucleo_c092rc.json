@@ -41,4 +41,8 @@
     },
     "url": "https://www.st.com/en/evaluation-tools/nucleo-c092rc.html",
     "vendor": "ST"
+<<<<<<< feat/temperature-module
 }
+=======
+}
+>>>>>>> dev

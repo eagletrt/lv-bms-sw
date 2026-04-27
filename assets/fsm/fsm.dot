@@ -1,0 +1,34 @@
+digraph "gv_fsm example" {
+    bgcolor="white"
+    layout="dot"
+    center=true
+    concentrate=false
+
+    init [
+        style="filled"
+        color="#66ff66"
+        fillcolor="#c1ffc1"
+    ]
+    flash
+    idle
+    balancing
+    fatal [
+        style="filled"
+        color="#ff6666"
+        fillcolor="#ffc1c1"
+    ]
+
+    init -> idle [label="init_to_idle"]
+    init -> fatal [label="init_to_fatal"]
+    idle -> idle
+    idle -> flash [label="idle_to_flash"]
+    idle -> balancing [label="idle_to_balancing"]
+    idle -> fatal[label="idle_to_fatal"]
+    flash -> idle [label="flash_to_idle"]
+    flash -> fatal [label="flash_to_fatal"]
+    balancing -> idle [label="balancing_to_idle"]
+    balancing -> fatal [label="balancing_to_fatal"]
+    balancing -> balancing
+    fatal -> flash [label="fatal_to_flash"]
+    fatal -> fatal
+}
