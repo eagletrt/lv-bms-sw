@@ -25,7 +25,7 @@
  */
 enum TempReturnCode {
     TEMP_RC_OK,            /*!< Function executed successfully */
-    TEMP_RC_NULL_PTR,      /*!< Unexpected NULL pointer */
+    TEMP_RC_NULL_POINTER,  /*!< Unexpected NULL pointer */
     TEMP_RC_OUT_OF_BOUNDS, /*!< A value is greater/lower than the maximum/minimum allowed value */
 };
 

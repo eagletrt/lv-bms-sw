@@ -26,18 +26,18 @@ void temp_api_init(void) {
     memset(&htemp, 0U, sizeof(htemp));
 }
 
-enum TempReturnCode temp_api_update_value(size_t idx, celsius value) {
+enum TempReturnCode temp_api_update_temperature(size_t idx, celsius temperature) {
     if (idx >= DEFS_CELLS_COUNT) {
         return TEMP_RC_OUT_OF_BOUNDS;
     }
 
-    htemp.temperatures[idx] = value;
+    htemp.temperatures[idx] = temperature;
     return TEMP_RC_OK;
 }
 
-enum TempReturnCode temp_api_update_values(size_t idx, const celsius *values, size_t size) {
-    if (values == NULL) {
-        return TEMP_RC_NULL_PTR;
+enum TempReturnCode temp_api_update_temperatures(size_t idx, const celsius *temperatures, size_t size) {
+    if (temperatures == NULL) {
+        return TEMP_RC_NULL_POINTER;
     }
 
     if ((idx + size) > DEFS_CELLS_COUNT) {
@@ -45,13 +45,13 @@ enum TempReturnCode temp_api_update_values(size_t idx, const celsius *values, si
     }
 
     for (size_t i = 0U; i < size; ++i) {
-        htemp.temperatures[idx + i] = values[i];
+        htemp.temperatures[idx + i] = temperatures[i];
     }
     return TEMP_RC_OK;
 }
 
 celsius temp_api_get_min(void) {
-    celsius min = TEMP_CHARGE_MAX_C;
+    celsius min = htemp.temperatures[0];
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
         min = EAGLETRT_API_MIN(min, htemp.temperatures[i]);
     }
@@ -60,7 +60,7 @@ celsius temp_api_get_min(void) {
 }
 
 celsius temp_api_get_max(void) {
-    celsius max = TEMP_DISCHARGE_MIN_C; /*! I'm using it because it's lower than TEMP_CHARGE_MIN_C */
+    celsius max = htemp.temperatures[0];
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
         max = EAGLETRT_API_MAX(max, htemp.temperatures[i]);
     }
@@ -68,21 +68,21 @@ celsius temp_api_get_max(void) {
     return max;
 }
 
-celsius temp_api_get_avg(void) {
-    celsius avg = 0.f;
+celsius temp_api_get_average(void) {
+    celsius average = 0.f;
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
-        avg += htemp.temperatures[i];
+        average += htemp.temperatures[i];
     }
 
-    return avg / DEFS_CELLS_COUNT;
+    return average / DEFS_CELLS_COUNT;
 }
 
-enum TempReturnCode temp_api_dump_values(celsius *out, size_t start, size_t size) {
+enum TempReturnCode temp_api_dump_temperatures(celsius *out, size_t start, size_t size) {
     if (out == NULL) {
-        return TEMP_RC_NULL_PTR;
+        return TEMP_RC_NULL_POINTER;
     }
 
-    if ((start + size) >= DEFS_CELLS_COUNT) {
+    if ((start + size) > DEFS_CELLS_COUNT) {
         return TEMP_RC_OUT_OF_BOUNDS;
     }
 

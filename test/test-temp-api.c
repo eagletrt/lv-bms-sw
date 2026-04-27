@@ -39,44 +39,46 @@ void check_temp_api_init(void) {
 /*! \} */
 
 /*!
- * \defgroup        temp_api_update_value Test for temp_api_update_value function.
+ * \defgroup        temp_api_update_temperature Test for temp_api_update_temperature function.
  * \{
  */
 
-void check_temp_api_update_value_success(void) {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_value(0U, 7.f), "temp_api_update_value failed!");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(htemp.temperatures[0U], 7.f, "Stored temperature is different!");
+void check_temp_api_update_temperature_success(void) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_temperature(0U, 7.f), "temp_api_update_temperature failed!");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(7.f, htemp.temperatures[0U], "Stored temperature is different!");
 }
 
-void check_temp_api_update_value_index_out_of_bounds(void) {
-    TEST_ASSERT_EQUAL_INT(TEMP_RC_OUT_OF_BOUNDS, temp_api_update_value(DEFS_CELLS_COUNT, 7.f));
+void check_temp_api_update_temperature_index_out_of_bounds(void) {
+    TEST_ASSERT_EQUAL_INT(TEMP_RC_OUT_OF_BOUNDS, temp_api_update_temperature(DEFS_CELLS_COUNT, 7.f));
 }
 
 /*! \} */
 
 /*!
- * \defgroup        temp_api_update_values Test for temp_api_update_values function.
+ * \defgroup        temp_api_update_temperatures Test for temp_api_update_temperatures function.
  * \{
  */
 
-void check_temp_api_update_values_success(void) {
-    const celsius temperatures[] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_values(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_values failed!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(htemp.temperatures, temperatures, DEFS_CELLS_COUNT, "Stored temperatures are different!");
+void check_temp_api_update_temperatures_success(void) {
+    const celsius temperatures[DEFS_CELLS_COUNT] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_temperatures(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_temperatures failed!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, htemp.temperatures, DEFS_CELLS_COUNT, "Stored temperatures are different!");
 }
 
-void check_temp_api_update_values_null_temperatures(void) {
-    TEST_ASSERT_EQUAL_INT(TEMP_RC_NULL_PTR, temp_api_update_values(0U, NULL, 0U));
+void check_temp_api_update_temperatures_null_temperatures(void) {
+    TEST_ASSERT_EQUAL_INT(TEMP_RC_NULL_POINTER, temp_api_update_temperatures(0U, NULL, 0U));
 }
 
-void check_temp_api_update_values_index_out_of_bounds(void) {
-    const celsius temperatures[] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OUT_OF_BOUNDS, temp_api_update_values(DEFS_CELLS_COUNT, temperatures, DEFS_CELLS_COUNT), "temp_api_update_values failed!");
+void check_temp_api_update_temperatures_index_out_of_bounds(void) {
+    const celsius temperatures[DEFS_CELLS_COUNT] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OUT_OF_BOUNDS, temp_api_update_temperatures(DEFS_CELLS_COUNT, temperatures, DEFS_CELLS_COUNT), "temp_api_update_temperatures failed!");
 }
 
-void check_temp_api_update_values_size_too_big(void) {
-    const celsius temperatures[] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OUT_OF_BOUNDS, temp_api_update_values(0U, temperatures, sizeof(temperatures) / sizeof(*temperatures)), "temp_api_update_values failed!");
+void check_temp_api_update_temperatures_size_too_big(void) {
+#define COUNT (9U)
+    const celsius temperatures[COUNT] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OUT_OF_BOUNDS, temp_api_update_temperatures(0U, temperatures, COUNT), "temp_api_update_temperatures failed!");
+#undef COUNT
 }
 
 /*! \} */
@@ -87,9 +89,9 @@ void check_temp_api_update_values_size_too_big(void) {
  */
 
 void check_temp_api_get_min(void) {
-    const celsius temperatures[] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_values(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_values failed!");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(temperatures[0U], temp_api_get_min(), "Values are different!");
+    const celsius temperatures[DEFS_CELLS_COUNT] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_temperatures(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_temperatures failed!");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(temperatures[0U], temp_api_get_min(), "temperatures are different!");
 }
 
 /*! \} */
@@ -100,56 +102,55 @@ void check_temp_api_get_min(void) {
  */
 
 void check_temp_api_get_max(void) {
-    const celsius temperatures[] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_values(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_values failed!");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(temperatures[5U], temp_api_get_max(), "Values are different!");
+    const celsius temperatures[DEFS_CELLS_COUNT] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_temperatures(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_temperatures failed!");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(temperatures[5U], temp_api_get_max(), "temperatures are different!");
 }
 
 /*! \} */
 
 /*!
- * \defgroup        temp_api_get_avg Test for temp_api_get_avg function.
+ * \defgroup        temp_api_get_average Test for temp_api_get_average function.
  * \{
  */
 
-void check_temp_api_get_avg(void) {
-    const celsius temperatures[] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_values(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_values failed!");
-
-    celsius avg = 0.f;
-    for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
-        avg += temperatures[i];
-    }
-    avg /= DEFS_CELLS_COUNT;
-
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(avg, temp_api_get_avg(), "Values are different!");
+void check_temp_api_get_average(void) {
+    const celsius temperatures[DEFS_CELLS_COUNT] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_update_temperatures(0U, temperatures, DEFS_CELLS_COUNT), "temp_api_update_temperatures failed!");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.5f, temp_api_get_average(), "temperatures are different!");
 }
 
 /*! \} */
 
 /*!
- * \defgroup        temp_api_dump_values Test for temp_api_dump_values function.
+ * \defgroup        temp_api_dump_temperatures Test for temp_api_dump_temperatures function.
  * \{
  */
 
-void check_temp_api_dump_values_success(void) {
-    celsius dump[3U];
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_dump_values(dump, 2U, sizeof(dump) / sizeof(*dump)), "temp_api_dump_values failed!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(htemp.temperatures + 2U, dump, sizeof(dump) / sizeof(*dump), "Values are different!");
+void check_temp_api_dump_temperatures_success(void) {
+#define COUNT (3U)
+    celsius dump[COUNT] = { 0 };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMP_RC_OK, temp_api_dump_temperatures(dump, 2U, COUNT), "temp_api_dump_temperatures failed!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(htemp.temperatures + 2U, dump, COUNT, "temperatures are different!");
+#undef COUNT
 }
 
-void check_temp_api_dump_values_null_out(void) {
-    TEST_ASSERT_EQUAL_INT(TEMP_RC_NULL_PTR, temp_api_dump_values(NULL, 0U, 0U));
+void check_temp_api_dump_temperatures_null_out(void) {
+    TEST_ASSERT_EQUAL_INT(TEMP_RC_NULL_POINTER, temp_api_dump_temperatures(NULL, 0U, 0U));
 }
 
-void check_temp_api_dump_values_start_out_of_bounds(void) {
-    celsius dump[3U];
-    TEST_ASSERT_EQUAL_INT(TEMP_RC_OUT_OF_BOUNDS, temp_api_dump_values(dump, DEFS_CELLS_COUNT, sizeof(dump) / sizeof(*dump)));
+void check_temp_api_dump_temperatures_start_out_of_bounds(void) {
+#define COUNT (3U)
+    celsius dump[3U] = { 0 };
+    TEST_ASSERT_EQUAL_INT(TEMP_RC_OUT_OF_BOUNDS, temp_api_dump_temperatures(dump, DEFS_CELLS_COUNT, COUNT));
+#undef COUNT
 }
 
-void check_temp_api_dump_values_size_too_big(void) {
-    celsius dump[8U];
-    TEST_ASSERT_EQUAL_INT(TEMP_RC_OUT_OF_BOUNDS, temp_api_dump_values(dump, 0U, sizeof(dump) / sizeof(*dump)));
+void check_temp_api_dump_temperatures_size_too_big(void) {
+#define COUNT (8U)
+    celsius dump[COUNT] = { 0 };
+    TEST_ASSERT_EQUAL_INT(TEMP_RC_OUT_OF_BOUNDS, temp_api_dump_temperatures(dump, 0U, COUNT));
+#undef COUNT
 }
 
 /*! \} */
@@ -167,24 +168,24 @@ int main(void) {
     /*! \} */
 
     /*!
-     * \defgroup        temp_api_update_value Test for temp_api_update_value function.
+     * \defgroup        temp_api_update_temperature Test for temp_api_update_temperature function.
      * \{
      */
 
-    RUN_TEST(check_temp_api_update_value_success);
-    RUN_TEST(check_temp_api_update_value_index_out_of_bounds);
+    RUN_TEST(check_temp_api_update_temperature_success);
+    RUN_TEST(check_temp_api_update_temperature_index_out_of_bounds);
 
     /*! \} */
 
     /*!
-     * \defgroup        temp_api_update_values Test for temp_api_update_values function.
+     * \defgroup        temp_api_update_temperatures Test for temp_api_update_temperatures function.
      * \{
      */
 
-    RUN_TEST(check_temp_api_update_values_success);
-    RUN_TEST(check_temp_api_update_values_null_temperatures);
-    RUN_TEST(check_temp_api_update_values_index_out_of_bounds);
-    RUN_TEST(check_temp_api_update_values_size_too_big);
+    RUN_TEST(check_temp_api_update_temperatures_success);
+    RUN_TEST(check_temp_api_update_temperatures_null_temperatures);
+    RUN_TEST(check_temp_api_update_temperatures_index_out_of_bounds);
+    RUN_TEST(check_temp_api_update_temperatures_size_too_big);
 
     /*! \} */
 
@@ -207,23 +208,23 @@ int main(void) {
     /*! \} */
 
     /*!
-	 * \defgroup        temp_api_get_avg Test for temp_api_get_avg function.
+	 * \defgroup        temp_api_get_average Test for temp_api_get_average function.
 	 * \{
 	 */
 
-    RUN_TEST(check_temp_api_get_avg);
+    RUN_TEST(check_temp_api_get_average);
 
     /*! \} */
 
     /*!
-     * \defgroup        temp_api_dump_values Test for temp_api_dump_values function.
+     * \defgroup        temp_api_dump_temperatures Test for temp_api_dump_temperatures function.
      * \{
      */
 
-    RUN_TEST(check_temp_api_dump_values_success);
-    RUN_TEST(check_temp_api_dump_values_null_out);
-    RUN_TEST(check_temp_api_dump_values_start_out_of_bounds);
-    RUN_TEST(check_temp_api_dump_values_size_too_big);
+    RUN_TEST(check_temp_api_dump_temperatures_success);
+    RUN_TEST(check_temp_api_dump_temperatures_null_out);
+    RUN_TEST(check_temp_api_dump_temperatures_start_out_of_bounds);
+    RUN_TEST(check_temp_api_dump_temperatures_size_too_big);
 
     /*! \} */
 
