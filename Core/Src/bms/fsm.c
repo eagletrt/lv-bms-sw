@@ -16,6 +16,7 @@ The finite state machine has:
 #include "fsm.h"
 
 // SEARCH FOR Your Code Here FOR CODE INSERTION POINTS!
+#include "eagletrt-api.h"
 
 // GLOBALS
 // State human-readable names
@@ -58,6 +59,7 @@ transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
 state_t do_init(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_IDLE:
@@ -75,6 +77,7 @@ state_t do_init(state_data_t *data) {
 state_t do_idle(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case NO_CHANGE:
@@ -95,6 +98,7 @@ state_t do_idle(state_data_t *data) {
 state_t do_fatal(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case NO_CHANGE:
@@ -113,6 +117,7 @@ state_t do_fatal(state_data_t *data) {
 state_t do_flash(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_IDLE:
@@ -130,6 +135,7 @@ state_t do_flash(state_data_t *data) {
 state_t do_balancing(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case NO_CHANGE:
@@ -161,60 +167,70 @@ state_t do_balancing(state_data_t *data) {
 // 1. from init to idle
 void init_to_idle(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from init to fatal
 void init_to_fatal(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from flash to idle
 void flash_to_idle(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from flash to fatal
 void flash_to_fatal(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from idle to flash
 void idle_to_flash(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from idle to balancing
 void idle_to_balancing(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from idle to fatal
 void idle_to_fatal(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from balancing to idle
 void balancing_to_idle(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from balancing to fatal
 void balancing_to_fatal(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 // This function is called in 1 transition:
 // 1. from fatal to flash
 void fatal_to_flash(state_data_t *data) {
     /* Your Code Here */
+    EAGLETRT_API_UNUSED(data);
 }
 
 /*  ____  _        _        
@@ -241,7 +257,7 @@ state_t run_state(state_t cur_state, state_data_t *data) {
         transition(data);
 
     return new_state;
-};
+}
 
 #ifdef TEST_MAIN
 #include <unistd.h>
