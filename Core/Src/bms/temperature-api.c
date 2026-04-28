@@ -20,7 +20,7 @@
 
 #ifdef CONFIG_TEMPERATURE_MODULE_ENABLE
 
-EAGLETRT_STATIC struct TemperatureHandler htemp; /*!< Private temperature handler instance. */
+EAGLETRT_STATIC struct TemperatureHandler temperature_handler; /*!< Private temperature handler instance. */
 
 void temperature_api_init(void) {
     memset(&htemp, 0U, sizeof(htemp));
