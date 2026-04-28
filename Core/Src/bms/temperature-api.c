@@ -26,32 +26,32 @@ void temperature_api_init(void) {
     memset(&htemp, 0U, sizeof(htemp));
 }
 
-enum TemperatureReturnCode temperature_api_update_temperature(size_t idx, celsius temperature) {
-    if (idx >= DEFS_CELLS_COUNT) {
+enum TemperatureReturnCode temperature_api_update_temperature(size_t index, celsius temperature) {
+    if (index >= DEFS_CELLS_COUNT) {
         return TEMPERATURE_RC_OUT_OF_BOUNDS;
     }
 
-    htemp.temperatures[idx] = temperature;
+    htemp.temperatures[index] = temperature;
     return TEMPERATURE_RC_OK;
 }
 
-enum TemperatureReturnCode temperature_api_update_temperatures(size_t idx, const celsius *temperatures, size_t size) {
+enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, const celsius *temperatures, size_t size) {
     if (temperatures == NULL) {
         return TEMPERATURE_RC_NULL_POINTER;
     }
 
-    if ((idx + size) > DEFS_CELLS_COUNT) {
+    if ((index + size) > DEFS_CELLS_COUNT) {
         return TEMPERATURE_RC_OUT_OF_BOUNDS;
     }
 
     for (size_t i = 0U; i < size; ++i) {
-        htemp.temperatures[idx + i] = temperatures[i];
+        htemp.temperatures[index + i] = temperatures[i];
     }
     return TEMPERATURE_RC_OK;
 }
 
 celsius temperature_api_get_min(void) {
-    celsius min = htemp.temperatures[0];
+    celsius min = htemp.temperatures[0U];
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
         min = EAGLETRT_API_MIN(min, htemp.temperatures[i]);
     }
@@ -60,7 +60,7 @@ celsius temperature_api_get_min(void) {
 }
 
 celsius temperature_api_get_max(void) {
-    celsius max = htemp.temperatures[0];
+    celsius max = htemp.temperatures[0U];
     for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
         max = EAGLETRT_API_MAX(max, htemp.temperatures[i]);
     }
