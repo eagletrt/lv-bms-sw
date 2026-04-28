@@ -41,7 +41,7 @@ enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, con
 
 /*!
  * \brief            Get the minimum cell temperature.
- * \retval           celsius The minimum temperature in °C.
+ * \returns           celsius The minimum temperature in °C.
  */
 celsius temperature_api_get_min(void);
 
