@@ -243,6 +243,15 @@ int main(void) {
     /*! \} */
 
     /*!
+	 * \defgroup        voltage_api_get_sum Test for voltage_api_get_sum function.
+	 * \{
+	 */
+
+    RUN_TEST(check_voltage_api_get_sum);
+
+    /*! \} */
+
+    /*!
      * \defgroup        voltage_api_dump_voltages Test for voltage_api_dump_voltages function.
      * \{
      */
