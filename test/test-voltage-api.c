@@ -15,7 +15,7 @@
 #include "types.h"
 #include "defs.h"
 
-extern struct VoltageHandler htemp;
+extern struct VoltageHandler voltage_handler;
 
 void setUp(void) {
     voltage_api_init();
@@ -31,10 +31,10 @@ void tearDown() {
 
 void check_voltage_api_init(void) {
     volt voltages[DEFS_CELLS_COUNT];
-    memcpy(voltages, htemp.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
-    memset(htemp.voltages, 0xFF, DEFS_CELLS_COUNT * sizeof(*htemp.voltages));
+    memcpy(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memset(voltage_handler.voltages, 0xFF, DEFS_CELLS_COUNT * sizeof(*voltage_handler.voltages));
     voltage_api_init();
-    TEST_ASSERT_EQUAL_MEMORY(voltages, htemp.voltages, DEFS_CELLS_COUNT);
+    TEST_ASSERT_EQUAL_MEMORY(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT);
 }
 
 /*! \} */
@@ -46,14 +46,14 @@ void check_voltage_api_init(void) {
 
 void check_voltage_api_update_voltage_with_valid_parameters(void) {
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_OK, voltage_api_update_voltage(0U, 7.f), "voltage_api_update_voltage failed!");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(7.f, htemp.voltages[0U], "Stored voltage is different!");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(7.f, voltage_handler.voltages[0U], "Stored voltage is different!");
 }
 
 void check_voltage_api_update_voltage_when_index_is_out_of_bounds(void) {
     volt voltages[DEFS_CELLS_COUNT];
-    memcpy(voltages, htemp.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_OUT_OF_BOUNDS, voltage_api_update_voltage(DEFS_CELLS_COUNT, 7.f), "voltage_api_update_voltage returned a different value!");
-    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, htemp.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
+    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
 }
 
 /*! \} */
@@ -66,31 +66,31 @@ void check_voltage_api_update_voltage_when_index_is_out_of_bounds(void) {
 void check_voltage_api_update_voltages_with_valid_parameters(void) {
     const volt voltages[DEFS_CELLS_COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f };
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_OK, voltage_api_update_voltages(0U, voltages, DEFS_CELLS_COUNT), "voltage_api_update_voltages failed!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(voltages, htemp.voltages, DEFS_CELLS_COUNT, "Stored voltages are different!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT, "Stored voltages are different!");
 }
 
 void check_voltage_api_update_voltages_with_null_voltages(void) {
     volt voltages[DEFS_CELLS_COUNT];
-    memcpy(voltages, htemp.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_NULL_POINTER, voltage_api_update_voltages(0U, NULL, DEFS_CELLS_COUNT), "voltage_api_update_voltages returned a different value!");
-    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, htemp.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
+    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
 }
 
 void check_voltage_api_update_voltages_when_index_is_out_of_bounds(void) {
     const volt VOLTAGES[DEFS_CELLS_COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f };
     volt voltages[DEFS_CELLS_COUNT];
-    memcpy(voltages, htemp.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_OUT_OF_BOUNDS, voltage_api_update_voltages(DEFS_CELLS_COUNT, VOLTAGES, DEFS_CELLS_COUNT), "voltage_api_update_voltages returned a different value!");
-    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, htemp.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
+    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
 }
 
 void check_voltage_api_update_voltages_when_size_is_too_big(void) {
 #define COUNT (9U)
     const volt VOLTAGES[COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f, 3.8f, 3.9f, 4.f };
     volt voltages[DEFS_CELLS_COUNT];
-    memcpy(voltages, htemp.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_OUT_OF_BOUNDS, voltage_api_update_voltages(0U, VOLTAGES, COUNT), "voltage_api_update_voltages returned a different value!");
-    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, htemp.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
+    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(voltages, voltage_handler.voltages, DEFS_CELLS_COUNT, "Previously stored values have been modified!");
 #undef COUNT
 }
 
@@ -103,7 +103,7 @@ void check_voltage_api_update_voltages_when_size_is_too_big(void) {
 
 void check_voltage_api_get_min(void) {
     const volt voltages[DEFS_CELLS_COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f };
-    memcpy(htemp.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltage_handler.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_FLOAT(voltages[0U], voltage_api_get_min());
 }
 
@@ -116,7 +116,7 @@ void check_voltage_api_get_min(void) {
 
 void check_voltage_api_get_max(void) {
     const volt voltages[DEFS_CELLS_COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f };
-    memcpy(htemp.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltage_handler.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_FLOAT(voltages[5U], voltage_api_get_max());
 }
 
@@ -129,7 +129,7 @@ void check_voltage_api_get_max(void) {
 
 void check_voltage_api_get_average(void) {
     const volt voltages[DEFS_CELLS_COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f };
-    memcpy(htemp.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltage_handler.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_FLOAT(3.45f, voltage_api_get_average());
 }
 
@@ -142,7 +142,7 @@ void check_voltage_api_get_average(void) {
 
 void check_voltage_api_get_sum(void) {
     const volt voltages[DEFS_CELLS_COUNT] = { 3.2f, 3.3f, 3.4f, 3.5f, 3.6f, 3.7f };
-    memcpy(htemp.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
+    memcpy(voltage_handler.voltages, voltages, DEFS_CELLS_COUNT * sizeof(*voltages));
     TEST_ASSERT_EQUAL_FLOAT(20.7f, voltage_api_get_sum());
 }
 
@@ -157,7 +157,7 @@ void check_voltage_api_dump_voltages_with_valid_parameters(void) {
 #define COUNT (3U)
     volt dump[COUNT] = { 0 };
     TEST_ASSERT_EQUAL_INT_MESSAGE(VOLTAGE_RC_OK, voltage_api_dump_voltages(dump, 2U, COUNT), "voltage_api_dump_voltages failed!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(htemp.voltages + 2U, dump, COUNT, "voltages are different!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(voltage_handler.voltages + 2U, dump, COUNT, "voltages are different!");
 #undef COUNT
 }
 
