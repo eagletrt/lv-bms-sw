@@ -70,7 +70,7 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
 
 #else /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 
-#define temperature_api_init() (EAGLE_API_NO())
+#define temperature_api_init() EAGLETRT_API_NOP()
 #define temperature_api_update_temperature(index, temperature) (TEMPERATURE_RC_OK)
 #define temperature_api_update_temperatures(index, temperatures, size) (TEMPERATURE_RC_OK)
 #define temperature_api_get_min() (0.f)
