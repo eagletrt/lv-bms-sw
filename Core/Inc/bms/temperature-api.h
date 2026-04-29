@@ -47,13 +47,13 @@ celsius temperature_api_get_min(void);
 
 /*!
  * \brief            Get the maximum cell temperature.
- * \retval           celsius The maximum temperature in °C.
+ * \returns          celsius The maximum temperature in °C.
  */
 celsius temperature_api_get_max(void);
 
 /*!
  * \brief            Get the average cell temperature.
- * \retval           celsius The average temperature in °C.
+ * \returns          celsius The average temperature in °C.
  */
 celsius temperature_api_get_average(void);
 
