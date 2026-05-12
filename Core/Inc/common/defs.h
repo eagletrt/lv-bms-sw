@@ -9,6 +9,6 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#define DEFS_CELLS_COUNT (6U) /*!< The number of cells */
+#define DEFS_CELLS_COUNT (6U) /*!< The number of cells in series */
 
 #endif /*! DEFS_H */
