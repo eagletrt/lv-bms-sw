@@ -20,7 +20,7 @@
 void voltage_api_init(void);
 
 /*!
- * \brief            Update a single voltage voltage.
+ * \brief            Update a single voltage value.
  * \param[in]        index The index of the voltage to update.
  * \param[in]        voltage The new voltage in V.
  * \retval           VOLTAGE_RC_OK on success.
@@ -29,7 +29,7 @@ void voltage_api_init(void);
 enum VoltageReturnCode voltage_api_update_voltage(size_t index, volt voltage);
 
 /*!
- * \brief            Update multiple voltage voltages.
+ * \brief            Update multiple voltage values.
  * \param[in]        index The start index of the voltages to update.
  * \param[in]        voltages A pointer to the array of voltages to copy.
  * \param[in]        size The number of elements to copy.
@@ -41,25 +41,25 @@ enum VoltageReturnCode voltage_api_update_voltages(size_t index, const volt *vol
 
 /*!
  * \brief            Get the minimum cell voltage.
- * \retval           volt The minimum voltage in V.
+ * \returns          volt The minimum voltage in V.
  */
 volt voltage_api_get_min(void);
 
 /*!
  * \brief            Get the maximum cell voltage.
- * \retval           volt The maximum voltage in V.
+ * \returns          volt The maximum voltage in V.
  */
 volt voltage_api_get_max(void);
 
 /*!
  * \brief            Get the average cell voltage.
- * \retval           volt The average voltage in V.
+ * \returns          volt The average voltage in V.
  */
 volt voltage_api_get_average(void);
 
 /*!
  * \brief            Get the sum of the cells voltages.
- * \retval           volt The cells voltages sum.
+ * \returns          volt The cells voltages sum.
  */
 volt voltage_api_get_sum(void);
 
@@ -76,7 +76,7 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
 
 #else /*! CONFIG_VOLTAGE_MODULE_ENABLE */
 
-#define voltage_api_init() (EAGLE_API_NO())
+#define voltage_api_init() (EAGLE_API_NOP())
 #define voltage_api_update_voltage(index, voltage) (VOLTAGE_RC_OK)
 #define voltage_api_update_voltages(index, voltages, size) (VOLTAGE_RC_OK)
 #define voltage_api_get_min() (0.f)

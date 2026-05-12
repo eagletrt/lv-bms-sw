@@ -24,7 +24,7 @@
 enum VoltageReturnCode {
     VOLTAGE_RC_OK,            /*!< Function executed successfully */
     VOLTAGE_RC_NULL_POINTER,  /*!< Unexpected NULL pointer */
-    VOLTAGE_RC_OUT_OF_BOUNDS, /*!< A value is greater/lower than the maximum/minimum allowed value */
+    VOLTAGE_RC_OUT_OF_BOUNDS, /*!< A value is greater/lower than the maximum/minimum allowed voltage */
 };
 
 /*!
