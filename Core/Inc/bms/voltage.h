@@ -31,7 +31,7 @@ enum VoltageReturnCode {
  * \brief            Voltage module handler structure.
  */
 struct VoltageHandler {
-    volt voltages[DEFS_CELLS_COUNT]; /*!< An array of voltages in V */
+    volt voltages[DEFS_SERIES_COUNT]; /*!< An array of voltages in V */
 };
 
 #endif /*! VOLTAGE_H */

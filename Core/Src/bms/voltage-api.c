@@ -27,7 +27,7 @@ void voltage_api_init(void) {
 }
 
 enum VoltageReturnCode voltage_api_update_voltage(size_t index, volt voltage) {
-    if (index >= DEFS_CELLS_COUNT) {
+    if (index >= DEFS_SERIES_COUNT) {
         return VOLTAGE_RC_OUT_OF_BOUNDS;
     }
 
@@ -40,7 +40,7 @@ enum VoltageReturnCode voltage_api_update_voltages(size_t index, const volt *vol
         return VOLTAGE_RC_NULL_POINTER;
     }
 
-    if ((index + size) > DEFS_CELLS_COUNT) {
+    if ((index + size) > DEFS_SERIES_COUNT) {
         return VOLTAGE_RC_OUT_OF_BOUNDS;
     }
 
@@ -52,7 +52,7 @@ enum VoltageReturnCode voltage_api_update_voltages(size_t index, const volt *vol
 
 volt voltage_api_get_min(void) {
     volt min = voltage_handler.voltages[0U];
-    for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFS_SERIES_COUNT; ++i) {
         min = EAGLETRT_API_MIN(min, voltage_handler.voltages[i]);
     }
 
@@ -61,7 +61,7 @@ volt voltage_api_get_min(void) {
 
 volt voltage_api_get_max(void) {
     volt max = voltage_handler.voltages[0U];
-    for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFS_SERIES_COUNT; ++i) {
         max = EAGLETRT_API_MAX(max, voltage_handler.voltages[i]);
     }
 
@@ -70,16 +70,16 @@ volt voltage_api_get_max(void) {
 
 volt voltage_api_get_average(void) {
     volt average = 0.f;
-    for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFS_SERIES_COUNT; ++i) {
         average += voltage_handler.voltages[i];
     }
 
-    return average / DEFS_CELLS_COUNT;
+    return average / DEFS_SERIES_COUNT;
 }
 
 volt voltage_api_get_sum(void) {
     volt sum = 0.f;
-    for (size_t i = 0; i < DEFS_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFS_SERIES_COUNT; ++i) {
         sum += voltage_handler.voltages[i];
     }
 
@@ -91,7 +91,7 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
         return VOLTAGE_RC_NULL_POINTER;
     }
 
-    if ((start + size) > DEFS_CELLS_COUNT) {
+    if ((start + size) > DEFS_SERIES_COUNT) {
         return VOLTAGE_RC_OUT_OF_BOUNDS;
     }
 
