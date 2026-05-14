@@ -21,7 +21,7 @@ void setUp(void) {
     voltage_api_init();
 }
 
-void tearDown() {
+void tearDown(void) {
 }
 
 /*!

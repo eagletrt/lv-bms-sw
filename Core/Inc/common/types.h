@@ -14,7 +14,8 @@
  * \{
  */
 
-typedef float volt; /*!< Voltage value in V */
+typedef float volt;    /*!< Voltage value in V */
+typedef float celsius; /*!< Temperature value in °C */
 
 /*! \} */
 

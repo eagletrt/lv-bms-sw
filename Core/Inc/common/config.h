@@ -15,6 +15,7 @@
  */
 
 #define CONFIG_VOLTAGE_MODULE_ENABLE
+#define CONFIG_TEMPERATURE_MODULE_ENABLE
 
 /*! \} */
 
