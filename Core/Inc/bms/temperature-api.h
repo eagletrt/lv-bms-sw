@@ -73,9 +73,9 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
 #define temperature_api_init() EAGLETRT_API_NOP()
 #define temperature_api_update_temperature(index, temperature) (TEMPERATURE_RC_OK)
 #define temperature_api_update_temperatures(index, temperatures, size) (TEMPERATURE_RC_OK)
-#define temperature_api_get_min() (0.f)
-#define temperature_api_get_max() (0.f)
-#define temperature_api_get_average() (0.f)
+#define temperature_api_get_min() (0.F)
+#define temperature_api_get_max() (0.F)
+#define temperature_api_get_average() (0.F)
 #define temperature_api_dump_temperatures(out, start, size) (TEMPERATURE_RC_OK)
 
 #endif /*! CONFIG_TEMPERATURE_MODULE_ENABLE */

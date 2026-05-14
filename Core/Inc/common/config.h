@@ -1,6 +1,6 @@
 /*!
  * \file            config.h
- * \date            2026-03-24
+ * \date            2026-04-28
  * \authors         Mirko Lana [mirko.lana@eagletrt.it]
  *
  * \brief           Project configuration.
@@ -14,6 +14,7 @@
  * \{
  */
 
+#define CONFIG_VOLTAGE_MODULE_ENABLE
 #define CONFIG_TEMPERATURE_MODULE_ENABLE
 
 /*! \} */

@@ -12,12 +12,12 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "defs.h"
+#include "defines.h"
 #include "types.h"
 
-#define TEMPERATURE_CHARGE_MIN_C (0.f)                       /*!< Minimum allowed cell temperature in °C in charge */
-#define TEMPERATURE_CHARGE_MAX_C (60.f)                      /*!< Maximum allowed cell temperature in °C in charge */
-#define TEMPERATURE_DISCHARGE_MIN_C (-40.f)                  /*!< Minimum allowed cell temperature in °C in discharge */
+#define TEMPERATURE_CHARGE_MIN_C (0.F)                       /*!< Minimum allowed cell temperature in °C in charge */
+#define TEMPERATURE_CHARGE_MAX_C (60.F)                      /*!< Maximum allowed cell temperature in °C in charge */
+#define TEMPERATURE_DISCHARGE_MIN_C (-40.F)                  /*!< Minimum allowed cell temperature in °C in discharge */
 #define TEMPERATURE_DISCHARGE_MAX_C TEMPERATURE_CHARGE_MAX_C /*!< Maximum allowed cell temperature in °C in discharge */
 
 /*!
@@ -33,7 +33,7 @@ enum TemperatureReturnCode {
  * \brief            Temperature module handler structure.
  */
 struct TemperatureHandler {
-    celsius temperatures[DEFS_CELLS_COUNT]; /*!< An array of temperatures in °C */
+    celsius temperatures[DEFINES_CELLS_SERIES_COUNT]; /*!< An array of temperatures in °C */
 };
 
 #endif /*! TEMPERATURE_H */

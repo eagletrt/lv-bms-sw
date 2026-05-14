@@ -1,6 +1,6 @@
 /*!
  * \file            types.h
- * \date            2026-03-24
+ * \date            2026-04-28
  * \authors         Mirko Lana [mirko.lana@eagletrt.it]
  *
  * \brief           Custom type definitions used inside the project.
@@ -14,6 +14,7 @@
  * \{
  */
 
+typedef float volt;    /*!< Voltage value in V */
 typedef float celsius; /*!< Temperature value in °C */
 
 /*! \} */
