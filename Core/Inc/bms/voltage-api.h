@@ -79,9 +79,9 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
 #define voltage_api_init() (EAGLETRT_API_NOP())
 #define voltage_api_update_voltage(index, voltage) (VOLTAGE_RC_OK)
 #define voltage_api_update_voltages(index, voltages, size) (VOLTAGE_RC_OK)
-#define voltage_api_get_min() (0.f)
-#define voltage_api_get_max() (0.f)
-#define voltage_api_get_average() (0.f)
+#define voltage_api_get_min() (0.F)
+#define voltage_api_get_max() (0.F)
+#define voltage_api_get_average() (0.F)
 #define voltage_api_dump_voltages(out, start, size) (VOLTAGE_RC_OK)
 
 #endif /*! CONFIG_VOLTAGE_MODULE_ENABLE */
