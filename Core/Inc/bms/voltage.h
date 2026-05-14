@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "defs.h"
+#include "defines.h"
 #include "types.h"
 
 #define VOLTAGE_MIN_V (2.5f) /*!< Minimum allowed cell voltage in V */
@@ -31,7 +31,7 @@ enum VoltageReturnCode {
  * \brief            Voltage module handler structure.
  */
 struct VoltageHandler {
-    volt voltages[DEFS_SERIES_COUNT]; /*!< An array of voltages in V */
+    volt voltages[DEFINES_SERIES_COUNT]; /*!< An array of voltages in V */
 };
 
 #endif /*! VOLTAGE_H */
