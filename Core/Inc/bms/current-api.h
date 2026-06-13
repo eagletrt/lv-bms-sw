@@ -42,7 +42,7 @@ kilowatt current_api_get_power(void);
 
 #else /*! CONFIG_CURRENT_MODULE_ENABLE */
 
-#define current_api_init() (EAGLE_API_NOP())
+#define current_api_init() (EAGLETRT_API_NOP())
 #define current_api_update_current(current) (CURRENT_RC_OK)
 #define current_api_get_current() (0.F)
 #define current_api_get_power() (0.F)
