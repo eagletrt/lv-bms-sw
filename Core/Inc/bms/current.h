@@ -11,8 +11,8 @@
 
 #include "types.h"
 
-#define CURRENT_MAX_A (45.f)        /*!< Maximum allowed current value in A */
-#define CURRENT_MAX_POWER_KW (80.f) /*!< Maximum allowed power in kW */
+#define CURRENT_MAX_A (45.F)        /*!< Maximum allowed current value in A */
+#define CURRENT_MAX_POWER_KW (80.F) /*!< Maximum allowed power in kW */
 
 /*!
  * \brief            Return codes for the voltage module functions.

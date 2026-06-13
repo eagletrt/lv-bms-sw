@@ -17,6 +17,8 @@
 typedef float ampere;   /*!< Current value in A */
 typedef float watt;     /*!< Power value in W */
 typedef float kilowatt; /*!< Power value in kW */
+typedef float volt;     /*!< Voltage value in V */
+typedef float celsius;  /*!< Temperature value in °C */
 
 /*! \} */
 

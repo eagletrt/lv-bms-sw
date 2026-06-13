@@ -12,13 +12,14 @@
 #include "types.h"
 #include "eagletrt.h"
 #include "eagletrt-api.h"
+#include "voltage-api.h"
 
 #ifdef CONFIG_CURRENT_MODULE_ENABLE
 
 EAGLETRT_STATIC struct CurrentHandler current_handler;
 
 void current_api_init(void) {
-    current_handler.current = 0.f;
+    current_handler.current = 0.F;
 }
 
 enum CurrentReturnCode current_api_update_current(ampere current) {
@@ -31,7 +32,7 @@ ampere current_api_get_current(void) {
 }
 
 kilowatt current_api_get_power() {
-    return 0.f; /*! WARN: voltage module needed! */
+    return voltage_api_get_sum() * current_handler.current;
 }
 
 #endif /*! CONFIG_CURRENT_MODULE_ENABLE */
