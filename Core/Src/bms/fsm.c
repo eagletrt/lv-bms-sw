@@ -253,8 +253,9 @@ state_t run_state(state_t cur_state, state_data_t *data) {
         new_state = cur_state;
 
     transition_func_t *transition = transition_table[cur_state][new_state];
-    if (transition)
+    if (transition) {
         transition(data);
+    }
 
     return new_state;
 }
