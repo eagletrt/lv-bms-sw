@@ -6,16 +6,16 @@
  * \brief           Feedback management APIs.
  */
 
+#include "eagletrt.h"
 #include "eagletrt-api.h"
 
 #include "config.h"
-#include "eagletrt.h"
 #include "feedback.h"
 #include "feedback-api.h"
 
 #ifdef CONFIG_FEEDBACK_MODULE_ENABLE
 
-EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< */
+EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< The feedback handler instsance */
 
 /*!
  * \brief           Check if an analog value is in a valid feedback status.
@@ -24,7 +24,7 @@ EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< */
  * \retval          false otherwise.
  */
 EAGLETRT_STATIC_INLINE bool prv_feedback_is_valid_analog(volt analog) {
-    return (analog >= FEEDBACK_THRESHOLD_LOW_V || analog <= FEEDBACK_THRESHOLD_HIGH_V) && analog < FEEDBACK_VREF;
+    return (analog <= FEEDBACK_THRESHOLD_LOW_V || analog >= FEEDBACK_THRESHOLD_HIGH_V);
 }
 
 enum FeedbackReturnCode feedback_api_init(void) {

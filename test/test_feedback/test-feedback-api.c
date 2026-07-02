@@ -13,7 +13,9 @@
 #include "feedback.h"
 #include "feedback-api.h"
 
+/*! Get private instances and functions */
 extern struct FeedbackHandler feedback_handler;
+extern bool prv_feedback_is_valid_analog(volt analog);
 
 void setUp(void) {
     feedback_api_init();
@@ -61,17 +63,27 @@ void check_feedback_api_get_analog_with_wrong_parameter(void) {
 
 void check_feedback_api_get_status_with_valid_parameter(void) {
     feedback_handler.analog[FEEDBACK_CHRG_VIN_VALID] = 1.9F;
-    TEST_ASSERT_EQUAL_FLOAT(FEEDBACK_STATUS_HIGH, feedback_api_get_status(FEEDBACK_CHRG_VIN_VALID));
+    TEST_ASSERT_EQUAL_INT(FEEDBACK_STATUS_HIGH, feedback_api_get_status(FEEDBACK_CHRG_VIN_VALID));
 }
 
 void check_feedback_api_get_status_with_wrong_parameter(void) {
     memset(feedback_handler.analog, 0.7F, FEEDBACK_COUNT * sizeof(*feedback_handler.analog));
-    TEST_ASSERT_EQUAL_FLOAT(FEEDBACK_STATUS_ERROR, feedback_api_get_status(FEEDBACK_COUNT));
+    TEST_ASSERT_EQUAL_INT(FEEDBACK_STATUS_ERROR, feedback_api_get_status(FEEDBACK_COUNT));
 }
 
-void check_feedback_api_get_status_with_analog_value_too_high(void) {
-    feedback_handler.analog[FEEDBACK_CHRG_VIN_VALID] = 3.8F;
-    TEST_ASSERT_EQUAL_FLOAT(FEEDBACK_STATUS_ERROR, feedback_api_get_status(FEEDBACK_CHRG_VIN_VALID));
+/*! \} */
+
+/*!
+ * \defgroup		prv_feedback_is_valid_analog Test for prv_feedback_is_valid_analog function.
+ * \{
+ */
+
+void check_feedback_api_prv_feedback_is_valid_analog(void) {
+    TEST_ASSERT_TRUE(prv_feedback_is_valid_analog(1.9F));
+}
+
+void check_feedback_api_prv_feedback_is_valid_analog_with_invalid_value(void) {
+    TEST_ASSERT_FALSE(prv_feedback_is_valid_analog(1.1F));
 }
 
 /*! \} */
@@ -93,8 +105,8 @@ int main(void) {
      * \{
      */
 
-    RUN_TEST(check_feedback_api_get_analog_with_valid_parameter);
-    RUN_TEST(check_feedback_api_get_analog_with_wrong_parameter);
+    RUN_TEST(check_feedback_api_prv_feedback_is_valid_analog);
+    RUN_TEST(check_feedback_api_prv_feedback_is_valid_analog_with_invalid_value);
 
     /*! \} */
 
@@ -105,7 +117,16 @@ int main(void) {
 
     RUN_TEST(check_feedback_api_get_status_with_valid_parameter);
     RUN_TEST(check_feedback_api_get_status_with_wrong_parameter);
-    RUN_TEST(check_feedback_api_get_status_with_analog_value_too_high);
+
+    /*! \} */
+
+    /*!
+     * \defgroup		feedback_api_get_analog Test for feedback_api_get_analog function.
+     * \{
+     */
+
+    RUN_TEST(check_feedback_api_get_analog_with_valid_parameter);
+    RUN_TEST(check_feedback_api_get_analog_with_wrong_parameter);
 
     /*! \} */
 

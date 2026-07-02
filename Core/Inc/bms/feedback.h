@@ -13,8 +13,6 @@
 
 #define FEEDBACK_CYCLE_TIME_MS (1U) /*!< The period with which feedbacks are updated */
 
-#define FEEDBACK_VREF (3.3F) /*!< Voltage reference */
-
 /*!
  * \defgroup        feedback_threshold Thresholds for the analog feedbacks in V.
  *
@@ -25,8 +23,8 @@
  * \{
  */
 
-#define FEEDBACK_THRESHOLD_HIGH_V (1.9f) /*!< Feedback high threshold in V */
-#define FEEDBACK_THRESHOLD_LOW_V (0.7f)  /*!< Feedback low threshold in V */
+#define FEEDBACK_THRESHOLD_HIGH_V (1.9F) /*!< Feedback high threshold in V */
+#define FEEDBACK_THRESHOLD_LOW_V (0.7F)  /*!< Feedback low threshold in V */
 
 /*!
  * \}
