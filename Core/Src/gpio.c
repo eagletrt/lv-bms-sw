@@ -59,7 +59,7 @@ void MX_GPIO_Init(void)
                           |LED2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OUTPUT_EN_GPIO_Port, OUTPUT_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, OUTPUT_EN_Pin|SPI_LT_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(CHARGE_EN_GPIO_Port, CHARGE_EN_Pin, GPIO_PIN_RESET);
@@ -86,12 +86,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : OUTPUT_EN_Pin */
-  GPIO_InitStruct.Pin = OUTPUT_EN_Pin;
+  /*Configure GPIO pins : OUTPUT_EN_Pin SPI_LT_CS_Pin */
+  GPIO_InitStruct.Pin = OUTPUT_EN_Pin|SPI_LT_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(OUTPUT_EN_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CHRG_STATUS_FB_Pin CHRG_VIN_VALID_FB_Pin */
   GPIO_InitStruct.Pin = CHRG_STATUS_FB_Pin|CHRG_VIN_VALID_FB_Pin;

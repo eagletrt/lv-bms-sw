@@ -105,6 +105,8 @@ void Error_Handler(void);
 #define OUTPUT_DELAY_FB_GPIO_Port GPIOC
 #define USART_RX_Pin GPIO_PIN_10
 #define USART_RX_GPIO_Port GPIOA
+#define SPI_LT_CS_Pin GPIO_PIN_15
+#define SPI_LT_CS_GPIO_Port GPIOA
 #define CHRG_STATUS_FB_Pin GPIO_PIN_1
 #define CHRG_STATUS_FB_GPIO_Port GPIOD
 #define CHRG_VIN_VALID_FB_Pin GPIO_PIN_2
