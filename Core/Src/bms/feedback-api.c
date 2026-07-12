@@ -32,6 +32,15 @@ enum FeedbackReturnCode feedback_api_init(void) {
     return FEEDBACK_RC_OK;
 }
 
+enum FeedbackReturnCode feedback_api_set_analog(enum Feedback feedback, volt analog) {
+    if (feedback >= FEEDBACK_COUNT) {
+        return FEEDBACK_RC_OUT_OF_BOUNDS;
+    }
+
+    feedback_handler.feedback[feedback];
+    return FEEDBACK_RC_OK;
+}
+
 volt feedback_api_get_analog(enum Feedback feedback) {
     if (feedback >= FEEDBACK_COUNT) {
         return 0.F;

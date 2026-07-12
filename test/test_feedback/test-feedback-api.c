@@ -31,7 +31,11 @@ void tearDown(void) {
 
 void check_feedback_api_init(void) {
     volt analog[FEEDBACK_COUNT] = { 0.F };
-    memset(feedback_handler.analog, 1.9F, FEEDBACK_COUNT * sizeof(*feedback_handler.analog));
+    
+    for (size_t i = 0U; i < FEEDBACK_COUNT; ++i) {
+        feedback_handler.analog[i] = 1.9F;
+    }
+
     feedback_api_init();
     TEST_ASSERT_EQUAL_FLOAT_ARRAY(analog, feedback_handler.analog, FEEDBACK_COUNT);
 }
@@ -50,7 +54,10 @@ void check_feedback_api_get_analog_with_valid_parameter(void) {
 }
 
 void check_feedback_api_get_analog_with_wrong_parameter(void) {
-    memset(feedback_handler.analog, 1.9F, FEEDBACK_COUNT * sizeof(*feedback_handler.analog));
+    for (size_t i = 0U; i < FEEDBACK_COUNT; ++i) {
+        feedback_handler.analog[i] = 1.9F;
+    }
+
     TEST_ASSERT_EQUAL_FLOAT(0.F, feedback_api_get_analog(FEEDBACK_COUNT));
 }
 
@@ -67,7 +74,10 @@ void check_feedback_api_get_status_with_valid_parameter(void) {
 }
 
 void check_feedback_api_get_status_with_wrong_parameter(void) {
-    memset(feedback_handler.analog, 0.7F, FEEDBACK_COUNT * sizeof(*feedback_handler.analog));
+    for (size_t i = 0U; i < FEEDBACK_COUNT; ++i) {
+        feedback_handler.analog[i] = 0.7F;
+    }
+
     TEST_ASSERT_EQUAL_INT(FEEDBACK_STATUS_ERROR, feedback_api_get_status(FEEDBACK_COUNT));
 }
 

@@ -34,22 +34,34 @@
  * \brief            Return codes for the feedback module functions.
  */
 enum FeedbackReturnCode {
-    FEEDBACK_RC_OK, /*!< Function executed successfully */
+    FEEDBACK_RC_OK,            /*!< Function executed successfully */
+    FEEDBACK_RC_OUT_OF_BOUNDS, /*!< A value is greater/lower than the maximum/minimum allowed value */
 };
 
 /*!
  * \brief           Type definition of the feedback identifiers.
+ *
+ * \details         The charger IC provides two related signals that must be evaluated together:
+ *                  - FEEDBACK_CHARGE_STATUS_NEGATED (STAT)
+ *                  - FEEDBACK_CHARGE_VIN_VALID_NEGATED (ACOK)
+ *
+ *                  | IN      | Charging State                               | ACON | STAT            |
+ *                  |---------|----------------------------------------------|------|-----------------|
+ *                  | Absent  | NA                                           | Hi-Z | Hi-Z            |
+ *                  | Present | In charging                                  | Low  | Low             |
+ *                  | Present | Charging complete, charging disabled         | Low  | Hi-Z            |
+ *                  | Present | NTC fault, safety timer expires, battery OVP | Low  | Blinking at 2Hz |
  */
 enum Feedback {
-    FEEDBACK_SUPPLY_EN,
-    FEEDBACK_SUPPLY_DELAY,
-    FEEDBACK_CHRG_STATUS,
-    FEEDBACK_CHRG_VIN_VALID,
-    FEEDBACK_OUT_EN,
-    FEEDBACK_OUTPUT_DELAY,
-    FEEDBACK_OUT_FUSE,
-    FEEDBACK_VOUT,
-    FEEDBACK_COUNT, /*!< The number of feedbacks */
+    FEEDBACK_SUPPLY_ENABLE_NEGATED,    /*!< Indicates if the supply of the board is enabled */
+    FEEDBACK_SUPPLY_DELAY,             /*!< The voltage of the RC circuit used during flashing (MCU) */
+    FEEDBACK_CHARGE_STATUS_NEGATED,    /*!< Charger IC feedback; it has to be evaluated with FEEDBACK_CHARGE_VIN_VALID_NEGATED */
+    FEEDBACK_CHARGE_VIN_VALID_NEGATED, /*!< Charger IC feedback; it has to be evaluated with FEEDBACK_CHARGE_STATUS_NEGATED */
+    FEEDBACK_OUTPUT_ENABLE_NEGATED,    /*!< Indicates the relay's coil status */
+    FEEDBACK_OUTPUT_DELAY,             /*!< The voltage of the RC circuit used during flashing (LV) */
+    FEEDBACK_OUTPUT_FUSE,              /*!< Indicates if the fuse is blown */
+    FEEDBACK_VOUT,                     /*!< Indicated the output voltage */
+    FEEDBACK_COUNT,                    /*!< The number of feedbacks */
 };
 
 /*!
