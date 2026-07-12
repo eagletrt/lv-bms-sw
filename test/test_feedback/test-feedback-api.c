@@ -43,6 +43,24 @@ void check_feedback_api_init(void) {
 /*! \} */
 
 /*!
+ * \defgroup		feedback_api_set_analog Test for feedback_api_set_analog function.
+ * \{
+ */
+
+void check_feedback_api_set_analog_with_valid_parameter(void) {
+    volt analog = 1.9F;
+    TEST_ASSERT_EQUAL_INT_MESSAGE(FEEDBACK_RC_OK, feedback_api_set_analog(FEEDBACK_OUTPUT_FUSE, analog), "An error occured while setting the feedback");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(analog, feedback_handler.analog[FEEDBACK_OUTPUT_FUSE], "Stored and given voltages differ");
+}
+
+void check_feedback_api_set_analog_with_wrong_parameter(void) {
+    volt analog = 1.9F;
+    TEST_ASSERT_EQUAL_INT(FEEDBACK_RC_OUT_OF_BOUNDS, feedback_api_set_analog(FEEDBACK_COUNT, analog));
+}
+
+/*! \} */
+
+/*!
  * \defgroup		feedback_api_get_analog Test for feedback_api_get_analog function.
  * \{
  */
@@ -121,12 +139,12 @@ int main(void) {
     /*! \} */
 
     /*!
-     * \defgroup		feedback_api_get_status Test for feedback_api_get_status function.
+     * \defgroup		feedback_api_set_status Test for feedback_api_set_status function.
      * \{
      */
 
-    RUN_TEST(check_feedback_api_get_status_with_valid_parameter);
-    RUN_TEST(check_feedback_api_get_status_with_wrong_parameter);
+    RUN_TEST(check_feedback_api_set_analog_with_valid_parameter);
+    RUN_TEST(check_feedback_api_set_analog_with_wrong_parameter);
 
     /*! \} */
 
@@ -137,6 +155,16 @@ int main(void) {
 
     RUN_TEST(check_feedback_api_get_analog_with_valid_parameter);
     RUN_TEST(check_feedback_api_get_analog_with_wrong_parameter);
+
+    /*! \} */
+
+    /*!
+     * \defgroup		feedback_api_get_status Test for feedback_api_get_status function.
+     * \{
+     */
+
+    RUN_TEST(check_feedback_api_get_status_with_valid_parameter);
+    RUN_TEST(check_feedback_api_get_status_with_wrong_parameter);
 
     /*! \} */
 
