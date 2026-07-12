@@ -31,7 +31,7 @@ void tearDown(void) {
 
 void check_feedback_api_init(void) {
     volt analog[FEEDBACK_COUNT] = { 0.F };
-    
+
     for (size_t i = 0U; i < FEEDBACK_COUNT; ++i) {
         feedback_handler.analog[i] = 1.9F;
     }
@@ -49,8 +49,8 @@ void check_feedback_api_init(void) {
 
 void check_feedback_api_get_analog_with_valid_parameter(void) {
     volt analog = 1.9F;
-    feedback_handler.analog[FEEDBACK_CHRG_VIN_VALID] = analog;
-    TEST_ASSERT_EQUAL_FLOAT(analog, feedback_api_get_analog(FEEDBACK_CHRG_VIN_VALID));
+    feedback_handler.analog[FEEDBACK_CHARGE_VIN_VALID_NEGATED] = analog;
+    TEST_ASSERT_EQUAL_FLOAT(analog, feedback_api_get_analog(FEEDBACK_CHARGE_VIN_VALID_NEGATED));
 }
 
 void check_feedback_api_get_analog_with_wrong_parameter(void) {
@@ -69,8 +69,8 @@ void check_feedback_api_get_analog_with_wrong_parameter(void) {
  */
 
 void check_feedback_api_get_status_with_valid_parameter(void) {
-    feedback_handler.analog[FEEDBACK_CHRG_VIN_VALID] = 1.9F;
-    TEST_ASSERT_EQUAL_INT(FEEDBACK_STATUS_HIGH, feedback_api_get_status(FEEDBACK_CHRG_VIN_VALID));
+    feedback_handler.analog[FEEDBACK_CHARGE_VIN_VALID_NEGATED] = 1.9F;
+    TEST_ASSERT_EQUAL_INT(FEEDBACK_STATUS_HIGH, feedback_api_get_status(FEEDBACK_CHARGE_VIN_VALID_NEGATED));
 }
 
 void check_feedback_api_get_status_with_wrong_parameter(void) {

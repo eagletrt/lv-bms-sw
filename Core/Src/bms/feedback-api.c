@@ -37,7 +37,7 @@ enum FeedbackReturnCode feedback_api_set_analog(enum Feedback feedback, volt ana
         return FEEDBACK_RC_OUT_OF_BOUNDS;
     }
 
-    feedback_handler.feedback[feedback];
+    feedback_handler.analog[feedback];
     return FEEDBACK_RC_OK;
 }
 
