@@ -20,9 +20,8 @@
 #include "main.h"
 #include "adc.h"
 #include "fdcan.h"
+#include "ltc6810-2.h"
 #include "spi.h"
-#include "stm32c0xx_hal.h"
-#include "stm32c0xx_hal_gpio.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -30,9 +29,9 @@
 /* USER CODE BEGIN Includes */
 
 #include "ltc6810-2-api.h"
-#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 /* USER CODE END Includes */
 
@@ -43,12 +42,18 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define UART_ENABLE_FUNC_PRINT
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#ifdef UART_ENABLE_FUNC_PRINT
+#define UART_ENTERING_FUNC() (uart_printf("Entering %s\r\n", __func__))
+#define UART_EXITING_FUNC() (uart_printf("Exiting %s\r\n", __func__))
+#else /*! UART_ENABLE_FUNC_PRINT */
+#define UART_ENTERING_FUNC() EAGLETRT_API_NOP()
+#define UART_EXITING_FUNC() EAGLETRT_API_NOP()
+#endif /*! UART_ENABLE_FUNC_PRINT */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -60,165 +65,16 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+static void uart_printf(const char *fmt, ...);
+static void ltc_delay_discharge_demo(struct Ltc68102Handler *handler);
+static void ltc_read_voltages(struct Ltc68102Handler *handler);
+static void ltc_read_id(struct Ltc68102Handler *handler);
+static void ltc_read_status_palle(struct Ltc68102Handler *handler);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static void ltc_delay_discharge_demo(struct Ltc68102Handler *handler) {
-    struct Ltc68102Cfgr cfg = { 0 };
 
-    uint8_t tx[32];
-    uint8_t rx[32];
-
-    memset(tx, 0xFF, sizeof(tx));
-    memset(rx, 0xFF, sizeof(rx));
-
-    /*
-     * Enable reference
-     * Enable discharge on cells 1-6
-     */
-    cfg.REFON = 1;
-
-    cfg.DCC = 0x0; // Cells 1-6 discharge enabled
-
-    size_t tx_len =
-        ltc6810_2_api_wrcfg_encode_broadcast(
-            handler,
-            &cfg,
-            tx);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_RESET);
-
-    HAL_SPI_Transmit(&hspi1,
-                     tx,
-                     tx_len,
-                     HAL_MAX_DELAY);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_SET);
-
-    HAL_Delay(200);
-
-    /*
-     * Disable discharge
-     */
-    memset(tx, 0xFF, sizeof(tx));
-
-    cfg.DCC = 0x0; // Cells 1-6 discharge disabled
-
-    tx_len =
-        ltc6810_2_api_wrcfg_encode_broadcast(
-            handler,
-            &cfg,
-            tx);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_RESET);
-
-    HAL_SPI_Transmit(&hspi1,
-                     tx,
-                     tx_len,
-                     HAL_MAX_DELAY);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_SET);
-}
-
-static void ltc_read_voltages(struct Ltc68102Handler *handler) {
-    uint8_t tx[16];
-    uint8_t rx[16];
-
-    uint16_t cells[6];
-
-    /*
-     * Start ADC conversion
-     */
-    memset(tx, 0xFF, sizeof(tx));
-
-    size_t tx_len =
-        ltc6810_2_api_adcv_encode_broadcast(
-            handler,
-            LTC6810_2_MD_27KHZ,
-            LTC6810_2_DCP_DISABLED,
-            LTC6810_2_CH_ALL,
-            tx);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_RESET);
-
-    HAL_SPI_Transmit(&hspi1,
-                     tx,
-                     tx_len,
-                     HAL_MAX_DELAY);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_SET);
-
-    /*
-     * Wait conversion
-     */
-    HAL_Delay(10);
-
-    /*
-     * Read cell voltage group A
-     */
-    memset(tx, 0xFF, sizeof(tx));
-    memset(rx, 0xFF, sizeof(rx));
-
-    tx_len =
-        ltc6810_2_api_rdcv_encode_broadcast(
-            handler,
-            LTC6810_2_CVAR,
-            tx);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_RESET);
-
-    HAL_SPI_TransmitReceive(&hspi1,
-                            tx,
-                            rx,
-                            12,
-                            HAL_MAX_DELAY);
-
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port,
-                      SPI_LT_CS_Pin,
-                      GPIO_PIN_SET);
-
-    /*
-     * Skip command bytes
-     */
-    if (ltc6810_2_api_rdcv_decode_broadcast(
-            handler,
-            &rx[4],
-            cells) != 0) {
-
-        char msg[128];
-
-        snprintf(msg,
-                 sizeof(msg),
-                 "CELL1=%umV CELL2=%umV CELL3=%umV CELL4=%umV CELL5=%umV CELL6=%umV\r\n",
-                 cells[0],
-                 cells[1],
-                 cells[2],
-                 cells[3],
-                 cells[4],
-                 cells[5]);
-
-        HAL_UART_Transmit(&huart1,
-                          (uint8_t *)msg,
-                          strlen(msg),
-                          HAL_MAX_DELAY);
-    }
-}
 /* USER CODE END 0 */
 
 /**
@@ -255,100 +111,30 @@ int main(void) {
     MX_USART1_UART_Init();
     /* USER CODE BEGIN 2 */
 
-    struct Ltc68102Handler ltc_handler;
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
 
+    struct Ltc68102Handler ltc_handler;
     ltc6810_2_api_init(&ltc_handler, 1);
+
+    struct Ltc68102Cfgr cfg = { 0 };
+    uint8_t cfg_tx[32];
+
+    cfg.REFON = 1; // REFON stays on
+    memset(cfg_tx, 0xFF, sizeof(cfg_tx));
+
+    size_t cfg_len = ltc6810_2_api_wrcfg_encode_broadcast(&ltc_handler, &cfg, cfg_tx);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, cfg_tx, cfg_len, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
 
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-
     while (1) {
-
-        // HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
-
-        // constexpr uint8_t payload_size = LTC6810_2_READ_BUFFER_SIZE + LTC6810_2_DATA_BUFFER_SIZE(1);
-
-        // uint8_t tx_payload[payload_size];
-        // uint8_t rx_payload[payload_size];
-        // for (int i = 0; i < payload_size; i++) {
-        //     tx_payload[i] = 0xFF;
-        //     rx_payload[i] = 0xFF;
-        // }
-        // ltc6810_2_api_rdsid_encode_broadcast(&ltc_handler, tx_payload);
-
-        // if (HAL_SPI_TransmitReceive(&hspi1, tx_payload, rx_payload, payload_size, 30) != HAL_OK) {
-        //     while (1) {
-        //         HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-        //         HAL_Delay(100);
-        //     }
-        // }
-
-        // HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
-
-        // uint8_t decoded[6];
-        // size_t dec = ltc6810_2_api_rdsid_decode_broadcast(&ltc_handler, &rx_payload[4], decoded);
-
-        // char buffer[1024];
-        // size_t len;
-
-        // /* -------------------- TX -------------------- */
-
-        // len = snprintf(buffer, sizeof(buffer), "Sending:");
-
-        // for (size_t i = 0; i < payload_size && len < sizeof(buffer); i++) {
-        //     len += snprintf(buffer + len,
-        //                     sizeof(buffer) - len,
-        //                     " 0x%02X",
-        //                     tx_payload[i]);
-        // }
-
-        // len += snprintf(buffer + len,
-        //                 sizeof(buffer) - len,
-        //                 "\r\n");
-
-        // HAL_UART_Transmit(&huart1, (uint8_t *)buffer, len, HAL_MAX_DELAY);
-
-        // /* -------------------- RX -------------------- */
-
-        // len = snprintf(buffer, sizeof(buffer), "Receiving:");
-
-        // for (size_t i = 0; i < payload_size && len < sizeof(buffer); i++) {
-        //     len += snprintf(buffer + len,
-        //                     sizeof(buffer) - len,
-        //                     " 0x%02X",
-        //                     rx_payload[i]);
-        // }
-
-        // len += snprintf(buffer + len,
-        //                 sizeof(buffer) - len,
-        //                 "\r\n");
-
-        // HAL_UART_Transmit(&huart1, (uint8_t *)buffer, len, HAL_MAX_DELAY);
-
-        // /* -------------------- Decoded -------------------- */
-
-        // len = snprintf(buffer,
-        //                sizeof(buffer),
-        //                "Decoded (%u):",
-        //                (unsigned)dec);
-
-        // for (size_t i = 0; i < 6 && len < sizeof(buffer); i++) {
-        //     len += snprintf(buffer + len,
-        //                     sizeof(buffer) - len,
-        //                     " 0x%02X",
-        //                     decoded[i]);
-        // }
-
-        // len += snprintf(buffer + len,
-        //                 sizeof(buffer) - len,
-        //                 "\r\n");
-
-        // HAL_UART_Transmit(&huart1, (uint8_t *)buffer, len, HAL_MAX_DELAY);
-        //
-        ltc_delay_discharge_demo(&ltc_handler);
-
+        // ltc_read_status_palle(&ltc_handler);
+        ltc_read_id(&ltc_handler);
+        // ltc_delay_discharge_demo(&ltc_handler);
         ltc_read_voltages(&ltc_handler);
 
         HAL_Delay(500);
@@ -393,7 +179,189 @@ void SystemClock_Config(void) {
 }
 
 /* USER CODE BEGIN 4 */
+void uart_printf(const char *fmt, ...) {
+    static constexpr size_t bufflen = 1024U;
+    static uint8_t buff[bufflen];
+    va_list args;
+    va_start(args, fmt);
 
+    int len = vsnprintf((char *)buff, bufflen, fmt, args);
+    va_end(args);
+
+    if (len > 0) {
+        HAL_UART_Transmit(&huart1, buff, (uint16_t)len, HAL_MAX_DELAY);
+    }
+}
+
+static void ltc_delay_discharge_demo(struct Ltc68102Handler *handler) {
+    UART_ENTERING_FUNC();
+
+    struct Ltc68102Cfgr cfg = { 0 };
+    uint8_t tx[32];
+    uint8_t rx[32];
+
+    memset(tx, 0xFF, sizeof(tx));
+    memset(rx, 0xFF, sizeof(rx));
+
+    /*
+     * Enable reference
+     * Enable discharge on cells 1-6
+     */
+    cfg.REFON = 1;
+    cfg.DCC = 0x3F; // Cells 1-6 discharge enabled
+
+    size_t tx_len = ltc6810_2_api_wrcfg_encode_broadcast(handler, &cfg, tx);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, tx, tx_len, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    HAL_Delay(200);
+
+    /*
+     * Disable discharge
+     */
+    memset(tx, 0xFF, sizeof(tx));
+    cfg.DCC = 0x0; // Cells 1-6 discharge disabled
+
+    tx_len = ltc6810_2_api_wrcfg_encode_broadcast(handler, &cfg, tx);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, tx, tx_len, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    UART_EXITING_FUNC();
+}
+
+static void ltc_read_id(struct Ltc68102Handler *handler) {
+    UART_ENTERING_FUNC();
+
+    constexpr uint8_t payload_size = LTC6810_2_READ_BUFFER_SIZE + LTC6810_2_DATA_BUFFER_SIZE(1);
+
+    uint8_t tx_payload[payload_size];
+    uint8_t rx_payload[payload_size];
+
+    memset(tx_payload, 0xFF, payload_size);
+    memset(rx_payload, 0xFF, payload_size);
+
+    ltc6810_2_api_rdsid_encode_broadcast(handler, tx_payload);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    if (HAL_SPI_TransmitReceive(&hspi1, tx_payload, rx_payload, payload_size, HAL_MAX_DELAY) != HAL_OK) {
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+        while (1) {
+            HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+            HAL_Delay(100);
+        }
+    }
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    uart_printf("TX:");
+    for (size_t i = 0; i < payload_size; ++i) {
+        uart_printf(" %02X", tx_payload[i]);
+    }
+    uart_printf("\r\n");
+
+    uart_printf("RX:");
+    for (size_t i = 0; i < payload_size; ++i) {
+        uart_printf(" %02X", rx_payload[i]);
+    }
+    uart_printf("\r\n");
+
+    uint8_t decoded[6];
+    ltc6810_2_api_rdsid_decode_broadcast(handler, &rx_payload[4], decoded);
+    uart_printf("ID: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\r\n",
+                decoded[0],
+                decoded[1],
+                decoded[2],
+                decoded[3],
+                decoded[4],
+                decoded[5]);
+
+    UART_EXITING_FUNC();
+}
+
+static void ltc_read_voltages(struct Ltc68102Handler *handler) {
+    UART_ENTERING_FUNC();
+
+    uint16_t cells[6] = { 0 };
+
+    /* Start ADC conversion — all cells */
+    uint8_t cmd[LTC6810_2_READ_BUFFER_SIZE];
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)]; /* 8 bytes per IC */
+
+    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
+
+    size_t cmd_len = ltc6810_2_api_adcv_encode_broadcast(handler, LTC6810_2_MD_7KHZ, LTC6810_2_DCP_DISABLED, LTC6810_2_CH_ALL, cmd);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, cmd, cmd_len, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    HAL_Delay(15);
+
+    /* Read group A: cells 1-3 -> cells[0..2]
+     * Send 4-byte cmd, then receive 8-bytesponse with CS held LOW.
+     * HAL_SPI_Transmit flushes RX FIFO; HAL_SPI_Receive gets clean data. */
+    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
+
+    ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVAR, cmd);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, cmd, LTC6810_2_READ_BUFFER_SIZE, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    uart_printf("RDCVA RX:");
+    for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
+        uart_printf(" %02X", data[i]);
+    }
+    uart_printf("\r\n");
+
+    size_t dec_a = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[0]);
+    uart_printf("RDCVA PEC %s\r\n", dec_a ? "OK" : "FAIL"); /* Read group B: cells 4-6 -> cells[3..5] */
+    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
+
+    ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVBR, cmd);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, cmd, LTC6810_2_READ_BUFFER_SIZE, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    uart_printf("RDCVB RX:");
+    for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
+        uart_printf(" %02X", data[i]);
+    }
+    uart_printf("\r\n");
+    size_t dec_b = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[3]);
+    uart_printf("RDCVB PEC %s\r\n", dec_b ? "OK" : "FAIL");
+
+    /* cells[] unit = 100µV (raw LTC register). Divide by 10 for mV. */
+    uart_printf(
+        "CELL1=%umV CELL2=%umV CELL3=%umV CELL4=%umV CELL5=%umV CELL6=%umV\r\n",
+        cells[0] / 10U,
+        cells[1] / 10U,
+        cells[2] / 10U,
+        cells[3] / 10U,
+        cells[4] / 10U,
+        cells[5] / 10U);
+
+    UART_EXITING_FUNC();
+}
+
+static void ltc_read_status_palle(struct Ltc68102Handler *handler) {
+    UART_ENTERING_FUNC();
+
+    EAGLETRT_API_UNUSED(handler);
+    uart_printf("non fa un cazzo lol\r\n");
+    // static constexpr size_t payload_size = 32;
+    // static uint8_t *tx_payload[payload_size];
+    // static uint8_t *rx_payload[payload_size];
+
+    // memset(tx_payload, 0xFF, payload_size);
+    // memset(rx_payload, 0xFF, payload_size);
+
+    // HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    // HAL_SPI_TransmitReceive(&hspi1, tx, rx, 12, HAL_MAX_DELAY);
+    // HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    UART_EXITING_FUNC();
+}
 /* USER CODE END 4 */
 
 /**
