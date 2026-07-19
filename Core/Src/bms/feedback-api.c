@@ -19,7 +19,9 @@ EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< The feedback handl
 
 /*!
  * \brief           Check if an analog value is in a valid feedback status.
+ *
  * \param[in]       analog The analog value to check in V.
+ *
  * \retval          true if valid.
  * \retval          false otherwise.
  */

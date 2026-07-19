@@ -18,8 +18,9 @@
 
 EAGLETRT_STATIC struct CurrentHandler current_handler;
 
-void current_api_init(void) {
+enum CurrentReturnCode current_api_init(void) {
     current_handler.current = 0.F;
+    return CURRENT_RC_OK;
 }
 
 enum CurrentReturnCode current_api_update_current(ampere current) {

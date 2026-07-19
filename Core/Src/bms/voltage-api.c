@@ -22,8 +22,9 @@
 
 EAGLETRT_STATIC struct VoltageHandler voltage_handler; /*!< Private voltage handler instance. */
 
-void voltage_api_init(void) {
+enum VoltageReturnCode voltage_api_init(void) {
     memset(&voltage_handler, 0U, sizeof(voltage_handler));
+    return VOLTAGE_RC_OK;
 }
 
 enum VoltageReturnCode voltage_api_update_voltage(size_t index, volt voltage) {

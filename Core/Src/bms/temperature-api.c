@@ -22,7 +22,7 @@
 
 EAGLETRT_STATIC struct TemperatureHandler temperature_handler; /*!< Private temperature handler instance. */
 
-void temperature_api_init(void) {
+enum TemperatureReturnCode temperature_api_init(void) {
     memset(&temperature_handler, 0U, sizeof(temperature_handler));
 }
 

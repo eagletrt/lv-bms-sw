@@ -18,31 +18,37 @@
 
 /*!
  * \brief            Initialize the current module.
+ *
+ * \retval           CURRENT_RC_OK on success.
  */
-void current_api_init(void);
+enum CurrentReturnCode current_api_init(void);
 
 /*!
  * \brief            Update the current value.
+ *
  * \param[in]        current The new current in A.
+ *
  * \retval           CURRENT_RC_OK on success.
  */
 enum CurrentReturnCode current_api_update_current(ampere current);
 
 /*!
  * \brief            Get the current in A.
+ *
  * \returns          ampere The current in A.
  */
 ampere current_api_get_current(void);
 
 /*!
  * \brief            Get the power in kW.
+ *
  * \returns          kilowatt The power in kW.
  */
 kilowatt current_api_get_power(void);
 
 #else /*! CONFIG_CURRENT_MODULE_ENABLE */
 
-#define current_api_init() (EAGLETRT_API_NOP())
+#define current_api_init() (CURRENT_RC_OK)
 #define current_api_update_current(current) (CURRENT_RC_OK)
 #define current_api_get_current() (0.F)
 #define current_api_get_power() (0.F)
