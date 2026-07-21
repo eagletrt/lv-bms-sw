@@ -283,9 +283,8 @@ static void ltc_read_voltages(struct Ltc68102Handler *handler) {
 
     uint16_t cells[6] = { 0 };
 
-    /* Start ADC conversion — all cells */
     uint8_t cmd[LTC6810_2_READ_BUFFER_SIZE];
-    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)]; /* 8 bytes per IC */
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)];
 
     memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
 
@@ -296,9 +295,6 @@ static void ltc_read_voltages(struct Ltc68102Handler *handler) {
 
     HAL_Delay(15);
 
-    /* Read group A: cells 1-3 -> cells[0..2]
-     * Send 4-byte cmd, then receive 8-bytesponse with CS held LOW.
-     * HAL_SPI_Transmit flushes RX FIFO; HAL_SPI_Receive gets clean data. */
     memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
 
     ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVAR, cmd);
@@ -331,15 +327,14 @@ static void ltc_read_voltages(struct Ltc68102Handler *handler) {
     size_t dec_b = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[3]);
     uart_printf("RDCVB PEC %s\r\n", dec_b ? "OK" : "FAIL");
 
-    /* cells[] unit = 100µV (raw LTC register). Divide by 10 for mV. */
     uart_printf(
-        "CELL1=%umV CELL2=%umV CELL3=%umV CELL4=%umV CELL5=%umV CELL6=%umV\r\n",
-        cells[0] / 10U,
-        cells[1] / 10U,
-        cells[2] / 10U,
-        cells[3] / 10U,
-        cells[4] / 10U,
-        cells[5] / 10U);
+        "CELL1=%fmV CELL2=%fmV CELL3=%fmV CELL4=%fmV CELL5=%fmV CELL6=%fmV\r\n",
+        cells[0] * 0.0001F,
+        cells[1] * 0.0001F,
+        cells[2] * 0.0001F,
+        cells[3] * 0.0001F,
+        cells[4] * 0.0001F,
+        cells[5] * 0.0001F);
 
     UART_EXITING_FUNC();
 }
