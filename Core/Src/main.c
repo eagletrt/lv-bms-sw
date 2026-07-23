@@ -48,8 +48,8 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 #ifdef UART_ENABLE_FUNC_PRINT
-#define UART_ENTERING_FUNC() (uart_printf("Entering %s\r\n", __func__))
-#define UART_EXITING_FUNC() (uart_printf("Exiting %s\r\n", __func__))
+#define UART_ENTERING_FUNC()
+#define UART_EXITING_FUNC()
 #else /*! UART_ENABLE_FUNC_PRINT */
 #define UART_ENTERING_FUNC() EAGLETRT_API_NOP()
 #define UART_EXITING_FUNC() EAGLETRT_API_NOP()
@@ -68,6 +68,8 @@ void SystemClock_Config(void);
 static void uart_printf(const char *fmt, ...);
 static void ltc_delay_discharge_demo(struct Ltc68102Handler *handler);
 static void ltc_read_voltages(struct Ltc68102Handler *handler);
+static void ltc_write_config(struct Ltc68102Handler *handler, struct Ltc68102Cfgr *cfg, uint8_t *encoded);
+static size_t ltc_read_config(struct Ltc68102Handler *handler, struct Ltc68102Cfgr *cfg, uint8_t *decoded);
 static void ltc_read_id(struct Ltc68102Handler *handler);
 static void ltc_read_status_palle(struct Ltc68102Handler *handler);
 /* USER CODE END PFP */
@@ -131,13 +133,59 @@ int main(void) {
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
+
+    // not working on adjacent cells!!!!
+    struct Ltc68102Cfgr requested_config = {
+        .REFON = 1,
+        .DCC = 0b000000,
+        .DCC0 = 0,
+        .DCTO = 0
+    };
+    struct Ltc68102Cfgr actual_config = { 0 };
+
+    uint8_t encoded[LTC6810_2_WRITE_BUFFER_SIZE(1)];
+    ltc6810_2_api_unmute_encode_broadcast(&ltc_handler, encoded);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, encoded, LTC6810_2_WRITE_BUFFER_SIZE(1), 10);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    uint32_t t = 0;
+
     while (1) {
         // ltc_read_status_palle(&ltc_handler);
-        ltc_read_id(&ltc_handler);
+        // ltc_read_id(&ltc_handler);
         // ltc_delay_discharge_demo(&ltc_handler);
+        uint8_t encoded[LTC6810_2_WRITE_BUFFER_SIZE(1)];
+        uint8_t decoded[LTC6810_2_DATA_BUFFER_SIZE(1)];
+        ltc_write_config(&ltc_handler, &requested_config, encoded);
+        
+        HAL_Delay(1);
+
+        ltc_read_config(&ltc_handler, &actual_config, decoded);
         ltc_read_voltages(&ltc_handler);
 
-        HAL_Delay(500);
+        HAL_Delay(1);
+
+        if (HAL_GetTick() - t > 1000) {
+            uart_printf("Encoded: ");
+            for (size_t i = 0; i < LTC6810_2_WRITE_BUFFER_SIZE(1); ++i) {
+                uart_printf("%02X ", encoded[i]);
+            }
+            uart_printf("\r\n");
+            uart_printf("Decoded: ");
+            for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
+                uart_printf("%02X ", decoded[i]);
+            }
+            uart_printf("\r\n");
+            uart_printf("\r\n");
+
+
+            uart_printf("Write: REFON=%u DCC=%u DCTO=%u\r\n", requested_config.REFON, requested_config.DCC, requested_config.DCTO);
+            uart_printf("Read: REFON=%u DCC=%u DCTO=%u\r\n", actual_config.REFON, actual_config.DCC, actual_config.DCTO);
+            uart_printf("\r\n");
+            t = HAL_GetTick();
+        }
+
 
         /* USER CODE END WHILE */
 
@@ -193,39 +241,60 @@ void uart_printf(const char *fmt, ...) {
     }
 }
 
+typedef enum {
+    LTC_STATE_OFF,
+    LTC_STATE_ON
+} DischargeState_t;
+
+static uint32_t last_discharge_time = 0;
+static DischargeState_t current_state = LTC_STATE_OFF;
+
 static void ltc_delay_discharge_demo(struct Ltc68102Handler *handler) {
     UART_ENTERING_FUNC();
 
-    struct Ltc68102Cfgr cfg = { 0 };
-    uint8_t tx[32];
-    uint8_t rx[32];
+    uint32_t now = HAL_GetTick();
 
-    memset(tx, 0xFF, sizeof(tx));
-    memset(rx, 0xFF, sizeof(rx));
+    static uint8_t tx[LTC6810_2_WRITE_BUFFER_SIZE(1)];
+    static size_t tx_len = 0;
 
-    /*
-     * Enable reference
-     * Enable discharge on cells 1-6
-     */
-    cfg.REFON = 1;
-    cfg.DCC = 0x3F; // Cells 1-6 discharge enabled
+    switch (current_state) {
+        case LTC_STATE_OFF:
+            if (now - last_discharge_time >= 1000) {
+                struct Ltc68102Cfgr cfg = {
+                    .REFON = 1,
+                    .DCC = 0x07,
+                    .DCTO = LTC6810_2_DCTO_30S
+                };
 
-    size_t tx_len = ltc6810_2_api_wrcfg_encode_broadcast(handler, &cfg, tx);
+                memset(tx, 0xFF, sizeof(tx));
+                tx_len = ltc6810_2_api_wrcfg_encode_broadcast(handler, &cfg, tx);
+
+                last_discharge_time = now;
+                current_state = LTC_STATE_ON;
+                uart_printf("=== Discharge ON ====================== %u\n\r", tx_len);
+            }
+            break;
+
+        case LTC_STATE_ON:
+            if (now - last_discharge_time >= 1000) {
+                struct Ltc68102Cfgr cfg = {
+                    .REFON = 1,
+                    .DCC = 0x00,
+                    .DCTO = LTC6810_2_DCTO_OFF
+                };
+
+                memset(tx, 0xFF, sizeof(tx));
+                tx_len = ltc6810_2_api_wrcfg_encode_broadcast(handler, &cfg, tx);
+
+                last_discharge_time = now;
+                current_state = LTC_STATE_OFF;
+                uart_printf("===  Discharge OFF ====================== %u\n\r", tx_len);
+            }
+            break;
+    }
+
     HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi1, tx, tx_len, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
-
-    HAL_Delay(200);
-
-    /*
-     * Disable discharge
-     */
-    memset(tx, 0xFF, sizeof(tx));
-    cfg.DCC = 0x0; // Cells 1-6 discharge disabled
-
-    tx_len = ltc6810_2_api_wrcfg_encode_broadcast(handler, &cfg, tx);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi1, tx, tx_len, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi1, tx, tx_len, 5);
     HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
 
     UART_EXITING_FUNC();
@@ -278,63 +347,116 @@ static void ltc_read_id(struct Ltc68102Handler *handler) {
     UART_EXITING_FUNC();
 }
 
+
+static void ltc_write_config(struct Ltc68102Handler *handler, struct Ltc68102Cfgr *cfg, uint8_t *encoded) {
+    UART_ENTERING_FUNC();
+
+    uint8_t cmd[LTC6810_2_WRITE_BUFFER_SIZE(1)];
+    memset(cmd, 0xFF, LTC6810_2_WRITE_BUFFER_SIZE(1));
+
+    size_t encode_byte_count = ltc6810_2_api_wrcfg_encode_broadcast(handler, cfg, cmd);
+    memcpy(encoded, cmd, encode_byte_count);
+
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, cmd, encode_byte_count, 10);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    UART_EXITING_FUNC();
+}
+
+static size_t ltc_read_config(struct Ltc68102Handler *handler, struct Ltc68102Cfgr *cfg, uint8_t *decoded) {
+    UART_ENTERING_FUNC();
+
+    uint8_t cmd[LTC6810_2_READ_BUFFER_SIZE];
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)];
+    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
+    memset(data, 0xFF, LTC6810_2_DATA_BUFFER_SIZE(1));
+
+    size_t encode_byte_count = ltc6810_2_api_rdcfg_encode_broadcast(handler, cmd);
+
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, cmd, encode_byte_count, 5);
+    HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), 10);
+    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+    memcpy(decoded, data, LTC6810_2_DATA_BUFFER_SIZE(1));
+
+    return ltc6810_2_api_rdcfg_decode_broadcast(handler, data, cfg);
+}
+
+static uint32_t last_print_time = 0;
+
 static void ltc_read_voltages(struct Ltc68102Handler *handler) {
     UART_ENTERING_FUNC();
 
     uint16_t cells[6] = { 0 };
 
-    uint8_t cmd[LTC6810_2_READ_BUFFER_SIZE];
-    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)];
+    {
+        uint8_t cmd[LTC6810_2_POLL_BUFFER_SIZE];
+        memset(cmd, 0xFF, LTC6810_2_POLL_BUFFER_SIZE);
 
-    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
-
-    size_t cmd_len = ltc6810_2_api_adcv_encode_broadcast(handler, LTC6810_2_MD_7KHZ, LTC6810_2_DCP_DISABLED, LTC6810_2_CH_ALL, cmd);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi1, cmd, cmd_len, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
-
-    HAL_Delay(15);
-
-    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
-
-    ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVAR, cmd);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi1, cmd, LTC6810_2_READ_BUFFER_SIZE, HAL_MAX_DELAY);
-    HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
-
-    uart_printf("RDCVA RX:");
-    for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
-        uart_printf(" %02X", data[i]);
+        size_t cmd_len = ltc6810_2_api_adcv_encode_broadcast(handler, LTC6810_2_MD_7KHZ, LTC6810_2_DCP_ENABLED, LTC6810_2_CH_ALL, cmd);
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+        HAL_SPI_Transmit(&hspi1, cmd, cmd_len, 5);
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
     }
-    uart_printf("\r\n");
+    HAL_Delay(1);
 
-    size_t dec_a = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[0]);
-    uart_printf("RDCVA PEC %s\r\n", dec_a ? "OK" : "FAIL"); /* Read group B: cells 4-6 -> cells[3..5] */
-    memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
+    {
+        uint8_t cmd[LTC6810_2_READ_BUFFER_SIZE];
+        uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)];
+        memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
 
-    ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVBR, cmd);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi1, cmd, LTC6810_2_READ_BUFFER_SIZE, HAL_MAX_DELAY);
-    HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+        ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVAR, cmd);
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+        HAL_SPI_Transmit(&hspi1, cmd, LTC6810_2_READ_BUFFER_SIZE, 5);
+        HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), 5);
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
 
-    uart_printf("RDCVB RX:");
-    for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
-        uart_printf(" %02X", data[i]);
+        if (HAL_GetTick() - last_print_time > 100) {
+            uart_printf("RDCVA RX:");
+            for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
+                uart_printf(" %02X", data[i]);
+            }
+            uart_printf("\r\n");
+            size_t dec_a = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[0]);
+            uart_printf("RDCVA PEC %s\r\n", dec_a ? "OK" : "FAIL"); /* Read group B: cells 4-6 -> cells[3..5] */
+        }
     }
-    uart_printf("\r\n");
-    size_t dec_b = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[3]);
-    uart_printf("RDCVB PEC %s\r\n", dec_b ? "OK" : "FAIL");
 
-    uart_printf(
-        "CELL1=%fmV CELL2=%fmV CELL3=%fmV CELL4=%fmV CELL5=%fmV CELL6=%fmV\r\n",
-        cells[0] * 0.0001F,
-        cells[1] * 0.0001F,
-        cells[2] * 0.0001F,
-        cells[3] * 0.0001F,
-        cells[4] * 0.0001F,
-        cells[5] * 0.0001F);
+    {
+        uint8_t cmd[LTC6810_2_READ_BUFFER_SIZE];
+        uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(1)];
+        memset(cmd, 0xFF, LTC6810_2_READ_BUFFER_SIZE);
+
+        ltc6810_2_api_rdcv_encode_broadcast(handler, LTC6810_2_CVBR, cmd);
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_RESET);
+        HAL_SPI_Transmit(&hspi1, cmd, LTC6810_2_READ_BUFFER_SIZE, 5);
+        HAL_SPI_Receive(&hspi1, data, LTC6810_2_DATA_BUFFER_SIZE(1), 5);
+        HAL_GPIO_WritePin(SPI_LT_CS_GPIO_Port, SPI_LT_CS_Pin, GPIO_PIN_SET);
+
+        if (HAL_GetTick() - last_print_time > 100) {
+            uart_printf("RDCVB RX:");
+            for (size_t i = 0; i < LTC6810_2_DATA_BUFFER_SIZE(1); ++i) {
+                uart_printf(" %02X", data[i]);
+            }
+            uart_printf("\r\n");
+            size_t dec_b = ltc6810_2_api_rdcv_decode_broadcast(handler, data, &cells[3]);
+            uart_printf("RDCVB PEC %s\r\n", dec_b ? "OK" : "FAIL");
+        }
+    }
+
+    if (HAL_GetTick() - last_print_time > 100) {
+        uart_printf(
+            "CELL1=%fmV CELL2=%fmV CELL3=%fmV CELL4=%fmV CELL5=%fmV CELL6=%fmV\r\n",
+            cells[0] * 0.0001F,
+            cells[1] * 0.0001F,
+            cells[2] * 0.0001F,
+            cells[3] * 0.0001F,
+            cells[4] * 0.0001F,
+            cells[5] * 0.0001F);
+        last_print_time = HAL_GetTick();
+    }
 
     UART_EXITING_FUNC();
 }
