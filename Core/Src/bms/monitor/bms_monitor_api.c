@@ -1,0 +1,220 @@
+/*!
+ * \file            bms_monitor_api.c
+ * \date            2026-07-19
+ * \authors         Mirko Lana [mirko.lana@eagletrt.it]
+ *
+ * \brief           BMS monitor APIs.
+ */
+
+#include "bms_monitor.h"
+#include "bms_monitor_api.h"
+
+#include <stdint.h>
+#include <string.h>
+
+#include "config.h"
+#include "eagletrt.h"
+#include "defines.h"
+#include "ltc6810-2.h"
+#include "ltc6810-2-api.h"
+#include "types.h"
+#include "voltage-api.h"
+
+#ifdef CONFIG_BMS_MONITOR_MODULE_ENABLE
+
+EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
+
+/*!
+ * \brief           Check if there are adjacent or invalid cells.
+ *
+ * \returns         bool True if valid, false otherwise.
+ */
+EAGLETRT_STATIC_INLINE bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
+    return cells & (cells << 1U) || cells & 0b11000000;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive) {
+    if (send == NULL || send_receive == NULL) {
+        return BMS_MONITOR_RC_NULL_POINTER;
+    }
+
+    memset(&bms_monitor_handler, 0, sizeof(bms_monitor_handler));
+
+    /*! Set callbacks */
+    bms_monitor_handler.send = send;
+    bms_monitor_handler.send_receive = send_receive;
+    /*! Initalize the LTC driver */
+    ltc6810_2_api_init(&bms_monitor_handler.ltc_handler, DEFINES_LTC_COUNT);
+    bms_monitor_handler.requested_configuration.REFON = 1U;
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_write_configuration(void) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_wrcfg_encode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        &bms_monitor_handler.requested_configuration,
+        command);
+    if (byte_size != LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send(command, byte_size);
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    return code;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_read_configuration(void) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    size_t byte_count = ltc6810_2_api_rdcfg_encode_broadcast(&bms_monitor_handler.ltc_handler, command);
+    if (byte_count != LTC6810_2_READ_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send_receive(
+        command,
+        data,
+        byte_count,
+        LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT));
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    size_t byte_size = ltc6810_2_api_rdcfg_decode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        data,
+        &bms_monitor_handler.actual_configuration);
+    if (byte_size != LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)) {
+        return BMS_MONITOR_RC_DECODE_ERROR;
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_start_volt_covertion(void) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_adcv_encode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        LTC6810_2_MD_27KHZ,
+        LTC6810_2_DCP_DISABLED,
+        LTC6810_2_CH_ALL,
+        command);
+    if (byte_size != LTC6810_2_POLL_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send(command, byte_size);
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    return code;
+}
+
+enum BmsMonitorReturnCode bms_monitor_start_open_wire_conversion(enum Ltc68102Pup pull_up) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_adow_encode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        LTC6810_2_MD_27KHZ,
+        pull_up,
+        LTC6810_2_DCP_DISABLED,
+        LTC6810_2_CH_ALL,
+        command);
+    if (byte_size != LTC6810_2_POLL_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send(command, byte_size);
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRegister reg) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    raw_volt voltages[LTC6810_2_CELL_COUNT] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_rdcv_encode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        (enum Ltc68102Cvxr)reg,
+        command);
+    if (byte_size != LTC6810_2_READ_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send_receive(command, data, byte_size, LTC6810_2_DATA_BUFFER_SIZE(DEFINES_CELLS_SERIES_COUNT));
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    byte_size = ltc6810_2_api_rdcv_decode_broadcast(&bms_monitor_handler.ltc_handler, data, voltages);
+    if (byte_size != LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)) {
+        return BMS_MONITOR_RC_DECODE_ERROR;
+    }
+
+    for (size_t i = 0U; i < LTC6810_2_CELL_COUNT; ++i) {
+        voltage_api_update_voltage(i, BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]));
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonitorVoltageRegister reg, enum BmsMonitorOpenWireOperation operation) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    raw_volt voltages[LTC6810_2_CELL_COUNT] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_rdcv_encode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        (enum Ltc68102Cvxr)reg,
+        command);
+    if (byte_size != LTC6810_2_READ_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send_receive(
+        command,
+        data,
+        byte_size,
+        LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT));
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    for (size_t i = 0U; i < LTC6810_2_CELL_COUNT; ++i) {
+        voltage_api_update_voltage(i, BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]));
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells) {
+    if (prv_bms_monitor_api_is_cells_bitmask_valid(cells)) {
+        return BMS_MONITOR_RC_INVALID_ARGUMENT;
+    }
+
+    /*! TODO: check the Datasheet; copied from HV cellboard code. */
+    bms_monitor_handler.requested_configuration.DCTO = (cells == 0U) ? LTC6810_2_DCTO_OFF: LTC6810_2_DCTO_30S;
+    bms_monitor_handler.requested_configuration.DCC = cells;
+
+    return BMS_MONITOR_RC_OK;
+}
+
+uint16_t bms_monitor_api_get_discharge(void) {
+    return bms_monitor_handler.actual_configuration.DCC;
+}
+
+#endif /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
