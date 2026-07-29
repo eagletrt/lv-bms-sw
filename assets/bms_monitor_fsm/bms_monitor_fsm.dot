@@ -1,0 +1,48 @@
+digraph "gv_fsm example" {
+    bgcolor="white"
+    layout="dot"
+    center=true
+    concentrate=false
+
+    init [
+        style="filled"
+        color="#66ff66"
+        fillcolor="#c1ffc1"
+    ]
+    start_volt_convertion
+    volt_write_configuration
+    volt_read_configuration
+    read_volt_a
+    read_volt_b
+    start_open_wire_pup_convertion_first
+    open_wire_pup_write_configuration
+    start_open_wire_pup_convertion_second
+    open_wire_pup_read_configuration
+    read_open_wire_pup_a
+    read_open_wire_pup_b
+    start_open_wire_pud_convertion_first
+    open_wire_pud_write_configuration
+    start_open_wire_pud_convertion_second
+    open_wire_pud_read_configuration
+    read_open_wire_pud_a
+    read_open_wire_pud_b
+
+    init -> start_volt_convertion
+    start_volt_convertion -> volt_write_configuration
+    volt_write_configuration -> volt_read_configuration
+    volt_read_configuration -> read_volt_a
+    read_volt_a -> read_volt_b
+    read_volt_b -> start_open_wire_pup_convertion_first
+    start_open_wire_pup_convertion_first -> open_wire_pup_write_configuration
+    open_wire_pup_write_configuration -> start_open_wire_pup_convertion_second
+    start_open_wire_pup_convertion_second -> open_wire_pup_read_configuration
+    open_wire_pup_read_configuration -> read_open_wire_pup_a
+    read_open_wire_pup_a -> read_open_wire_pup_b
+    read_open_wire_pup_b -> start_open_wire_pud_convertion_first
+    start_open_wire_pud_convertion_first -> open_wire_pud_write_configuration
+    open_wire_pud_write_configuration -> start_open_wire_pud_convertion_second
+    start_open_wire_pud_convertion_second -> open_wire_pud_read_configuration
+    open_wire_pud_read_configuration -> read_open_wire_pud_a
+    read_open_wire_pud_a -> read_open_wire_pud_b
+    read_open_wire_pud_b -> start_volt_convertion [label="check_open_wire"]
+}
