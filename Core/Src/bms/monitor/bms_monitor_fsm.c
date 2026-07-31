@@ -19,51 +19,51 @@ The finite state machine has:
 
 // GLOBALS
 // State human-readable names
-const char *bms_monitor_state_names[] = {"init", "start_volt_convertion", "volt_write_configuration", "volt_read_configuration", "read_volt_a", "read_volt_b", "start_open_wire_pup_convertion_first", "open_wire_pup_write_configuration", "start_open_wire_pup_convertion_second", "open_wire_pup_read_configuration", "read_open_wire_pup_a", "read_open_wire_pup_b", "start_open_wire_pud_convertion_first", "open_wire_pud_write_configuration", "start_open_wire_pud_convertion_second", "open_wire_pud_read_configuration", "read_open_wire_pud_a", "read_open_wire_pud_b"};
+const char *bms_monitor_state_names[] = { "init", "start_volt_convertion", "volt_write_configuration", "volt_read_configuration", "read_volt_a", "read_volt_b", "start_open_wire_pup_convertion_first", "open_wire_pup_write_configuration", "start_open_wire_pup_convertion_second", "open_wire_pup_read_configuration", "read_open_wire_pup_a", "read_open_wire_pup_b", "start_open_wire_pud_convertion_first", "open_wire_pud_write_configuration", "start_open_wire_pud_convertion_second", "open_wire_pud_read_configuration", "read_open_wire_pud_a", "read_open_wire_pud_b" };
 
 // List of state functions
 state_func_t *const bms_monitor_state_table[NUM_STATES] = {
-  bms_monitor_do_init,                                  // in state init
-  do_start_volt_convertion,                 // in state start_volt_convertion
-  do_volt_write_configuration,              // in state volt_write_configuration
-  do_volt_read_configuration,               // in state volt_read_configuration
-  do_read_volt_a,                           // in state read_volt_a
-  do_read_volt_b,                           // in state read_volt_b
-  do_start_open_wire_pup_convertion_first,  // in state start_open_wire_pup_convertion_first
-  do_open_wire_pup_write_configuration,     // in state open_wire_pup_write_configuration
-  do_start_open_wire_pup_convertion_second, // in state start_open_wire_pup_convertion_second
-  do_open_wire_pup_read_configuration,      // in state open_wire_pup_read_configuration
-  do_read_open_wire_pup_a,                  // in state read_open_wire_pup_a
-  do_read_open_wire_pup_b,                  // in state read_open_wire_pup_b
-  do_start_open_wire_pud_convertion_first,  // in state start_open_wire_pud_convertion_first
-  do_open_wire_pud_write_configuration,     // in state open_wire_pud_write_configuration
-  do_start_open_wire_pud_convertion_second, // in state start_open_wire_pud_convertion_second
-  do_open_wire_pud_read_configuration,      // in state open_wire_pud_read_configuration
-  do_read_open_wire_pud_a,                  // in state read_open_wire_pud_a
-  do_read_open_wire_pud_b,                  // in state read_open_wire_pud_b
+    bms_monitor_do_init,                      // in state init
+    do_start_volt_convertion,                 // in state start_volt_convertion
+    do_volt_write_configuration,              // in state volt_write_configuration
+    do_volt_read_configuration,               // in state volt_read_configuration
+    do_read_volt_a,                           // in state read_volt_a
+    do_read_volt_b,                           // in state read_volt_b
+    do_start_open_wire_pup_convertion_first,  // in state start_open_wire_pup_convertion_first
+    do_open_wire_pup_write_configuration,     // in state open_wire_pup_write_configuration
+    do_start_open_wire_pup_convertion_second, // in state start_open_wire_pup_convertion_second
+    do_open_wire_pup_read_configuration,      // in state open_wire_pup_read_configuration
+    do_read_open_wire_pup_a,                  // in state read_open_wire_pup_a
+    do_read_open_wire_pup_b,                  // in state read_open_wire_pup_b
+    do_start_open_wire_pud_convertion_first,  // in state start_open_wire_pud_convertion_first
+    do_open_wire_pud_write_configuration,     // in state open_wire_pud_write_configuration
+    do_start_open_wire_pud_convertion_second, // in state start_open_wire_pud_convertion_second
+    do_open_wire_pud_read_configuration,      // in state open_wire_pud_read_configuration
+    do_read_open_wire_pud_a,                  // in state read_open_wire_pud_a
+    do_read_open_wire_pud_b,                  // in state read_open_wire_pud_b
 };
 
 // Table of transition functions
 transition_func_t *const bms_monitor_transition_table[NUM_STATES][NUM_STATES] = {
-  /* states:                                   init           , start_volt_convertion, volt_write_configuration, volt_read_configuration, read_volt_a    , read_volt_b    , start_open_wire_pup_convertion_first, open_wire_pup_write_configuration, start_open_wire_pup_convertion_second, open_wire_pup_read_configuration, read_open_wire_pup_a, read_open_wire_pup_b, start_open_wire_pud_convertion_first, open_wire_pud_write_configuration, start_open_wire_pud_convertion_second, open_wire_pud_read_configuration, read_open_wire_pud_a, read_open_wire_pud_b */
-  /* init                                  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* start_volt_convertion                 */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* volt_write_configuration              */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* volt_read_configuration               */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* read_volt_a                           */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* read_volt_b                           */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* start_open_wire_pup_convertion_first  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* open_wire_pup_write_configuration     */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* start_open_wire_pup_convertion_second */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* open_wire_pup_read_configuration      */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* read_open_wire_pup_a                  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* read_open_wire_pup_b                  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* start_open_wire_pud_convertion_first  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* open_wire_pud_write_configuration     */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* start_open_wire_pud_convertion_second */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* open_wire_pud_read_configuration      */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* read_open_wire_pud_a                  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
-  /* read_open_wire_pud_b                  */ {NULL           , check_open_wire, NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
+    /* states:                                   init           , start_volt_convertion, volt_write_configuration, volt_read_configuration, read_volt_a    , read_volt_b    , start_open_wire_pup_convertion_first, open_wire_pup_write_configuration, start_open_wire_pup_convertion_second, open_wire_pup_read_configuration, read_open_wire_pup_a, read_open_wire_pup_b, start_open_wire_pud_convertion_first, open_wire_pud_write_configuration, start_open_wire_pud_convertion_second, open_wire_pud_read_configuration, read_open_wire_pud_a, read_open_wire_pud_b */
+    /* init                                  */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* start_volt_convertion                 */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* volt_write_configuration              */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* volt_read_configuration               */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* read_volt_a                           */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* read_volt_b                           */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* start_open_wire_pup_convertion_first  */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* open_wire_pup_write_configuration     */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* start_open_wire_pup_convertion_second */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* open_wire_pup_read_configuration      */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* read_open_wire_pup_a                  */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* read_open_wire_pup_b                  */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* start_open_wire_pud_convertion_first  */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* open_wire_pud_write_configuration     */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* start_open_wire_pud_convertion_second */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* open_wire_pud_read_configuration      */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* read_open_wire_pud_a                  */ { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
+    /* read_open_wire_pud_b                  */ { NULL, check_open_wire, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },
 };
 
 /*  ____  _        _       
@@ -77,314 +77,295 @@ transition_func_t *const bms_monitor_transition_table[NUM_STATES][NUM_STATES] = 
  * | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
  * |  _| |_| | | | | (__| |_| | (_) | | | \__ \
  * |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
- */                                             
+ */
 
 // Function to be executed in state init
 // valid return states: STATE_START_VOLT_CONVERTION
 state_t bms_monitor_do_init(state_data_t *data) {
-  state_t next_state = STATE_START_VOLT_CONVERTION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_START_VOLT_CONVERTION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_START_VOLT_CONVERTION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_START_VOLT_CONVERTION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state start_volt_convertion
 // valid return states: STATE_VOLT_WRITE_CONFIGURATION
 state_t do_start_volt_convertion(state_data_t *data) {
-  state_t next_state = STATE_VOLT_WRITE_CONFIGURATION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_VOLT_WRITE_CONFIGURATION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_VOLT_WRITE_CONFIGURATION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_VOLT_WRITE_CONFIGURATION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state volt_write_configuration
 // valid return states: STATE_VOLT_READ_CONFIGURATION
 state_t do_volt_write_configuration(state_data_t *data) {
-  state_t next_state = STATE_VOLT_READ_CONFIGURATION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_VOLT_READ_CONFIGURATION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_VOLT_READ_CONFIGURATION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_VOLT_READ_CONFIGURATION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state volt_read_configuration
 // valid return states: STATE_READ_VOLT_A
 state_t do_volt_read_configuration(state_data_t *data) {
-  state_t next_state = STATE_READ_VOLT_A;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_READ_VOLT_A:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_READ_VOLT_A;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_READ_VOLT_A:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state read_volt_a
 // valid return states: STATE_READ_VOLT_B
 state_t do_read_volt_a(state_data_t *data) {
-  state_t next_state = STATE_READ_VOLT_B;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_READ_VOLT_B:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_READ_VOLT_B;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_READ_VOLT_B:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state read_volt_b
 // valid return states: STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST
 state_t do_read_volt_b(state_data_t *data) {
-  state_t next_state = STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state start_open_wire_pup_convertion_first
 // valid return states: STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION
 state_t do_start_open_wire_pup_convertion_first(state_data_t *data) {
-  state_t next_state = STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state open_wire_pup_write_configuration
 // valid return states: STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND
 state_t do_open_wire_pup_write_configuration(state_data_t *data) {
-  state_t next_state = STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state start_open_wire_pup_convertion_second
 // valid return states: STATE_OPEN_WIRE_PUP_READ_CONFIGURATION
 state_t do_start_open_wire_pup_convertion_second(state_data_t *data) {
-  state_t next_state = STATE_OPEN_WIRE_PUP_READ_CONFIGURATION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_OPEN_WIRE_PUP_READ_CONFIGURATION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_OPEN_WIRE_PUP_READ_CONFIGURATION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_OPEN_WIRE_PUP_READ_CONFIGURATION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state open_wire_pup_read_configuration
 // valid return states: STATE_READ_OPEN_WIRE_PUP_A
 state_t do_open_wire_pup_read_configuration(state_data_t *data) {
-  state_t next_state = STATE_READ_OPEN_WIRE_PUP_A;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_READ_OPEN_WIRE_PUP_A:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_READ_OPEN_WIRE_PUP_A;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_READ_OPEN_WIRE_PUP_A:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state read_open_wire_pup_a
 // valid return states: STATE_READ_OPEN_WIRE_PUP_B
 state_t do_read_open_wire_pup_a(state_data_t *data) {
-  state_t next_state = STATE_READ_OPEN_WIRE_PUP_B;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_READ_OPEN_WIRE_PUP_B:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_READ_OPEN_WIRE_PUP_B;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_READ_OPEN_WIRE_PUP_B:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state read_open_wire_pup_b
 // valid return states: STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST
 state_t do_read_open_wire_pup_b(state_data_t *data) {
-  state_t next_state = STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state start_open_wire_pud_convertion_first
 // valid return states: STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION
 state_t do_start_open_wire_pud_convertion_first(state_data_t *data) {
-  state_t next_state = STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state open_wire_pud_write_configuration
 // valid return states: STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND
 state_t do_open_wire_pud_write_configuration(state_data_t *data) {
-  state_t next_state = STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state start_open_wire_pud_convertion_second
 // valid return states: STATE_OPEN_WIRE_PUD_READ_CONFIGURATION
 state_t do_start_open_wire_pud_convertion_second(state_data_t *data) {
-  state_t next_state = STATE_OPEN_WIRE_PUD_READ_CONFIGURATION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_OPEN_WIRE_PUD_READ_CONFIGURATION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_OPEN_WIRE_PUD_READ_CONFIGURATION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_OPEN_WIRE_PUD_READ_CONFIGURATION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state open_wire_pud_read_configuration
 // valid return states: STATE_READ_OPEN_WIRE_PUD_A
 state_t do_open_wire_pud_read_configuration(state_data_t *data) {
-  state_t next_state = STATE_READ_OPEN_WIRE_PUD_A;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_READ_OPEN_WIRE_PUD_A:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_READ_OPEN_WIRE_PUD_A;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_READ_OPEN_WIRE_PUD_A:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state read_open_wire_pud_a
 // valid return states: STATE_READ_OPEN_WIRE_PUD_B
 state_t do_read_open_wire_pud_a(state_data_t *data) {
-  state_t next_state = STATE_READ_OPEN_WIRE_PUD_B;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_READ_OPEN_WIRE_PUD_B:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_READ_OPEN_WIRE_PUD_B;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_READ_OPEN_WIRE_PUD_B:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
 
 // Function to be executed in state read_open_wire_pud_b
 // valid return states: STATE_START_VOLT_CONVERTION
 state_t do_read_open_wire_pud_b(state_data_t *data) {
-  state_t next_state = STATE_START_VOLT_CONVERTION;
-  /* Your Code Here */
-  
-  switch (next_state) {
-  case STATE_START_VOLT_CONVERTION:
-    break;
-  default:
-    next_state = NO_CHANGE;
-  }
+    state_t next_state = STATE_START_VOLT_CONVERTION;
+    /* Your Code Here */
 
-  return next_state;
+    switch (next_state) {
+        case STATE_START_VOLT_CONVERTION:
+            break;
+        default:
+            next_state = NO_CHANGE;
+    }
+
+    return next_state;
 }
-
-
 
 /*  _____                    _ _   _              
  * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
@@ -397,14 +378,13 @@ state_t do_read_open_wire_pud_b(state_data_t *data) {
  * | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
  * |  _| |_| | | | | (__| |_| | (_) | | | \__ \
  * |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
- */    
-                                          
+ */
+
 // This function is called in 1 transition:
 // 1. from read_open_wire_pud_b to start_volt_convertion
 void check_open_wire(state_data_t *data) {
-  /* Your Code Here */
+    /* Your Code Here */
 }
-
 
 /*  ____  _        _        
  * / ___|| |_ __ _| |_ ___  
@@ -421,30 +401,28 @@ void check_open_wire(state_data_t *data) {
  */
 
 state_t bms_monitor_run_state(state_t cur_state, state_data_t *data) {
-  state_t new_state = bms_monitor_state_table[cur_state](data);
-  if (new_state == NO_CHANGE) new_state = cur_state;
+    state_t new_state = bms_monitor_state_table[cur_state](data);
+    if (new_state == NO_CHANGE)
+        new_state = cur_state;
 
-  transition_func_t *transition = bms_monitor_transition_table[cur_state][new_state];
-  if (transition)
-    transition(data);
+    transition_func_t *transition = bms_monitor_transition_table[cur_state][new_state];
+    if (transition)
+        transition(data);
 
-  return new_state;
-};
-
-
+    return new_state;
+}
 
 #ifdef TEST_MAIN
 #include <unistd.h>
 int main() {
-  state_t cur_state = STATE_INIT;
+    state_t cur_state = STATE_INIT;
 
-  do {
-    cur_state = bms_monitor_run_state(cur_state, NULL);
-    sleep(1);
+    do {
+        cur_state = bms_monitor_run_state(cur_state, NULL);
+        sleep(1);
 
-  } while (1);
+    } while (1);
 
-  return 0;
+    return 0;
 }
 #endif
-
