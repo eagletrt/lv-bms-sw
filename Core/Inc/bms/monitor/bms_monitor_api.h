@@ -14,6 +14,7 @@
 #include "config.h"
 
 #define BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(raw_value) ((volt)((raw_value) * 0.0001F))
+#define BMS_MONITOR_API_RAW_CURRENT_TO_AMPERE(raw_value) ((ampere)((raw_value) * (DEFINES_NTC_VDD / (float)((1U << BMS_MONITOR_ADC_RESOLUTION) - 1U))))
 
 #ifdef CONFIG_BMS_MONITOR_MODULE_ENABLE
 
@@ -22,11 +23,12 @@
  *
  * \param[in]       send A pointer to the callback used to send data via SPI.
  * \param[in]       send_receive A pointer to the callback used to send and receive data via SPI.
+ * \param[in]       ntc_read Callback that reads raw NTC ADC value for a given channel (can be NULL).
  *
  * \retval          BMS_MONITOR_RC_OK on success.
  * \retval          BMS_MONITOR_RC_NULL_POINTER if send or send_receive is NULL.
  */
-enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive);
+enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read);
 
 /*!
  * \brief           Write the configuration registers of the LTC.
@@ -75,7 +77,7 @@ enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_covertion(enum Ltc6810
 /**
  * \brief           Read the cells voltages from the BMS monitor.
  *
- * \param[in]       register The register to read from.
+ * \param[in]       reg The register to read from.
  *
  * \retval          BMS_MONITOR_RC_OK on success.
  * \retval          BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
@@ -85,10 +87,25 @@ enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_covertion(enum Ltc6810
  */
 enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRegister reg);
 
+/*!
+ * \brief           Read all NTC currents and store them via the current API.
+ *
+ * \retval          BMS_MONITOR_RC_OK on success.
+ * \retval          BMS_MONITOR_RC_NULL_POINTER if the NTC read callback has not been set.
+ */
+enum BmsMonitorReturnCode bms_monitor_api_read_currents(void);
+
+/*!
+ * \brief           Read all NTC temperatures and store them via the temperature API.
+ *
+ * \retval          BMS_MONITOR_RC_OK on success.
+ */
+enum BmsMonitorReturnCode bms_monitor_api_read_temperatures(void);
+
 /**
  * \brief           Read the cells voltages after the opern wire conversiont from the LTC.
  *
- * \param[in]       register The register to read from.
+ * \param[in]       reg The register to read from.
  * \param[in]       operation The type of operation completed before the the readings.
  *
  * \retval          BMS_MONITOR_RC_OK on success.
@@ -97,7 +114,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRe
  * \retval          BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
  * \retval          BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
  */
-enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonitorVoltageRegister register, enum BmsMonitorOpenWireOperation operation);
+enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonitorVoltageRegister reg, enum BmsMonitorOpenWireOperation operation);
 
 /*!
  * \brief           Set the cells to discharge.
@@ -118,15 +135,17 @@ uint16_t bms_monitor_api_get_discharge(void);
 
 #else /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 
-#define bms_monitor_api_init(send, send_receive) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_init(send, send_receive, ntc_read) (BMS_MONITOR_RC_OK)
 #define bsm_monitor_api_write_configuration() (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_configuration() (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_start_volt_covertion() (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_start_open_wire_covertion() (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_read_voltages(register) (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_read_open_wire_voltages(register, operation) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_start_open_wire_covertion(pull_up) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_read_voltages(reg) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_read_open_wire_voltages(reg, operation) (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_set_discharge(cells) (BMS_MONITOR_OK)
 #define bms_monitor_api_set_discharge() (0U)
+#define bms_monitor_api_read_currents() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_read_temperatures() (BMS_MONITOR_RC_OK)
 
 #endif /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 

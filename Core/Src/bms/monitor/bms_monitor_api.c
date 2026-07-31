@@ -11,14 +11,19 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include "config.h"
 #include "eagletrt.h"
 #include "defines.h"
 #include "ltc6810-2.h"
 #include "ltc6810-2-api.h"
+#include "monitor/bms_monitor.h"
+#include "monitor/bms_monitor_api.h"
 #include "types.h"
 #include "voltage-api.h"
+#include "temperature-api.h"
+#include "current-api.h"
 
 #ifdef CONFIG_BMS_MONITOR_MODULE_ENABLE
 
@@ -33,7 +38,39 @@ EAGLETRT_STATIC_INLINE bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t c
     return cells & (cells << 1U) || cells & 0b11000000;
 }
 
-enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive) {
+
+/*!
+ * \brief           Compute the cell temperature based on the NTC current.
+ *
+ * \details         The conversion is based on two physical principles:
+ *
+ *                  1. Ohm's Law:
+ *                     R_NTC = V_DD / I
+ *                     Determines the NTC resistance (R_NTC) from the fixed supply voltage (V_DD)
+ *                     and the measured current (I).
+ *
+ *                  2. Beta Parameter Model:
+ *                     1 / T = (1 / T0) + (1 / Beta) * ln(R_NTC / R0)
+ *                     Models the semiconductor's exponential non-linear drop in resistance
+ *                     as temperature increases, yielding absolute temperature (T) in K.
+ *
+ *                  3. Kelvin to Celsius scale convertion:
+ *                     T_celsius = T - 273.15
+ *
+ * \param[in]       current Measured current flowing through the NTC sensor in C.
+ *
+ * \return          Calculated cell temperature in °C.
+ */
+EAGLETRT_STATIC_INLINE __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature(ampere current) {
+    float ntc_resistance = DEFINES_NTC_VDD / current;
+
+    float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
+    steinhart += (1.0F / DEFINES_NTC_T0_KELVIN);
+
+    return (1.0F / steinhart) - 273.15F;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read) {
     if (send == NULL || send_receive == NULL) {
         return BMS_MONITOR_RC_NULL_POINTER;
     }
@@ -43,6 +80,7 @@ enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, b
     /*! Set callbacks */
     bms_monitor_handler.send = send;
     bms_monitor_handler.send_receive = send_receive;
+    bms_monitor_handler.ntc_read = ntc_read;
     /*! Initalize the LTC driver */
     ltc6810_2_api_init(&bms_monitor_handler.ltc_handler, DEFINES_LTC_COUNT);
     bms_monitor_handler.requested_configuration.REFON = 1U;
@@ -120,7 +158,7 @@ enum BmsMonitorReturnCode bms_monitor_api_start_volt_covertion(void) {
     return code;
 }
 
-enum BmsMonitorReturnCode bms_monitor_start_open_wire_conversion(enum Ltc68102Pup pull_up) {
+enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_covertion(enum Ltc68102Pup pull_up) {
     uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
 
     size_t byte_size = ltc6810_2_api_adow_encode_broadcast(
@@ -172,6 +210,40 @@ enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRe
     return BMS_MONITOR_RC_OK;
 }
 
+enum BmsMonitorReturnCode bms_monitor_api_read_currents(void) {
+    raw_ampere raw_currents[DEFINES_NTC_COUNT] = { 0 };
+
+    if (bms_monitor_handler.ntc_read == NULL) {
+        return BMS_MONITOR_RC_NULL_POINTER;
+    }
+
+    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
+        enum BmsMonitorReturnCode code = bms_monitor_handler.ntc_read(i, &raw_currents[i]);
+        if (code != BMS_MONITOR_RC_OK) {
+            return code;
+        }
+    }
+
+    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
+        ampere current = BMS_MONITOR_API_RAW_CURRENT_TO_AMPERE(raw_currents[i]);
+        current_api_update_current(i, current);
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_read_temperatures(void) {
+    ampere currents[DEFINES_NTC_COUNT] = { 0.F };
+    current_api_dump_currents(currents, 0U, DEFINES_NTC_COUNT);
+
+    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
+        celsius temperature = prv_bms_monitor_api_compute_temperature(currents[i]);
+        temperature_api_update_temperature(i, temperature);
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
 enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonitorVoltageRegister reg, enum BmsMonitorOpenWireOperation operation) {
     uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
     uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
@@ -194,8 +266,13 @@ enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonito
         return code;
     }
 
+    byte_size = ltc6810_2_api_rdcv_decode_broadcast(&bms_monitor_handler.ltc_handler, data, voltages);
+    if (byte_size != LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)) {
+        return BMS_MONITOR_RC_DECODE_ERROR;
+    }
+
     for (size_t i = 0U; i < LTC6810_2_CELL_COUNT; ++i) {
-        voltage_api_update_voltage(i, BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]));
+        bms_monitor_handler.pup[operation][i] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]);
     }
 
     return BMS_MONITOR_RC_OK;
@@ -206,8 +283,7 @@ enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells) {
         return BMS_MONITOR_RC_INVALID_ARGUMENT;
     }
 
-    /*! TODO: check the Datasheet; copied from HV cellboard code. */
-    bms_monitor_handler.requested_configuration.DCTO = (cells == 0U) ? LTC6810_2_DCTO_OFF: LTC6810_2_DCTO_30S;
+    bms_monitor_handler.requested_configuration.DCTO = (cells == 0U) ? LTC6810_2_DCTO_OFF : LTC6810_2_DCTO_30S;
     bms_monitor_handler.requested_configuration.DCC = cells;
 
     return BMS_MONITOR_RC_OK;

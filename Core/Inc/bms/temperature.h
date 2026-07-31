@@ -33,7 +33,7 @@ enum TemperatureReturnCode {
  * \brief            Temperature module handler structure.
  */
 struct TemperatureHandler {
-    celsius temperatures[DEFINES_CELLS_SERIES_COUNT]; /*!< An array of temperatures in °C */
+    celsius temperatures[DEFINES_CELLS_COUNT]; /*!< An array of temperatures in °C */
 };
 
 #endif /*! TEMPERATURE_H */

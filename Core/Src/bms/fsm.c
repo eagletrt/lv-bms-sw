@@ -20,6 +20,7 @@ The finite state machine has:
 
 // GLOBALS
 // State human-readable names
+__attribute__((unused))
 const char *state_names[] = { "init", "idle", "fatal", "flash", "balancing" };
 
 // List of state functions

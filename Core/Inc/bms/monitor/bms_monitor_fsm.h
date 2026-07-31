@@ -53,7 +53,7 @@ typedef enum {
 } state_t;
 
 // State human-readable names
-extern const char *state_names[];
+extern const char *bms_monitor_state_names[];
 
 // State function and state transition prototypes
 typedef state_t state_func_t(state_data_t *data);
@@ -62,7 +62,7 @@ typedef void transition_func_t(state_data_t *data);
 // State functions
 // Function to be executed in state init
 // valid return states: STATE_START_VOLT_CONVERTION
-state_t do_init(state_data_t *data);
+state_t bms_monitor_do_init(state_data_t *data);
 // Function to be executed in state start_volt_convertion
 // valid return states: STATE_VOLT_WRITE_CONFIGURATION
 state_t do_start_volt_convertion(state_data_t *data);
@@ -117,17 +117,17 @@ state_t do_read_open_wire_pud_b(state_data_t *data);
 
 
 // List of state functions
-extern state_func_t *const state_table[NUM_STATES];
+extern state_func_t *const bms_monitor_state_table[NUM_STATES];
 
 
 // Transition functions
 void check_open_wire(state_data_t *data);
 
 // Table of transition functions
-extern transition_func_t *const transition_table[NUM_STATES][NUM_STATES];
+extern transition_func_t *const bms_monitor_transition_table[NUM_STATES][NUM_STATES];
 
 // state manager
-state_t run_state(state_t cur_state, state_data_t *data);
+state_t bms_monitor_run_state(state_t cur_state, state_data_t *data);
 
 #ifdef __cplusplus
 }

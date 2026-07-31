@@ -16,12 +16,13 @@
  * \{
  */
 
-typedef float ampere;      /*!< Current value in A */
-typedef float watt;        /*!< Power value in W */
-typedef float kilowatt;    /*!< Power value in kW */
-typedef uint16_t raw_volt; /*!< 10 bit resolutioin raw voltage value */
-typedef float volt;        /*!< Voltage value in V */
-typedef float celsius;     /*!< Temperature value in °C */
+typedef uint16_t raw_ampere; /*!< 10 bit resolution raw ampere value */
+typedef float ampere;        /*!< Current value in A */
+typedef float watt;          /*!< Power value in W */
+typedef float kilowatt;      /*!< Power value in kW */
+typedef uint16_t raw_volt;   /*!< 10 bit resolutioin raw voltage value */
+typedef float volt;          /*!< Voltage value in V */
+typedef float celsius;       /*!< Temperature value in °C */
 
 /*! \} */
 

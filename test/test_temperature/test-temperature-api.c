@@ -30,10 +30,10 @@ void tearDown() {
  */
 
 void check_temperature_api_init(void) {
-    celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 0 };
-    memset(temperature_handler.temperatures, 0xFF, DEFINES_CELLS_SERIES_COUNT * sizeof(*temperature_handler.temperatures));
+    celsius temperatures[DEFINES_CELLS_COUNT] = { 0 };
+    memset(temperature_handler.temperatures, 0xFF, DEFINES_CELLS_COUNT * sizeof(*temperature_handler.temperatures));
     temperature_api_init();
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY(temperatures, temperature_handler.temperatures, DEFINES_CELLS_SERIES_COUNT);
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(temperatures, temperature_handler.temperatures, DEFINES_CELLS_COUNT);
 }
 
 /*! \} */
@@ -49,9 +49,9 @@ void check_temperature_api_update_temperature_with_valid_parameters(void) {
 }
 
 void check_temperature_api_update_temperature_when_index_is_out_of_bounds(void) {
-    celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 0 };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_update_temperature(DEFINES_CELLS_SERIES_COUNT, 7.F), "temperature_api_update_temperature returned a different value!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_SERIES_COUNT, "Previously stored values have been modified!");
+    celsius temperatures[DEFINES_CELLS_COUNT] = { 0 };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_update_temperature(DEFINES_CELLS_COUNT, 7.F), "temperature_api_update_temperature returned a different value!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_COUNT, "Previously stored values have been modified!");
 }
 
 /*! \} */
@@ -68,25 +68,25 @@ void check_temperature_api_update_temperatures_with_valid_parameters(void) {
 }
 
 void check_temperature_api_update_temperatures_with_null_temperatures(void) {
-    celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 0 };
+    celsius temperatures[DEFINES_CELLS_COUNT] = { 0 };
     TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_NULL_POINTER, temperature_api_update_temperatures(0U, NULL, DEFINES_CELLS_SERIES_COUNT), "temperature_api_update_temperatures returned a different value!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_SERIES_COUNT, "Previously stored values have been modified!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_COUNT, "Previously stored values have been modified!");
 }
 
 void check_temperature_api_update_temperatures_when_index_is_out_of_bounds(void) {
     const celsius mock_temperatures[DEFINES_CELLS_SERIES_COUNT] = { 1.F, 2.F, 3.F, 4.F, 5.F, 6.F };
-    celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 0 };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_update_temperatures(DEFINES_CELLS_SERIES_COUNT, mock_temperatures, DEFINES_CELLS_SERIES_COUNT), "temperature_api_update_temperatures returned a different value!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_SERIES_COUNT, "Previously stored values have been modified!");
+    celsius temperatures[DEFINES_CELLS_COUNT] = { 0 };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_update_temperatures(DEFINES_CELLS_COUNT, mock_temperatures, DEFINES_CELLS_SERIES_COUNT), "temperature_api_update_temperatures returned a different value!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_COUNT, "Previously stored values have been modified!");
 }
 
 void check_temperature_api_update_temperatures_when_size_is_too_big(void) {
-#define COUNT (9U)
-    const celsius mock_temperatures[COUNT] = { 1.F, 2.F, 3.F, 4.F, 5.F, 6.F, 7.F, 8.F, 9.F };
-    celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 0 };
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_update_temperatures(0U, mock_temperatures, COUNT), "temperature_api_update_temperatures returned a different value!");
-    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_SERIES_COUNT, "Previously stored values have been modified!");
-#undef COUNT
+#define SIZE (DEFINES_CELLS_COUNT + 1U)
+    const celsius mock_temperatures[1U] = { 1.F };
+    celsius temperatures[DEFINES_CELLS_COUNT] = { 0 };
+    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_update_temperatures(0U, mock_temperatures, SIZE), "temperature_api_update_temperatures returned a different value!");
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE(temperatures, temperature_handler.temperatures, DEFINES_CELLS_COUNT, "Previously stored values have been modified!");
+#undef SIZE
 }
 
 /*! \} */
@@ -97,9 +97,13 @@ void check_temperature_api_update_temperatures_when_size_is_too_big(void) {
  */
 
 void check_temperature_api_get_min(void) {
-    const celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 1.F, 2.F, 3.F, 4.F, 5.F, 6.F };
-    memcpy(temperature_handler.temperatures, temperatures, DEFINES_CELLS_SERIES_COUNT * sizeof(*temperatures));
-    TEST_ASSERT_EQUAL_FLOAT(temperatures[0U], temperature_api_get_min());
+    const celsius temperatures[DEFINES_CELLS_COUNT] = {
+        1.F, 2.F, 3.F, 4.F, 5.F, 6.F,
+        7.F, 8.F, 9.F, 10.F, 11.F, 12.F,
+        13.F, 14.F, 15.F, 16.F, 17.F, 18.F
+    };
+    memcpy(temperature_handler.temperatures, temperatures, DEFINES_CELLS_COUNT * sizeof(*temperatures));
+    TEST_ASSERT_EQUAL_FLOAT(1.F, temperature_api_get_min());
 }
 
 /*! \} */
@@ -123,9 +127,13 @@ void check_temperature_api_get_max(void) {
  */
 
 void check_temperature_api_get_average(void) {
-    const celsius temperatures[DEFINES_CELLS_SERIES_COUNT] = { 1.F, 2.F, 3.F, 4.F, 5.F, 6.F };
-    memcpy(temperature_handler.temperatures, temperatures, DEFINES_CELLS_SERIES_COUNT * sizeof(*temperatures));
-    TEST_ASSERT_EQUAL_FLOAT(3.5f, temperature_api_get_average());
+    const celsius temperatures[DEFINES_CELLS_COUNT] = {
+        1.F, 2.F, 3.F, 4.F, 5.F, 6.F,
+        7.F, 8.F, 9.F, 10.F, 11.F, 12.F,
+        13.F, 14.F, 15.F, 16.F, 17.F, 18.F
+    };
+    memcpy(temperature_handler.temperatures, temperatures, DEFINES_CELLS_COUNT * sizeof(*temperatures));
+    TEST_ASSERT_EQUAL_FLOAT(9.5F, temperature_api_get_average());
 }
 
 /*! \} */
@@ -150,14 +158,14 @@ void check_temperature_api_dump_temperatures_with_null_out(void) {
 void check_temperature_api_dump_temperatures_when_start_is_out_of_bounds(void) {
 #define COUNT (3U)
     celsius dump[COUNT] = { 0 };
-    TEST_ASSERT_EQUAL_INT(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_dump_temperatures(dump, DEFINES_CELLS_SERIES_COUNT, COUNT));
+    TEST_ASSERT_EQUAL_INT(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_dump_temperatures(dump, DEFINES_CELLS_COUNT, COUNT));
 #undef COUNT
 }
 
 void check_temperature_api_dump_temperatures_when_size_is_too_big(void) {
-#define COUNT (8U)
+#define COUNT (3U)
     celsius dump[COUNT] = { 0 };
-    TEST_ASSERT_EQUAL_INT(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_dump_temperatures(dump, 0U, COUNT));
+    TEST_ASSERT_EQUAL_INT(TEMPERATURE_RC_OUT_OF_BOUNDS, temperature_api_dump_temperatures(dump, DEFINES_CELLS_COUNT, COUNT));
 #undef COUNT
 }
 

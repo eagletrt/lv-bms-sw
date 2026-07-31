@@ -19,11 +19,11 @@ The finite state machine has:
 
 // GLOBALS
 // State human-readable names
-const char *state_names[] = {"init", "start_volt_convertion", "volt_write_configuration", "volt_read_configuration", "read_volt_a", "read_volt_b", "start_open_wire_pup_convertion_first", "open_wire_pup_write_configuration", "start_open_wire_pup_convertion_second", "open_wire_pup_read_configuration", "read_open_wire_pup_a", "read_open_wire_pup_b", "start_open_wire_pud_convertion_first", "open_wire_pud_write_configuration", "start_open_wire_pud_convertion_second", "open_wire_pud_read_configuration", "read_open_wire_pud_a", "read_open_wire_pud_b"};
+const char *bms_monitor_state_names[] = {"init", "start_volt_convertion", "volt_write_configuration", "volt_read_configuration", "read_volt_a", "read_volt_b", "start_open_wire_pup_convertion_first", "open_wire_pup_write_configuration", "start_open_wire_pup_convertion_second", "open_wire_pup_read_configuration", "read_open_wire_pup_a", "read_open_wire_pup_b", "start_open_wire_pud_convertion_first", "open_wire_pud_write_configuration", "start_open_wire_pud_convertion_second", "open_wire_pud_read_configuration", "read_open_wire_pud_a", "read_open_wire_pud_b"};
 
 // List of state functions
-state_func_t *const state_table[NUM_STATES] = {
-  do_init,                                  // in state init
+state_func_t *const bms_monitor_state_table[NUM_STATES] = {
+  bms_monitor_do_init,                                  // in state init
   do_start_volt_convertion,                 // in state start_volt_convertion
   do_volt_write_configuration,              // in state volt_write_configuration
   do_volt_read_configuration,               // in state volt_read_configuration
@@ -44,7 +44,7 @@ state_func_t *const state_table[NUM_STATES] = {
 };
 
 // Table of transition functions
-transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
+transition_func_t *const bms_monitor_transition_table[NUM_STATES][NUM_STATES] = {
   /* states:                                   init           , start_volt_convertion, volt_write_configuration, volt_read_configuration, read_volt_a    , read_volt_b    , start_open_wire_pup_convertion_first, open_wire_pup_write_configuration, start_open_wire_pup_convertion_second, open_wire_pup_read_configuration, read_open_wire_pup_a, read_open_wire_pup_b, start_open_wire_pud_convertion_first, open_wire_pud_write_configuration, start_open_wire_pud_convertion_second, open_wire_pud_read_configuration, read_open_wire_pud_a, read_open_wire_pud_b */
   /* init                                  */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
   /* start_volt_convertion                 */ {NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           , NULL           }, 
@@ -81,7 +81,7 @@ transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
 
 // Function to be executed in state init
 // valid return states: STATE_START_VOLT_CONVERTION
-state_t do_init(state_data_t *data) {
+state_t bms_monitor_do_init(state_data_t *data) {
   state_t next_state = STATE_START_VOLT_CONVERTION;
   /* Your Code Here */
   
@@ -420,11 +420,11 @@ void check_open_wire(state_data_t *data) {
  *                              |___/           
  */
 
-state_t run_state(state_t cur_state, state_data_t *data) {
-  state_t new_state = state_table[cur_state](data);
+state_t bms_monitor_run_state(state_t cur_state, state_data_t *data) {
+  state_t new_state = bms_monitor_state_table[cur_state](data);
   if (new_state == NO_CHANGE) new_state = cur_state;
 
-  transition_func_t *transition = transition_table[cur_state][new_state];
+  transition_func_t *transition = bms_monitor_transition_table[cur_state][new_state];
   if (transition)
     transition(data);
 
@@ -439,7 +439,7 @@ int main() {
   state_t cur_state = STATE_INIT;
 
   do {
-    cur_state = run_state(cur_state, NULL);
+    cur_state = bms_monitor_run_state(cur_state, NULL);
     sleep(1);
 
   } while (1);
