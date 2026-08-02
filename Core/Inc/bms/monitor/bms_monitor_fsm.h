@@ -21,6 +21,8 @@ extern "C" {
 #endif
 #include <stdlib.h>
 
+#include "eagletrt-api.h"
+
 // State data object
 // By default set to void; override this typedef or load the proper
 // header if you need

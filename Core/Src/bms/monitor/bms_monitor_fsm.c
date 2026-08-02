@@ -85,6 +85,8 @@ state_t bms_monitor_do_init(state_data_t *data) {
     state_t next_state = STATE_START_VOLT_CONVERTION;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_START_VOLT_CONVERTION:
             break;
@@ -100,6 +102,8 @@ state_t bms_monitor_do_init(state_data_t *data) {
 state_t do_start_volt_convertion(state_data_t *data) {
     state_t next_state = STATE_VOLT_WRITE_CONFIGURATION;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_VOLT_WRITE_CONFIGURATION:
@@ -117,6 +121,8 @@ state_t do_volt_write_configuration(state_data_t *data) {
     state_t next_state = STATE_VOLT_READ_CONFIGURATION;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_VOLT_READ_CONFIGURATION:
             break;
@@ -132,6 +138,8 @@ state_t do_volt_write_configuration(state_data_t *data) {
 state_t do_volt_read_configuration(state_data_t *data) {
     state_t next_state = STATE_READ_VOLT_A;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_READ_VOLT_A:
@@ -149,6 +157,8 @@ state_t do_read_volt_a(state_data_t *data) {
     state_t next_state = STATE_READ_VOLT_B;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_READ_VOLT_B:
             break;
@@ -164,6 +174,8 @@ state_t do_read_volt_a(state_data_t *data) {
 state_t do_read_volt_b(state_data_t *data) {
     state_t next_state = STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST:
@@ -181,6 +193,8 @@ state_t do_start_open_wire_pup_convertion_first(state_data_t *data) {
     state_t next_state = STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION:
             break;
@@ -196,6 +210,8 @@ state_t do_start_open_wire_pup_convertion_first(state_data_t *data) {
 state_t do_open_wire_pup_write_configuration(state_data_t *data) {
     state_t next_state = STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND:
@@ -213,6 +229,8 @@ state_t do_start_open_wire_pup_convertion_second(state_data_t *data) {
     state_t next_state = STATE_OPEN_WIRE_PUP_READ_CONFIGURATION;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_OPEN_WIRE_PUP_READ_CONFIGURATION:
             break;
@@ -228,6 +246,8 @@ state_t do_start_open_wire_pup_convertion_second(state_data_t *data) {
 state_t do_open_wire_pup_read_configuration(state_data_t *data) {
     state_t next_state = STATE_READ_OPEN_WIRE_PUP_A;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUP_A:
@@ -245,6 +265,8 @@ state_t do_read_open_wire_pup_a(state_data_t *data) {
     state_t next_state = STATE_READ_OPEN_WIRE_PUP_B;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUP_B:
             break;
@@ -260,6 +282,8 @@ state_t do_read_open_wire_pup_a(state_data_t *data) {
 state_t do_read_open_wire_pup_b(state_data_t *data) {
     state_t next_state = STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST:
@@ -277,6 +301,8 @@ state_t do_start_open_wire_pud_convertion_first(state_data_t *data) {
     state_t next_state = STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION:
             break;
@@ -292,6 +318,8 @@ state_t do_start_open_wire_pud_convertion_first(state_data_t *data) {
 state_t do_open_wire_pud_write_configuration(state_data_t *data) {
     state_t next_state = STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND:
@@ -309,6 +337,8 @@ state_t do_start_open_wire_pud_convertion_second(state_data_t *data) {
     state_t next_state = STATE_OPEN_WIRE_PUD_READ_CONFIGURATION;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_OPEN_WIRE_PUD_READ_CONFIGURATION:
             break;
@@ -324,6 +354,8 @@ state_t do_start_open_wire_pud_convertion_second(state_data_t *data) {
 state_t do_open_wire_pud_read_configuration(state_data_t *data) {
     state_t next_state = STATE_READ_OPEN_WIRE_PUD_A;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUD_A:
@@ -341,6 +373,8 @@ state_t do_read_open_wire_pud_a(state_data_t *data) {
     state_t next_state = STATE_READ_OPEN_WIRE_PUD_B;
     /* Your Code Here */
 
+    EAGLETRT_API_UNUSED(data);
+
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUD_B:
             break;
@@ -356,6 +390,8 @@ state_t do_read_open_wire_pud_a(state_data_t *data) {
 state_t do_read_open_wire_pud_b(state_data_t *data) {
     state_t next_state = STATE_START_VOLT_CONVERTION;
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_START_VOLT_CONVERTION:
@@ -384,6 +420,8 @@ state_t do_read_open_wire_pud_b(state_data_t *data) {
 // 1. from read_open_wire_pud_b to start_volt_convertion
 void check_open_wire(state_data_t *data) {
     /* Your Code Here */
+
+    EAGLETRT_API_UNUSED(data);
 }
 
 /*  ____  _        _        
