@@ -27,6 +27,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "fsm.h"
+#include "post.h"
+#include "can-communication-router-api.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +51,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+state_t current_state = STATE_IDLE;
 
 /* USER CODE END PV */
 
@@ -95,11 +101,29 @@ int main(void) {
     MX_USART1_UART_Init();
     /* USER CODE BEGIN 2 */
 
+    HAL_FDCAN_Start(&hfdcan1);
+    HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+
+    struct PostInitData post_init_data = {
+        .can_network_configurations = {
+            [CAN_COMMUNICATION_NETWORK_PRIMARY] = {
+                .cs_enter = __disable_irq,
+                .cs_exit = __enable_irq,
+                .on_receive = can_communication_router_api_receive_primary,
+                .send = fdcan_send_primary,
+            },
+        }
+    };
+
+    current_state = run_state(current_state, &post_init_data);
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1) {
+        current_state = run_state(current_state, nullptr);
+
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */

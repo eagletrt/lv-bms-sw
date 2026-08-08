@@ -22,6 +22,8 @@
 
 /* USER CODE BEGIN 0 */
 
+#include "eagletrt.h"
+
 /* USER CODE END 0 */
 
 FDCAN_HandleTypeDef hfdcan1;
@@ -122,5 +124,51 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef *fdcanHandle) {
 }
 
 /* USER CODE BEGIN 1 */
+
+constexpr uint32_t fdcan_dlc_bytes_invalid = UINT32_MAX;
+
+EAGLETRT_STATIC uint32_t prv_fdcan_get_header_length(uint8_t length) {
+    if (length > CAN_COMMUNICATION_FRAME_DATA_SIZE) {
+        return fdcan_dlc_bytes_invalid;
+    }
+
+    const uint32_t dlc[] = {
+        FDCAN_DLC_BYTES_0,
+        FDCAN_DLC_BYTES_1,
+        FDCAN_DLC_BYTES_2,
+        FDCAN_DLC_BYTES_3,
+        FDCAN_DLC_BYTES_4,
+        FDCAN_DLC_BYTES_5,
+        FDCAN_DLC_BYTES_6,
+        FDCAN_DLC_BYTES_7,
+        FDCAN_DLC_BYTES_8
+    };
+    return dlc[length];
+}
+
+enum CanCommunicationReturnCode fdcan_send_primary(const struct CanCommunicationFrame *frame) {
+    FDCAN_TxHeaderTypeDef header = {
+        .Identifier = frame->id,
+        .IdType = FDCAN_STANDARD_ID,
+        .TxFrameType = FDCAN_DATA_FRAME,
+        .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
+        .BitRateSwitch = FDCAN_BRS_OFF,
+        .FDFormat = FDCAN_CLASSIC_CAN,
+        .TxEventFifoControl = FDCAN_STORE_TX_EVENTS,
+        .MessageMarker = 0
+    };
+
+    uint32_t dlc = prv_fdcan_get_header_length(frame->length);
+    if (dlc == fdcan_dlc_bytes_invalid) {
+        return CAN_COMMUNICATION_RC_INVALID_LENGTH;
+    }
+
+    header.DataLength = dlc;
+
+    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &header, frame->data) != HAL_OK) {
+        return CAN_COMMUNICATION_RC_TRANSMISSION_ERROR;
+    }
+    return CAN_COMMUNICATION_RC_OK;
+}
 
 /* USER CODE END 1 */
