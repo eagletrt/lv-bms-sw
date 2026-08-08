@@ -133,4 +133,30 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
 
 /* USER CODE BEGIN 1 */
 
+enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t size) {
+    uint16_t timeout = size * 7;
+
+    if (HAL_SPI_Transmit(&hspi1, data, size, timeout) != HAL_OK) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint8_t *out, const size_t size, const size_t out_size) {
+    uint16_t timeout_tx = size * 7;
+
+    if (HAL_SPI_Transmit(&hspi1, data, size, timeout_tx) != HAL_OK) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    uint16_t timeout_rx = out_size * 7;
+
+    if (HAL_SPI_Receive(&hspi1, out, out_size, timeout_rx) != HAL_OK) {
+        return BMS_MONITOR_RC_DECODE_ERROR;
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
 /* USER CODE END 1 */

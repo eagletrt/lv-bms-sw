@@ -7,6 +7,7 @@
 
 #include "post-api.h"
 #include "can-communication-api.h"
+#include "bms-monitor-api.h"
 #include "current-api.h"
 #include "voltage-api.h"
 #include "feedback-api.h"
@@ -22,6 +23,12 @@ enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
     enum PostReturnCode post_return_code = POST_RC_OK;
 
     if (can_communication_api_init(post_init_data->can_network_configurations) != CAN_COMMUNICATION_RC_OK) {
+        post_return_code = POST_RC_UNINITIALIZED_MODULE;
+    }
+
+    if (bms_monitor_api_init(post_init_data->bms_monitor_send,
+                             post_init_data->bms_monitor_send_receive,
+                             post_init_data->bms_monitor_ntc_read) != BMS_MONITOR_RC_OK) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 

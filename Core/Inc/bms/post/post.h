@@ -9,6 +9,7 @@
 #define POST_H
 
 #include "can-communication.h"
+#include "bms-monitor.h"
 
 /*!
  * \brief Return codes for the POST module APIs
@@ -24,6 +25,9 @@ enum PostReturnCode {
  */
 struct PostInitData {
     struct CanCommunicationNetworkConfig can_network_configurations[CAN_COMMUNICATION_NETWORK_COUNT];
+    bms_monitor_send_callback bms_monitor_send;
+    bms_monitor_send_receive_callback bms_monitor_send_receive;
+    bms_monitor_ntc_read_callback bms_monitor_ntc_read;
 };
 
 #endif // POST_H

@@ -30,6 +30,8 @@ extern "C" {
 
 /* USER CODE BEGIN Includes */
 
+#include "bms-monitor.h"
+
 /* USER CODE END Includes */
 
 extern SPI_HandleTypeDef hspi1;
@@ -41,6 +43,10 @@ extern SPI_HandleTypeDef hspi1;
 void MX_SPI1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+
+enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t size);
+
+enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint8_t *out, const size_t size, const size_t out_size);
 
 /* USER CODE END Prototypes */
 

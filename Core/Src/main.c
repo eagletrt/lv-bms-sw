@@ -112,7 +112,10 @@ int main(void) {
                 .on_receive = can_communication_router_api_receive_primary,
                 .send = fdcan_send_primary,
             },
-        }
+        },
+        .bms_monitor_send = spi_bms_monitor_send,
+        .bms_monitor_send_receive = spi_bms_monitor_send_receive,
+        .bms_monitor_ntc_read = nullptr
     };
 
     current_state = run_state(current_state, &post_init_data);
