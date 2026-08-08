@@ -9,7 +9,7 @@
 #ifndef BMS_MONITOR_API_H
 #define BMS_MONITOR_API_H
 
-#include "bms_monitor.h"
+#include "bms-monitor.h"
 
 #include "config.h"
 
@@ -60,7 +60,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_configuration(void);
  * \retval          BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
  * \retval          BMS_MONITOR_BUSY the monitor or the peripheral is busy.
  */
-enum BmsMonitorReturnCode bms_monitor_api_start_volt_covertion(void);
+enum BmsMonitorReturnCode bms_monitor_api_start_volt_conversion(void);
 
 /*!
  * \brief           Start the open wire ADC convertion.
@@ -72,7 +72,7 @@ enum BmsMonitorReturnCode bms_monitor_api_start_volt_covertion(void);
  * \retval          BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
  * \retval          BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
  */
-enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_covertion(enum Ltc68102Pup pull_up);
+enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_conversion(enum Ltc68102Pup pull_up);
 
 /**
  * \brief           Read the cells voltages from the BMS monitor.
@@ -132,6 +132,20 @@ enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells);
  * \returns         uint16_t The bitmask representing wich where the n-bit is representing the n-th cell.
  */
 uint16_t bms_monitor_api_get_discharge(void);
+
+/*!
+ * \brief Check for open wires
+ *
+ * \details To check for open wire the delta between the converted voltages values
+ * is calculated for all the 12 cells excluded the first, then the open wire
+ * is detected if:
+ *     - The first pull up voltage value is 0.0000 (an epsilon is used to avoid float precision errors)
+ *     - The last pull-down voltage value is 0.0000 (same as above)
+ *     - At least one delta voltage value is below the -400 mV threshold
+ *
+ * \returns bit_flag32 A bitmask where the n-th bit represent the n-th cell (up to 32) that has an open wire
+ */
+uint32_t bms_monitor_api_check_open_wire(void);
 
 #else /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 

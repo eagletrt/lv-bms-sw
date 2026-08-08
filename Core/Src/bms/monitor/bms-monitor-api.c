@@ -6,8 +6,8 @@
  * \brief           BMS monitor APIs.
  */
 
-#include "bms_monitor.h"
-#include "bms_monitor_api.h"
+#include "bms-monitor.h"
+#include "bms-monitor-api.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -18,8 +18,8 @@
 #include "defines.h"
 #include "ltc6810-2.h"
 #include "ltc6810-2-api.h"
-#include "monitor/bms_monitor.h"
-#include "monitor/bms_monitor_api.h"
+#include "monitor/bms-monitor.h"
+#include "monitor/bms-monitor-api.h"
 #include "types.h"
 #include "voltage-api.h"
 #include "temperature-api.h"
@@ -37,7 +37,6 @@ EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
 EAGLETRT_STATIC_INLINE bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
     return cells & (cells << 1U) || cells & 0b11000000;
 }
-
 
 /*!
  * \brief           Compute the cell temperature based on the NTC current.
@@ -137,7 +136,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_configuration(void) {
     return BMS_MONITOR_RC_OK;
 }
 
-enum BmsMonitorReturnCode bms_monitor_api_start_volt_covertion(void) {
+enum BmsMonitorReturnCode bms_monitor_api_start_volt_conversion(void) {
     uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
 
     size_t byte_size = ltc6810_2_api_adcv_encode_broadcast(
@@ -158,7 +157,7 @@ enum BmsMonitorReturnCode bms_monitor_api_start_volt_covertion(void) {
     return code;
 }
 
-enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_covertion(enum Ltc68102Pup pull_up) {
+enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_conversion(enum Ltc68102Pup pull_up) {
     uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
 
     size_t byte_size = ltc6810_2_api_adow_encode_broadcast(
@@ -291,6 +290,29 @@ enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells) {
 
 uint16_t bms_monitor_api_get_discharge(void) {
     return bms_monitor_handler.actual_configuration.DCC;
+}
+
+uint32_t bms_monitor_api_check_open_wire(void) {
+    uint32_t open_wire = 0U;
+    constexpr volt open_wire_epsilon = 0.000005F;
+    constexpr volt open_wire_threshold_volt = LTC6810_2_OPEN_WIRE_THRESHOLD_MV * 1000;
+
+    if (fabs(bms_monitor_handler.pup[LTC6810_2_PUP_ACTIVE][0U]) <= open_wire_epsilon) {
+        open_wire = EAGLETRT_API_BIT_SET(open_wire, 0U);
+    }
+
+    if (fabs(bms_monitor_handler.pup[LTC6810_2_PUP_INACTIVE][DEFINES_CELLS_SERIES_COUNT - 1U]) <= open_wire_epsilon) {
+        open_wire = EAGLETRT_API_BIT_SET(open_wire, DEFINES_CELLS_SERIES_COUNT - 1U);
+    }
+
+    for (size_t i = 1U; i < DEFINES_CELLS_SERIES_COUNT; ++i) {
+        const volt delta_v = bms_monitor_handler.pup[LTC6810_2_PUP_ACTIVE][i] - bms_monitor_handler.pup[LTC6810_2_PUP_INACTIVE][i];
+        if (delta_v < open_wire_threshold_volt) {
+            open_wire = EAGLETRT_API_BIT_SET(open_wire, i);
+        }
+    }
+
+    return open_wire;
 }
 
 #endif /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */

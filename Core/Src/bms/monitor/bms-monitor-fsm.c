@@ -13,7 +13,13 @@ The finite state machine has:
 
 ******************************************************************************/
 
-#include "bms_monitor_fsm.h"
+#include "bms-monitor-fsm.h"
+
+/*** USER CODE BEGIN MACROS ***/
+#include <string.h>
+
+#include "bms-monitor-api.h"
+/*** USER CODE END MACROS ***/
 
 // SEARCH FOR Your Code Here FOR CODE INSERTION POINTS!
 
@@ -105,6 +111,8 @@ state_t do_start_volt_convertion(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_start_volt_conversion();
+
     switch (next_state) {
         case STATE_VOLT_WRITE_CONFIGURATION:
             break;
@@ -122,6 +130,8 @@ state_t do_volt_write_configuration(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_write_configuration();
 
     switch (next_state) {
         case STATE_VOLT_READ_CONFIGURATION:
@@ -141,6 +151,8 @@ state_t do_volt_read_configuration(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_read_configuration();
+
     switch (next_state) {
         case STATE_READ_VOLT_A:
             break;
@@ -158,6 +170,8 @@ state_t do_read_volt_a(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_read_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A);
 
     switch (next_state) {
         case STATE_READ_VOLT_B:
@@ -177,6 +191,8 @@ state_t do_read_volt_b(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_read_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B);
+
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST:
             break;
@@ -194,6 +210,8 @@ state_t do_start_open_wire_pup_convertion_first(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_ACTIVE);
 
     switch (next_state) {
         case STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION:
@@ -213,6 +231,8 @@ state_t do_open_wire_pup_write_configuration(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_write_configuration();
+
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND:
             break;
@@ -230,6 +250,8 @@ state_t do_start_open_wire_pup_convertion_second(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_ACTIVE);
 
     switch (next_state) {
         case STATE_OPEN_WIRE_PUP_READ_CONFIGURATION:
@@ -249,6 +271,8 @@ state_t do_open_wire_pup_read_configuration(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_read_configuration();
+
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUP_A:
             break;
@@ -266,6 +290,8 @@ state_t do_read_open_wire_pup_a(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP);
 
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUP_B:
@@ -285,6 +311,8 @@ state_t do_read_open_wire_pup_b(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP);
+
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST:
             break;
@@ -302,6 +330,8 @@ state_t do_start_open_wire_pud_convertion_first(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE);
 
     switch (next_state) {
         case STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION:
@@ -321,6 +351,8 @@ state_t do_open_wire_pud_write_configuration(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_write_configuration();
+
     switch (next_state) {
         case STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND:
             break;
@@ -338,6 +370,8 @@ state_t do_start_open_wire_pud_convertion_second(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE);
 
     switch (next_state) {
         case STATE_OPEN_WIRE_PUD_READ_CONFIGURATION:
@@ -357,6 +391,8 @@ state_t do_open_wire_pud_read_configuration(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_read_configuration();
+
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUD_A:
             break;
@@ -375,6 +411,8 @@ state_t do_read_open_wire_pud_a(state_data_t *data) {
 
     EAGLETRT_API_UNUSED(data);
 
+    (void)bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUD);
+
     switch (next_state) {
         case STATE_READ_OPEN_WIRE_PUD_B:
             break;
@@ -392,6 +430,8 @@ state_t do_read_open_wire_pud_b(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    (void)bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B, BMS_MANAGER_OPEN_WIRE_OPERATION_PUD);
 
     switch (next_state) {
         case STATE_START_VOLT_CONVERTION:
@@ -422,6 +462,9 @@ void check_open_wire(state_data_t *data) {
     /* Your Code Here */
 
     EAGLETRT_API_UNUSED(data);
+
+    uint32_t open_wire = bms_monitor_api_check_open_wire();
+    EAGLETRT_API_UNUSED(open_wire);
 }
 
 /*  ____  _        _        

@@ -13,7 +13,6 @@ The finite state machine has:
 
 ******************************************************************************/
 
-
 #ifndef BMS_MONITOR_FSM_H
 #define BMS_MONITOR_FSM_H
 #ifdef __cplusplus
@@ -32,26 +31,26 @@ typedef void state_data_t;
 
 // List of states
 typedef enum {
-  STATE_INIT = 0,  
-  STATE_START_VOLT_CONVERTION,  
-  STATE_VOLT_WRITE_CONFIGURATION,  
-  STATE_VOLT_READ_CONFIGURATION,  
-  STATE_READ_VOLT_A,  
-  STATE_READ_VOLT_B,  
-  STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST,  
-  STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION,  
-  STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND,  
-  STATE_OPEN_WIRE_PUP_READ_CONFIGURATION,  
-  STATE_READ_OPEN_WIRE_PUP_A,  
-  STATE_READ_OPEN_WIRE_PUP_B,  
-  STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST,  
-  STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION,  
-  STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND,  
-  STATE_OPEN_WIRE_PUD_READ_CONFIGURATION,  
-  STATE_READ_OPEN_WIRE_PUD_A,  
-  STATE_READ_OPEN_WIRE_PUD_B,  
-  NUM_STATES,
-  NO_CHANGE
+    STATE_INIT = 0,
+    STATE_START_VOLT_CONVERTION,
+    STATE_VOLT_WRITE_CONFIGURATION,
+    STATE_VOLT_READ_CONFIGURATION,
+    STATE_READ_VOLT_A,
+    STATE_READ_VOLT_B,
+    STATE_START_OPEN_WIRE_PUP_CONVERTION_FIRST,
+    STATE_OPEN_WIRE_PUP_WRITE_CONFIGURATION,
+    STATE_START_OPEN_WIRE_PUP_CONVERTION_SECOND,
+    STATE_OPEN_WIRE_PUP_READ_CONFIGURATION,
+    STATE_READ_OPEN_WIRE_PUP_A,
+    STATE_READ_OPEN_WIRE_PUP_B,
+    STATE_START_OPEN_WIRE_PUD_CONVERTION_FIRST,
+    STATE_OPEN_WIRE_PUD_WRITE_CONFIGURATION,
+    STATE_START_OPEN_WIRE_PUD_CONVERTION_SECOND,
+    STATE_OPEN_WIRE_PUD_READ_CONFIGURATION,
+    STATE_READ_OPEN_WIRE_PUD_A,
+    STATE_READ_OPEN_WIRE_PUD_B,
+    NUM_STATES,
+    NO_CHANGE
 } state_t;
 
 // State human-readable names
@@ -60,6 +59,22 @@ extern const char *bms_monitor_state_names[];
 // State function and state transition prototypes
 typedef state_t state_func_t(state_data_t *data);
 typedef void transition_func_t(state_data_t *data);
+
+/*** USER CODE BEGIN TYPES ***/
+/**
+ * @brief Type definition for the BMS monitor structure handler
+ *
+ * @attention This structure should not be used outside of this module
+ *
+ * @param fsm_state The current state of the FSM
+ * @param volt_reg The voltage register to read
+ * @param temp_reg The temperature register to read
+ * @param open_wire_operations Current number of open wire operations
+ */
+typedef struct {
+    state_t fsm_state;
+} BmsMonitorFsmHandler;
+/*** USER CODE END TYPES ***/
 
 // State functions
 // Function to be executed in state init
@@ -117,10 +132,8 @@ state_t do_read_open_wire_pud_a(state_data_t *data);
 // valid return states: STATE_START_VOLT_CONVERTION
 state_t do_read_open_wire_pud_b(state_data_t *data);
 
-
 // List of state functions
 extern state_func_t *const bms_monitor_state_table[NUM_STATES];
-
 
 // Transition functions
 void check_open_wire(state_data_t *data);
