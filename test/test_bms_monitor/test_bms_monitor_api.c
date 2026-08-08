@@ -11,8 +11,8 @@
 
 #include <string.h>
 
-#include "bms_monitor.h"
-#include "bms_monitor_api.h"
+#include "bms-monitor.h"
+#include "bms-monitor-api.h"
 
 #include "config.h"
 #include "defines.h"
@@ -149,39 +149,39 @@ void test_bms_monitor_api_read_configuration_send_receive_error(void) {
 /*! \} */
 
 /*!
- * \defgroup		bms_monitor_api_start_volt_covertion Test for bms_monitor_api_start_volt_covertion function.
+ * \defgroup		bms_monitor_api_start_volt_conversion Test for bms_monitor_api_start_volt_conversion function.
  * \{
  */
 
 void test_bms_monitor_api_start_volt_conversion_ok(void) {
     bms_monitor_api_init(send_fake, send_receive_fake, NULL);
     send_fake_fake.return_val = BMS_MONITOR_RC_OK;
-    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_start_volt_covertion());
+    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_start_volt_conversion());
 }
 
 void test_bms_monitor_api_start_volt_conversion_send_error(void) {
     bms_monitor_api_init(send_fake, send_receive_fake, NULL);
     send_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
-    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_start_volt_covertion());
+    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_start_volt_conversion());
 }
 
 /*! \} */
 
 /*!
- * \defgroup		bms_monitor_api_start_open_wire_covertion Test for bms_monitor_api_start_open_wire_covertion function.
+ * \defgroup		bms_monitor_api_start_open_wire_conversion Test for bms_monitor_api_start_open_wire_conversion function.
  * \{
  */
 
-void test_bms_monitor_api_start_open_wire_covertion_ok(void) {
+void test_bms_monitor_api_start_open_wire_conversion_ok(void) {
     bms_monitor_api_init(send_fake, send_receive_fake, NULL);
     send_fake_fake.return_val = BMS_MONITOR_RC_OK;
-    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_start_open_wire_covertion(LTC6810_2_PUP_INACTIVE));
+    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE));
 }
 
-void test_bms_monitor_api_start_open_wire_covertion_send_error(void) {
+void test_bms_monitor_api_start_open_wire_conversion_send_error(void) {
     bms_monitor_api_init(send_fake, send_receive_fake, NULL);
     send_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
-    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_start_open_wire_covertion(LTC6810_2_PUP_INACTIVE));
+    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE));
 }
 
 /*! \} */
@@ -392,7 +392,6 @@ int main(void) {
 
     /*! \} */
 
-
     /*!
 	 * \defgroup	 bms_monitor_api_write_configuration Test for bms_monitor_api_write_configuration function.
 	 * \{
@@ -414,7 +413,7 @@ int main(void) {
     /*! \} */
 
     /*!
-	 * \defgroup	 bms_monitor_api_start_volt_covertion Test for bms_monitor_api_start_volt_covertion function.
+	 * \defgroup	 bms_monitor_api_start_volt_conversion Test for bms_monitor_api_start_volt_conversion function.
 	 * \{
 	 */
 
@@ -424,12 +423,12 @@ int main(void) {
     /*! \} */
 
     /*!
-	 * \defgroup	 bms_monitor_api_start_open_wire_covertion Test for start_open_wire_covertion function.
+	 * \defgroup	 bms_monitor_api_start_open_wire_conversion Test for start_open_wire_conversion function.
 	 * \{
 	 */
 
-    RUN_TEST(test_bms_monitor_api_start_open_wire_covertion_ok);
-    RUN_TEST(test_bms_monitor_api_start_open_wire_covertion_send_error);
+    RUN_TEST(test_bms_monitor_api_start_open_wire_conversion_ok);
+    RUN_TEST(test_bms_monitor_api_start_open_wire_conversion_send_error);
 
     /*! \} */
 
