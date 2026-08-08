@@ -120,12 +120,16 @@ int main(void) {
 
     current_state = run_state(current_state, &post_init_data);
 
+    struct FsmData fsm_data = {
+        .get_tick = HAL_GetTick
+    };
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1) {
-        current_state = run_state(current_state, nullptr);
+        current_state = run_state(current_state, &fsm_data);
 
         /* USER CODE END WHILE */
 

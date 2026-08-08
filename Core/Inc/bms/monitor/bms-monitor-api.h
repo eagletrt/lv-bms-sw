@@ -137,13 +137,13 @@ uint16_t bms_monitor_api_get_discharge(void);
  * \brief Check for open wires
  *
  * \details To check for open wire the delta between the converted voltages values
- * is calculated for all the 12 cells excluded the first, then the open wire
+ * is calculated for all the cells excluded the first, then the open wire
  * is detected if:
  *     - The first pull up voltage value is 0.0000 (an epsilon is used to avoid float precision errors)
  *     - The last pull-down voltage value is 0.0000 (same as above)
  *     - At least one delta voltage value is below the -400 mV threshold
  *
- * \returns bit_flag32 A bitmask where the n-th bit represent the n-th cell (up to 32) that has an open wire
+ * \returns bit_flag32 A bitmask where the n-th bit represents the n-th cell that has an open wire
  */
 uint32_t bms_monitor_api_check_open_wire(void);
 
