@@ -17,6 +17,13 @@ The finite state machine has:
 
 // SEARCH FOR Your Code Here FOR CODE INSERTION POINTS!
 #include "eagletrt-api.h"
+#include "bms-monitor-fsm.h"
+
+EAGLETRT_STATIC uint32_t last_tick = 0U;
+
+constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
+
+bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
 // GLOBALS
 // State human-readable names
@@ -60,7 +67,14 @@ transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
 state_t do_init(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
-    EAGLETRT_API_UNUSED(data);
+    struct FsmData *fsm_init_data = (struct FsmData *)data;
+
+    uint32_t current_tick = fsm_init_data->get_tick();
+    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+        last_tick = current_tick;
+
+        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    }
 
     switch (next_state) {
         case STATE_IDLE:
@@ -78,7 +92,14 @@ state_t do_init(state_data_t *data) {
 state_t do_idle(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    EAGLETRT_API_UNUSED(data);
+    struct FsmData *fsm_idle_data = (struct FsmData *)data;
+
+    uint32_t current_tick = fsm_idle_data->get_tick();
+    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+        last_tick = current_tick;
+
+        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    }
 
     switch (next_state) {
         case NO_CHANGE:
@@ -99,7 +120,14 @@ state_t do_idle(state_data_t *data) {
 state_t do_fatal(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    EAGLETRT_API_UNUSED(data);
+    struct FsmData *fsm_fatal_data = (struct FsmData *)data;
+
+    uint32_t current_tick = fsm_fatal_data->get_tick();
+    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+        last_tick = current_tick;
+
+        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    }
 
     switch (next_state) {
         case NO_CHANGE:
@@ -118,7 +146,14 @@ state_t do_fatal(state_data_t *data) {
 state_t do_flash(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
-    EAGLETRT_API_UNUSED(data);
+    struct FsmData *fsm_flash_data = (struct FsmData *)data;
+
+    uint32_t current_tick = fsm_flash_data->get_tick();
+    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+        last_tick = current_tick;
+
+        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    }
 
     switch (next_state) {
         case STATE_IDLE:
@@ -136,7 +171,14 @@ state_t do_flash(state_data_t *data) {
 state_t do_balancing(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    EAGLETRT_API_UNUSED(data);
+    struct FsmData *fsm_balancing_data = (struct FsmData *)data;
+
+    uint32_t current_tick = fsm_balancing_data->get_tick();
+    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+        last_tick = current_tick;
+
+        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    }
 
     switch (next_state) {
         case NO_CHANGE:
