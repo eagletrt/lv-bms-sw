@@ -25,7 +25,7 @@ EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< The feedback handl
  * \retval          true if valid.
  * \retval          false otherwise.
  */
-EAGLETRT_STATIC_INLINE bool prv_feedback_is_valid_analog(volt analog) {
+EAGLETRT_STATIC bool prv_feedback_is_valid_analog(volt analog) {
     return (analog <= FEEDBACK_THRESHOLD_LOW_V || analog >= FEEDBACK_THRESHOLD_HIGH_V);
 }
 

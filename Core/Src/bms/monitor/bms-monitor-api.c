@@ -34,7 +34,7 @@ EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
  *
  * \returns         bool True if valid, false otherwise.
  */
-EAGLETRT_STATIC_INLINE bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
+EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
     return cells & (cells << 1U) || cells & 0b11000000;
 }
 
@@ -60,7 +60,7 @@ EAGLETRT_STATIC_INLINE bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t c
  *
  * \return          Calculated cell temperature in °C.
  */
-EAGLETRT_STATIC_INLINE __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature(ampere current) {
+EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature(ampere current) {
     float ntc_resistance = DEFINES_NTC_VDD / current;
 
     float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
