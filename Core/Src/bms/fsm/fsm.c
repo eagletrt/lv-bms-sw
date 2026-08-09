@@ -18,12 +18,20 @@ The finite state machine has:
 // SEARCH FOR Your Code Here FOR CODE INSERTION POINTS!
 #include "eagletrt-api.h"
 #include "bms-monitor-fsm.h"
+#include "identity-api.h"
+#include "can-primary.h"
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
 constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
 
 bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
+
+EAGLETRT_STATIC void prv_periodically_send(enum CanPrimaryLvacfsmStatus status, uint32_t tick) {
+    identity_api_periodically_send_state(status, tick);
+    identity_api_periodically_send_version(tick);
+    identity_api_periodically_send_libcan_version(tick);
+}
 
 // GLOBALS
 // State human-readable names
@@ -76,6 +84,8 @@ state_t do_init(state_data_t *data) {
         bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
     }
 
+    identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_INIT);
+
     switch (next_state) {
         case STATE_IDLE:
         case STATE_FATAL:
@@ -100,6 +110,8 @@ state_t do_idle(state_data_t *data) {
 
         bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
     }
+
+    prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
 
     switch (next_state) {
         case NO_CHANGE:

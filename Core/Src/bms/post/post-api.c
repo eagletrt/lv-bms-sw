@@ -7,6 +7,7 @@
 
 #include "post-api.h"
 #include "can-communication-api.h"
+#include "identity-api.h"
 #include "bms-monitor-api.h"
 #include "current-api.h"
 #include "voltage-api.h"
@@ -23,6 +24,10 @@ enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
     enum PostReturnCode post_return_code = POST_RC_OK;
 
     if (can_communication_api_init(post_init_data->can_network_configurations) != CAN_COMMUNICATION_RC_OK) {
+        post_return_code = POST_RC_UNINITIALIZED_MODULE;
+    }
+
+    if (identity_api_init() != IDENTITY_RC_OK) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 
