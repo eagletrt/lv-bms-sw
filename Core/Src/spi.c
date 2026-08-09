@@ -134,26 +134,72 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
 /* USER CODE BEGIN 1 */
 
 enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t size) {
-    uint16_t timeout = size * 7;
+    enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
+    uint16_t timeout = size * 7U;
 
-    if (HAL_SPI_Transmit(&hspi1, data, size, timeout) != HAL_OK) {
-        return BMS_MONITOR_RC_ENCODE_ERROR;
+    // TODO: Non-blocking or set a decent enough timeout
+    const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout);
+    switch (status) {
+        case HAL_TIMEOUT:
+        case HAL_ERROR:
+            code = BMS_MONITOR_RC_COMMUNICATION_ERROR;
+            break;
+        case HAL_BUSY:
+            code = BMS_MONITOR_RC_BUSY;
+            break;
+        case HAL_OK:
+            code = BMS_MONITOR_RC_OK;
+            break;
+        default:
+            code = BMS_MONITOR_RC_ERROR;
+            break;
     }
 
-    return BMS_MONITOR_RC_OK;
+    return code;
 }
 
 enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint8_t *out, const size_t size, const size_t out_size) {
-    uint16_t timeout_tx = size * 7;
+    enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
+    uint16_t timeout_tx = size * 7U;
+    uint16_t timeout_rx = out_size * 7U;
 
-    if (HAL_SPI_Transmit(&hspi1, data, size, timeout_tx) != HAL_OK) {
-        return BMS_MONITOR_RC_ENCODE_ERROR;
+    // TODO: Non-blocking or set a decent enough timeout
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout_tx);
+    switch (status) {
+        case HAL_TIMEOUT:
+        case HAL_ERROR:
+            code = BMS_MONITOR_RC_COMMUNICATION_ERROR;
+            break;
+        case HAL_BUSY:
+            code = BMS_MONITOR_RC_BUSY;
+            break;
+        case HAL_OK:
+            code = BMS_MONITOR_RC_OK;
+            break;
+        default:
+            code = BMS_MONITOR_RC_ERROR;
+            break;
     }
 
-    uint16_t timeout_rx = out_size * 7;
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
 
-    if (HAL_SPI_Receive(&hspi1, out, out_size, timeout_rx) != HAL_OK) {
-        return BMS_MONITOR_RC_DECODE_ERROR;
+    status = HAL_SPI_Receive(&hspi1, out, out_size, timeout_rx);
+    switch (status) {
+        case HAL_TIMEOUT:
+        case HAL_ERROR:
+            code = BMS_MONITOR_RC_COMMUNICATION_ERROR;
+            break;
+        case HAL_BUSY:
+            code = BMS_MONITOR_RC_BUSY;
+            break;
+        case HAL_OK:
+            code = BMS_MONITOR_RC_OK;
+            break;
+        default:
+            code = BMS_MONITOR_RC_ERROR;
+            break;
     }
 
     return BMS_MONITOR_RC_OK;

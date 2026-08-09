@@ -27,6 +27,7 @@ enum BmsMonitorReturnCode {
     BMS_MONITOR_RC_COMMUNICATION_ERROR, /*!< Communication error with the LTC */
     BMS_MONITOR_RC_INVALID_ARGUMENT,    /*!< Given argument isn't a valid one */
     BMS_MONITOR_RC_BUSY,                /*!< The monitor or the peripheral is busy */
+    BMS_MONITOR_RC_ERROR                /*!< A generic error */
 };
 
 /*!
@@ -93,7 +94,7 @@ struct BmsMonitorHandler {
     struct Ltc68102Cfgr actual_configuration;       /*!< The actual configuration register read from the LTC */
     struct Ltc68102Cfgr requested_configuration;    /*!< The requested configuration register of the LTC */
     volt pup[2U][DEFINES_CELLS_SERIES_COUNT];       /*!< An array of voltages read with pull-up and pull-down for the open-wire check */
-    bms_monitor_ntc_read_callback ntc_read;          /*!< Callback to read NTC current for a given channel */
+    bms_monitor_ntc_read_callback ntc_read;         /*!< Callback to read NTC current for a given channel */
 };
 
 #endif /*! BMS_MONITOR_H */
