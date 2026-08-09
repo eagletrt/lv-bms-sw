@@ -26,10 +26,10 @@
         "stm32cube",
         "zephyr"
     ],
-    "name": "ST Nucleo C092RC",
+    "name": "ST Nucleo C092CC",
     "upload": {
         "maximum_ram_size": 12288,
-        "maximum_size": 32768,
+        "maximum_size": 256000,
         "protocol": "stlink",
         "protocols": [
             "jlink",
