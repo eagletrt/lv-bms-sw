@@ -22,6 +22,11 @@
 
 /* USER CODE BEGIN 0 */
 
+#include <stdio.h>
+#include <stdarg.h>
+
+#define USART_MAX_BUF_SIZE (10000U)
+
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -135,5 +140,16 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle) {
 }
 
 /* USER CODE BEGIN 1 */
+
+void usart_log(const char *const fmt, ...) {
+    char buffer[USART_MAX_BUF_SIZE];
+
+    va_list args;
+    va_start(args, fmt);
+    int size = vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, size, HAL_MAX_DELAY);
+}
 
 /* USER CODE END 1 */

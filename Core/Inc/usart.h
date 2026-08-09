@@ -42,6 +42,14 @@ void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
+/*!
+ * \brief Print a formatted string via UART
+ *
+ * \param[in] fmt The string format
+ * \param[in] ... values to put inside the formatted string (optional)
+ */
+void usart_log(const char *const fmt, ...);
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
