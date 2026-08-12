@@ -75,7 +75,7 @@ celsius temperature_api_get_average(void) {
         average += temperature_handler.temperatures[i];
     }
 
-    return average / DEFINES_CELLS_COUNT;
+    return average / DEFINES_CELLS_NTC_COUNT;
 }
 
 enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_t start, size_t size) {

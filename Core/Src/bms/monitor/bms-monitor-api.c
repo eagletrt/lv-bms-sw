@@ -25,8 +25,6 @@
 #include "temperature-api.h"
 #include "current-api.h"
 
-#include "usart.h"
-
 #ifdef CONFIG_BMS_MONITOR_MODULE_ENABLE
 
 EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
@@ -64,6 +62,43 @@ EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
  */
 EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature(ampere current) {
     float ntc_resistance = DEFINES_NTC_VDD / current;
+
+    float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
+    steinhart += (1.0F / DEFINES_NTC_T0_KELVIN);
+
+    return (1.0F / steinhart) - 273.15F;
+}
+
+/*!
+ * \brief           Compute the cell temperature from an NTC voltage read on an
+ *                  LTC GPIO auxiliary channel.
+ *
+ * \details         Assumes the NTC forms the low side of a resistor divider fed
+ *                  from DEFINES_NTC_VDD through DEFINES_NTC_R_FIXED:
+ *
+ *                      VDD --[ R_FIXED ]--+--[ NTC ]-- GND
+ *                                         |
+ *                                       GPIOx (measured)
+ *
+ *                  so  R_NTC = R_FIXED * V_gpio / (VDD - V_gpio),
+ *                  then the Beta model yields the temperature.
+ *
+ * \warning         The divider topology and DEFINES_NTC_R_FIXED must match the
+ *                  actual schematic. If the NTC is on the high side instead,
+ *                  swap the numerator/denominator below.
+ *
+ * \param[in]       gpio_voltage Voltage measured on the LTC GPIO in V.
+ *
+ * \return          Calculated temperature in °C.
+ */
+EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature_from_voltage(volt gpio_voltage) {
+    float denominator = DEFINES_NTC_VDD - gpio_voltage;
+    if (denominator <= 0.F) {
+        /*! Out-of-range / open reading: clamp to avoid a divide-by-zero. */
+        denominator = 1e-6F;
+    }
+
+    float ntc_resistance = DEFINES_NTC_R_FIXED * (gpio_voltage / denominator);
 
     float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
     steinhart += (1.0F / DEFINES_NTC_T0_KELVIN);
@@ -193,7 +228,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRe
         return BMS_MONITOR_RC_ENCODE_ERROR;
     }
 
-    enum BmsMonitorReturnCode code = bms_monitor_handler.send_receive(command, data, byte_size, LTC6810_2_DATA_BUFFER_SIZE(DEFINES_CELLS_SERIES_COUNT));
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send_receive(command, data, byte_size, LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT));
     if (code != BMS_MONITOR_RC_OK) {
         return code;
     }
@@ -314,6 +349,102 @@ uint32_t bms_monitor_api_check_open_wire(void) {
     }
 
     return open_wire;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_start_gpio_conversion(void) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_adax_encode_broadcast(
+        &bms_monitor_handler.ltc_handler,
+        LTC6810_2_MD_27KHZ,
+        LTC6810_2_CHG_GPIO_ALL,
+        command);
+    if (byte_size != LTC6810_2_POLL_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    return bms_monitor_handler.send(command, byte_size);
+}
+
+/*!
+ * \brief           Read one auxiliary (GPIO) voltage register group from the LTC.
+ *
+ * \param[in]       reg The auxiliary register group to read (AVAR or AVBR).
+ * \param[out]      out Array receiving LTC6810_2_REG_AUX_COUNT raw values.
+ *
+ * \retval          BMS_MONITOR_RC_OK on success.
+ * \retval          BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ */
+EAGLETRT_STATIC enum BmsMonitorReturnCode prv_bms_monitor_api_read_aux_register(enum Ltc68102Avxr reg, raw_volt *out) {
+    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    uint8_t data[LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+
+    size_t byte_size = ltc6810_2_api_rdaux_encode_broadcast(&bms_monitor_handler.ltc_handler, reg, command);
+    if (byte_size != LTC6810_2_READ_BUFFER_SIZE) {
+        return BMS_MONITOR_RC_ENCODE_ERROR;
+    }
+
+    enum BmsMonitorReturnCode code = bms_monitor_handler.send_receive(
+        command,
+        data,
+        byte_size,
+        LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT));
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    byte_size = ltc6810_2_api_rdaux_decode_broadcast(&bms_monitor_handler.ltc_handler, data, out);
+    if (byte_size != LTC6810_2_DATA_BUFFER_SIZE(DEFINES_LTC_COUNT)) {
+        return BMS_MONITOR_RC_DECODE_ERROR;
+    }
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size) {
+    if (out == NULL) {
+        return BMS_MONITOR_RC_NULL_POINTER;
+    }
+    if (size < DEFINES_LTC_GPIO_COUNT) {
+        return BMS_MONITOR_RC_INVALID_ARGUMENT;
+    }
+
+    /*! Aux group A holds GPIO1..GPIO3, aux group B holds GPIO4 in its first slot
+        (per the LTC6810 auxiliary register map). */
+    raw_volt aux_a[LTC6810_2_REG_AUX_COUNT] = { 0 };
+    raw_volt aux_b[LTC6810_2_REG_AUX_COUNT] = { 0 };
+
+    enum BmsMonitorReturnCode code = prv_bms_monitor_api_read_aux_register(LTC6810_2_AVAR, aux_a);
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+    code = prv_bms_monitor_api_read_aux_register(LTC6810_2_AVBR, aux_b);
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    out[0] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(aux_a[0]); /*!< GPIO1 */
+    out[1] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(aux_a[1]); /*!< GPIO2 */
+    out[2] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(aux_a[2]); /*!< GPIO3 */
+    out[3] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(aux_b[0]); /*!< GPIO4 */
+
+    return BMS_MONITOR_RC_OK;
+}
+
+enum BmsMonitorReturnCode bms_monitor_api_read_gpio_temperatures(void) {
+    volt gpio_voltages[DEFINES_LTC_GPIO_COUNT] = { 0.F };
+
+    enum BmsMonitorReturnCode code = bms_monitor_api_read_gpios(gpio_voltages, DEFINES_LTC_GPIO_COUNT);
+    if (code != BMS_MONITOR_RC_OK) {
+        return code;
+    }
+
+    for (size_t i = 0U; i < DEFINES_LTC_GPIO_COUNT; ++i) {
+        const celsius temperature = prv_bms_monitor_api_compute_temperature_from_voltage(gpio_voltages[i]);
+        temperature_api_update_temperature(i, temperature);
+    }
+
+    return BMS_MONITOR_RC_OK;
 }
 
 #endif /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */

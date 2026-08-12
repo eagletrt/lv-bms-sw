@@ -498,10 +498,6 @@ void bms_monitor_fsm_check_open_wire(bms_monitor_fsm_state_data_t *data) {
  */
 
 bms_monitor_fsm_state_t bms_monitor_fsm_run_state(bms_monitor_fsm_state_t cur_state, bms_monitor_fsm_state_data_t *data) {
-    /* Printed BEFORE the state body runs: if a state's SPI transaction hangs,
-       this is the last line you will see on the serial console. */
-    logger_api_log(LOGGER_LEVEL_DEBUG, "[MON] %s", bms_monitor_fsm_state_names[cur_state]);
-
     bms_monitor_fsm_state_t new_state = bms_monitor_fsm_state_table[cur_state](data);
     if (new_state == BMS_MONITOR_FSM_NO_CHANGE)
         new_state = cur_state;

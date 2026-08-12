@@ -31,11 +31,18 @@
  * \{
  */
 
-#define DEFINES_NTC_COUNT (16U)         /*!< The number of NTCs */
+#define DEFINES_NTC_COUNT (12U)         /*!< The number of NTCs (12 across the 18 cells). */
 #define DEFINES_NTC_VDD (3.3F)          /*!< Supply voltage for the NTC circuit in V. */
 #define DEFINES_NTC_R0 (10000.F)        /*!< Nominal NTC resistance at 25 °C in Ohm. */
 #define DEFINES_NTC_BETA (3950.F)       /*!< NTC Beta parameter in K. */
 #define DEFINES_NTC_T0_KELVIN (298.15F) /*!< Reference temperature in K. */
+#define DEFINES_NTC_R_FIXED (10000.F)   /*!< Fixed divider resistor in series with each NTC read on the LTC GPIOs, in Ohm. \warning Verify against the schematic. */
+
+/*!
+ * \brief           Number of LTC GPIO/auxiliary channels wired to NTCs (GPIO1..GPIO4),
+ *                  read directly through the LTC auxiliary ADC.
+ */
+#define DEFINES_LTC_GPIO_COUNT (4U)
 
 /*!
  * \}

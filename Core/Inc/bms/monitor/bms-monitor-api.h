@@ -147,6 +147,41 @@ uint16_t bms_monitor_api_get_discharge(void);
  */
 uint32_t bms_monitor_api_check_open_wire(void);
 
+/*!
+ * \brief           Start the GPIO (auxiliary) ADC conversion on the LTC.
+ *
+ * \details         Issues an ADAX command for all GPIOs. Pair it with
+ *                  bms_monitor_api_read_gpios / bms_monitor_api_read_gpio_temperatures
+ *                  after the conversion has completed.
+ *
+ * \retval          BMS_MONITOR_RC_OK on success.
+ * \retval          BMS_MONITOR_RC_ENCODE_ERROR if the command could not be encoded.
+ * \retval          BMS_MONITOR_RC_COMMUNICATION_ERROR on a transmission failure.
+ */
+enum BmsMonitorReturnCode bms_monitor_api_start_gpio_conversion(void);
+
+/*!
+ * \brief           Read the 4 LTC GPIO auxiliary voltages directly.
+ *
+ * \param[out]      out  Array receiving the GPIO1..GPIO4 voltages in V.
+ * \param[in]       size Number of elements in \p out (must be >= DEFINES_LTC_GPIO_COUNT).
+ *
+ * \retval          BMS_MONITOR_RC_OK on success.
+ * \retval          BMS_MONITOR_RC_NULL_POINTER if \p out is NULL.
+ * \retval          BMS_MONITOR_RC_INVALID_ARGUMENT if \p size is too small.
+ * \retval          BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ */
+enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size);
+
+/*!
+ * \brief           Read the 4 LTC GPIO NTC channels and store them, converted to
+ *                  °C, via the temperature API (indices 0..DEFINES_LTC_GPIO_COUNT-1).
+ *
+ * \retval          BMS_MONITOR_RC_OK on success.
+ * \retval          BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ */
+enum BmsMonitorReturnCode bms_monitor_api_read_gpio_temperatures(void);
+
 #else /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 
 #define bms_monitor_api_init(send, send_receive, ntc_read) (BMS_MONITOR_RC_OK)
