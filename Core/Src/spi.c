@@ -134,11 +134,6 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
 /* USER CODE BEGIN 1 */
 
 enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t size) {
-    logger_api_log(LOGGER_LEVEL_DEBUG, "SPI SEND: %2d. ", size);
-    for (uint16_t i = 0; i < size; ++i) {
-        logger_api_log(LOGGER_LEVEL_DEBUG, "%02hx ", data[i]);
-    }
-    logger_api_log(LOGGER_LEVEL_DEBUG, "\r\n");
     enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
     uint16_t timeout = size * 5U;
 
@@ -205,17 +200,6 @@ enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint
             code = BMS_MONITOR_RC_ERROR;
             break;
     }
-
-    logger_api_log(LOGGER_LEVEL_DEBUG, "SPI SEND-RECEIVE: %2d. ", size);
-    for (uint16_t i = 0; i < size; ++i) {
-        logger_api_log(LOGGER_LEVEL_DEBUG, "%02hx ", data[i]);
-    }
-
-    logger_api_log(LOGGER_LEVEL_DEBUG, "%2d. ", out_size);
-    for (uint16_t i = 0; i < out_size; ++i) {
-        logger_api_log(LOGGER_LEVEL_DEBUG, "%02hx ", out[i]);
-    }
-    logger_api_log(LOGGER_LEVEL_DEBUG, "\r\n");
 
     return BMS_MONITOR_RC_OK;
 }

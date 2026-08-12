@@ -27,6 +27,7 @@ The finite state machine has:
 #include "post-api.h"
 #include "post.h"
 #include "usart.h"
+#include "logger-api.h"
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
@@ -84,12 +85,18 @@ state_t do_init(state_data_t *data) {
     /* Your Code Here */
     struct PostInitData *fsm_init_data = (struct PostInitData *)data;
 
-    if (post_api_run(fsm_init_data) != POST_RC_OK) {
+    logger_api_log(LOGGER_LEVEL_INFO, "[FSM] do_init: running POST");
+    const enum PostReturnCode post_rc = post_api_run(fsm_init_data);
+    if (post_rc != POST_RC_OK) {
+        logger_api_log(LOGGER_LEVEL_ERROR, "[FSM] POST failed rc=%d -> FATAL", (int)post_rc);
         next_state = STATE_FATAL;
+    } else {
+        logger_api_log(LOGGER_LEVEL_INFO, "[FSM] POST ok");
     }
 
     identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_INIT);
     bms_monitor_fsm_state = bms_monitor_fsm_run_state(BMS_MONITOR_FSM_STATE_INIT, nullptr);
+    logger_api_log(LOGGER_LEVEL_INFO, "[FSM] monitor fsm primed, state=%d", (int)bms_monitor_fsm_state);
 
     switch (next_state) {
         case STATE_IDLE:
@@ -110,6 +117,16 @@ state_t do_idle(state_data_t *data) {
     struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
     const uint32_t current_tick = fsm_idle_data->tick;
+
+    /* 1 Hz heartbeat: proves the main loop is still spinning even between
+       monitor steps. If this keeps printing but the [MON] trace stops, the
+       hang is inside a monitor SPI transaction, not the main loop. */
+    static uint32_t last_heartbeat = 0U;
+    if (current_tick - last_heartbeat >= 1000U) {
+        last_heartbeat = current_tick;
+        logger_api_log(LOGGER_LEVEL_DEBUG, "[FSM] idle alive tick=%lu mon_state=%d", (unsigned long)current_tick, (int)bms_monitor_fsm_state);
+    }
+
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
 
@@ -310,6 +327,10 @@ state_t run_state(state_t cur_state, state_data_t *data) {
     state_t new_state = state_table[cur_state](data);
     if (new_state == NO_CHANGE)
         new_state = cur_state;
+
+    if (new_state != cur_state) {
+        logger_api_log(LOGGER_LEVEL_INFO, "[FSM] %s -> %s", state_names[cur_state], state_names[new_state]);
+    }
 
     transition_func_t *transition = transition_table[cur_state][new_state];
     if (transition) {

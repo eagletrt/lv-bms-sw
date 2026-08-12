@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "dma.h"
 #include "fdcan.h"
 #include "spi.h"
 #include "usart.h"
@@ -122,6 +123,7 @@ int main(void) {
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
+    MX_DMA_Init();
     MX_ADC1_Init();
     MX_FDCAN1_Init();
     MX_SPI1_Init();
@@ -164,6 +166,7 @@ int main(void) {
     /* USER CODE BEGIN WHILE */
     uint32_t t = HAL_GetTick();
     while (1) {
+        /*
         fsm_data.tick = HAL_GetTick();
         current_state = run_state(current_state, &fsm_data);
 
@@ -171,6 +174,14 @@ int main(void) {
             HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
             t = HAL_GetTick();
         }
+        */
+
+        HAL_ADC_Start(&hadc1);
+        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+        uint16_t adc_val = HAL_ADC_GetValue(&hadc1);
+        adc_val = HAL_ADC_GetValue(&hadc1);
+        logger_api_log(LOGGER_LEVEL_INFO, "ADC Value: %u", adc_val);
+
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
