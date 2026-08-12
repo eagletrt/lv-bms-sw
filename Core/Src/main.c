@@ -21,8 +21,6 @@
 #include "adc.h"
 #include "fdcan.h"
 #include "spi.h"
-#include "stm32c0xx_hal.h"
-#include "stm32c0xx_hal_gpio.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -158,6 +156,8 @@ int main(void) {
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
 
+    HAL_GPIO_WritePin(SUPPLY_EN_GPIO_Port, SUPPLY_EN_Pin, GPIO_PIN_SET);
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -191,8 +191,10 @@ void SystemClock_Config(void) {
     /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
+    RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         Error_Handler();
     }
@@ -200,12 +202,12 @@ void SystemClock_Config(void) {
     /** Initializes the CPU, AHB and APB buses clocks
   */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
     RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
         Error_Handler();
     }
 }
