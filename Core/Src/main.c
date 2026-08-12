@@ -463,7 +463,7 @@ static void ltc_read_voltages(struct Ltc68102Handler *handler) {
 
     if (HAL_GetTick() - last_print_time > 100) {
         uart_printf(
-            "CELL1=%fmV CELL2=%fmV CELL3=%fmV CELL4=%fmV CELL5=%fmV CELL6=%fmV\r\n",
+            "CELL1=%fV CELL2=%fV CELL3=%fV CELL4=%fV CELL5=%fV CELL6=%fV\r\n",
             cells[0] * 0.0001F,
             cells[1] * 0.0001F,
             cells[2] * 0.0001F,
