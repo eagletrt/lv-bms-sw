@@ -17,6 +17,7 @@
 #define DEFINES_CELLS_SERIES_COUNT (6U)                                                 /*!< The number of cells in series */
 #define DEFINES_CELLS_PARALLEL_COUNT (3U)                                               /*!< The number of cells in parallel */
 #define DEFINES_CELLS_COUNT (DEFINES_CELLS_SERIES_COUNT * DEFINES_CELLS_PARALLEL_COUNT) /*!< The number of all cells */
+#define DEFINES_CELLS_NTC_COUNT (12U)                                                   /*!< The number of NTCs connected to the cells */
 
 /*!
  * \}

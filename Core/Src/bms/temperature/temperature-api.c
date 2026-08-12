@@ -28,7 +28,7 @@ enum TemperatureReturnCode temperature_api_init(void) {
 }
 
 enum TemperatureReturnCode temperature_api_update_temperature(size_t index, celsius temperature) {
-    if (index >= DEFINES_CELLS_COUNT) {
+    if (index >= DEFINES_CELLS_NTC_COUNT) {
         return TEMPERATURE_RC_OUT_OF_BOUNDS;
     }
 
@@ -41,7 +41,7 @@ enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, con
         return TEMPERATURE_RC_NULL_POINTER;
     }
 
-    if ((index + size) > DEFINES_CELLS_COUNT) {
+    if ((index + size) > DEFINES_CELLS_NTC_COUNT) {
         return TEMPERATURE_RC_OUT_OF_BOUNDS;
     }
 
@@ -53,7 +53,7 @@ enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, con
 
 celsius temperature_api_get_min(void) {
     celsius min = temperature_handler.temperatures[0U];
-    for (size_t i = 0; i < DEFINES_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
         min = EAGLETRT_API_MIN(min, temperature_handler.temperatures[i]);
     }
 
@@ -62,7 +62,7 @@ celsius temperature_api_get_min(void) {
 
 celsius temperature_api_get_max(void) {
     celsius max = temperature_handler.temperatures[0U];
-    for (size_t i = 0; i < DEFINES_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
         max = EAGLETRT_API_MAX(max, temperature_handler.temperatures[i]);
     }
 
@@ -71,7 +71,7 @@ celsius temperature_api_get_max(void) {
 
 celsius temperature_api_get_average(void) {
     celsius average = 0.F;
-    for (size_t i = 0; i < DEFINES_CELLS_COUNT; ++i) {
+    for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
         average += temperature_handler.temperatures[i];
     }
 
@@ -83,7 +83,7 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
         return TEMPERATURE_RC_NULL_POINTER;
     }
 
-    if ((start + size) > DEFINES_CELLS_COUNT) {
+    if ((start + size) > DEFINES_CELLS_NTC_COUNT) {
         return TEMPERATURE_RC_OUT_OF_BOUNDS;
     }
 

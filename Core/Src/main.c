@@ -35,6 +35,7 @@
 #include "arena-allocator-api.h"
 #include "pal-api.h"
 #include "logger-api.h"
+#include "temperature-api.h"
 
 /* USER CODE END Includes */
 
@@ -165,8 +166,9 @@ int main(void) {
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     uint32_t t = HAL_GetTick();
+    uint32_t t_adc = HAL_GetTick();
+    adc_start_read();
     while (1) {
-        /*
         fsm_data.tick = HAL_GetTick();
         current_state = run_state(current_state, &fsm_data);
 
@@ -174,13 +176,14 @@ int main(void) {
             HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
             t = HAL_GetTick();
         }
-        */
 
-        HAL_ADC_Start(&hadc1);
-        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-        uint16_t adc_val = HAL_ADC_GetValue(&hadc1);
-        adc_val = HAL_ADC_GetValue(&hadc1);
-        logger_api_log(LOGGER_LEVEL_INFO, "ADC Value: %u", adc_val);
+        if (HAL_GetTick() - t_adc >= 1000) {
+            float temperatures[DEFINES_CELLS_NTC_COUNT] = { 0.0f };
+            temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
+            logger_api_log(LOGGER_LEVEL_DEBUG, "Temperatures: T0=%.2f, T1=%.2f, T2=%.2f, T3=%.2f, T4=%.2f, T5=%.2f, T6=%.2f, T7=%.2f", temperatures[0], temperatures[1], temperatures[2], temperatures[3], temperatures[4], temperatures[5], temperatures[6], temperatures[7]);
+            adc_start_read();
+            t_adc = HAL_GetTick();
+        }
 
         /* USER CODE END WHILE */
 

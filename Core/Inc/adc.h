@@ -36,11 +36,31 @@ extern ADC_HandleTypeDef hadc1;
 
 /* USER CODE BEGIN Private defines */
 
+enum AdcRead {
+    ADC_READ_T5,
+    ADC_READ_T4,
+    ADC_READ_T3,
+    ADC_READ_OUTPUT_EN_FB,
+    ADC_READ_OUT_FUSE_FB,
+    ADC_READ_T0,
+    ADC_READ_I_OUT,
+    ADC_READ_LVMS_OUT,
+    ADC_READ_T7,
+    ADC_READ_T6,
+    ADC_READ_T2,
+    ADC_READ_T1,
+    ADC_READ_COUNT
+};
+
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+
+void adc_start_read(void);
+
+volatile float *get_adc_voltages(void);
 
 /* USER CODE END Prototypes */
 
