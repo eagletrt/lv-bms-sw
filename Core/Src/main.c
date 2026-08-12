@@ -52,8 +52,6 @@
 
 /* USER CODE BEGIN PV */
 
-state_t current_state = STATE_IDLE;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -117,6 +115,8 @@ int main(void) {
         .bms_monitor_send_receive = spi_bms_monitor_send_receive,
         .bms_monitor_ntc_read = nullptr
     };
+
+    state_t current_state = STATE_INIT;
 
     current_state = run_state(current_state, &post_init_data);
 

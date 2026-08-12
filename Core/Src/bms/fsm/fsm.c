@@ -20,6 +20,7 @@ The finite state machine has:
 #include "bms-monitor-fsm.h"
 #include "identity-api.h"
 #include "can-primary.h"
+#include "post-api.h"
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
@@ -75,13 +76,10 @@ transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
 state_t do_init(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
-    struct FsmData *fsm_init_data = (struct FsmData *)data;
+    struct PostInitData *fsm_init_data = (struct PostInitData *)data;
 
-    uint32_t current_tick = fsm_init_data->get_tick();
-    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-        last_tick = current_tick;
-
-        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    if (post_api_run(fsm_init_data) != POST_RC_OK) {
+        next_state = STATE_FATAL;
     }
 
     identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_INIT);
@@ -104,14 +102,17 @@ state_t do_idle(state_data_t *data) {
     /* Your Code Here */
     struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
-    uint32_t current_tick = fsm_idle_data->get_tick();
-    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-        last_tick = current_tick;
+    if (fsm_idle_data->get_tick != NULL) {
+        uint32_t current_tick = fsm_idle_data->get_tick();
+        if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+            last_tick = current_tick;
 
-        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+            bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+        }
+        prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
+    } else {
+        next_state = STATE_FATAL;
     }
-
-    prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
 
     switch (next_state) {
         case NO_CHANGE:
