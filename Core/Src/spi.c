@@ -22,6 +22,7 @@
 
 /* USER CODE BEGIN 0 */
 
+#include "usart.h"
 /* USER CODE END 0 */
 
 SPI_HandleTypeDef hspi1;
@@ -134,8 +135,13 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
 /* USER CODE BEGIN 1 */
 
 enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t size) {
+    usart_log("SPI SEND: %2d. ", size);
+    for (uint16_t i = 0; i < size; ++i) {
+        usart_log("%02hx ", data[i]);
+    }
+    usart_log("\r\n");
     enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
-    uint16_t timeout = size * 7U;
+    uint16_t timeout = size * 5U;
 
     // TODO: Non-blocking or set a decent enough timeout
     const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout);
@@ -154,14 +160,13 @@ enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t
             code = BMS_MONITOR_RC_ERROR;
             break;
     }
-
     return code;
 }
 
 enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint8_t *out, const size_t size, const size_t out_size) {
     enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
-    uint16_t timeout_tx = size * 7U;
-    uint16_t timeout_rx = out_size * 7U;
+    uint16_t timeout_tx = size * 5U;
+    uint16_t timeout_rx = out_size * 5U;
 
     // TODO: Non-blocking or set a decent enough timeout
     HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout_tx);
@@ -201,6 +206,17 @@ enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint
             code = BMS_MONITOR_RC_ERROR;
             break;
     }
+
+    usart_log("SPI SEND-RECEIVE: %2d. ", size);
+    for (uint16_t i = 0; i < size; ++i) {
+        usart_log("%02hx ", data[i]);
+    }
+
+    usart_log("%2d. ", out_size);
+    for (uint16_t i = 0; i < out_size; ++i) {
+        usart_log("%02hx ", out[i]);
+    }
+    usart_log("\r\n");
 
     return BMS_MONITOR_RC_OK;
 }

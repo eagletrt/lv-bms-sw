@@ -25,6 +25,8 @@
 #include "temperature-api.h"
 #include "current-api.h"
 
+#include "usart.h"
+
 #ifdef CONFIG_BMS_MONITOR_MODULE_ENABLE
 
 EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
@@ -107,9 +109,9 @@ enum BmsMonitorReturnCode bms_monitor_api_write_configuration(void) {
 }
 
 enum BmsMonitorReturnCode bms_monitor_api_read_configuration(void) {
-    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    uint8_t command[LTC6810_2_READ_BUFFER_SIZE] = { 0 };
 
-    size_t byte_count = ltc6810_2_api_rdcfg_encode_broadcast(&bms_monitor_handler.ltc_handler, command);
+    const size_t byte_count = ltc6810_2_api_rdcfg_encode_broadcast(&bms_monitor_handler.ltc_handler, command);
     if (byte_count != LTC6810_2_READ_BUFFER_SIZE) {
         return BMS_MONITOR_RC_ENCODE_ERROR;
     }
@@ -137,7 +139,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_configuration(void) {
 }
 
 enum BmsMonitorReturnCode bms_monitor_api_start_volt_conversion(void) {
-    uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
+    uint8_t command[LTC6810_2_POLL_BUFFER_SIZE] = { 0 };
 
     size_t byte_size = ltc6810_2_api_adcv_encode_broadcast(
         &bms_monitor_handler.ltc_handler,
@@ -153,7 +155,6 @@ enum BmsMonitorReturnCode bms_monitor_api_start_volt_conversion(void) {
     if (code != BMS_MONITOR_RC_OK) {
         return code;
     }
-
     return code;
 }
 

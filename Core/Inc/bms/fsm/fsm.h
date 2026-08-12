@@ -21,16 +21,16 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 
+struct FsmData {
+    uint32_t tick;
+};
+
 // State data object
 // By default set to void; override this typedef or load the proper
 // header if you need
 typedef void state_data_t;
 
 typedef uint32_t (*fsm_get_tick_callback)(void);
-
-struct FsmData {
-    fsm_get_tick_callback get_tick;
-};
 
 // NOTHING SHALL BE CHANGED AFTER THIS LINE!
 

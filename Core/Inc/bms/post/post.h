@@ -10,6 +10,7 @@
 
 #include "can-communication.h"
 #include "bms-monitor.h"
+#include "fsm.h"
 
 /*!
  * \brief Return codes for the POST module APIs
@@ -28,6 +29,7 @@ struct PostInitData {
     bms_monitor_send_callback bms_monitor_send;
     bms_monitor_send_receive_callback bms_monitor_send_receive;
     bms_monitor_ntc_read_callback bms_monitor_ntc_read;
+    fsm_get_tick_callback get_tick;
 };
 
 #endif // POST_H

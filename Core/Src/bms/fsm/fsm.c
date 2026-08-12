@@ -16,17 +16,23 @@ The finite state machine has:
 #include "fsm.h"
 
 // SEARCH FOR Your Code Here FOR CODE INSERTION POINTS!
+#include <stdint.h>
+
 #include "eagletrt-api.h"
 #include "bms-monitor-fsm.h"
 #include "identity-api.h"
 #include "can-primary.h"
 #include "post-api.h"
+#include "eagletrt.h"
+#include "post-api.h"
+#include "post.h"
+#include "usart.h"
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
-constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
+constexpr uint32_t bms_monitor_fsm_run_delay = 100U;
 
-bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
+EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
 EAGLETRT_STATIC void prv_periodically_send(enum CanPrimaryLvacfsmStatus status, uint32_t tick) {
     identity_api_periodically_send_state(status, tick);
@@ -58,14 +64,14 @@ transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
     /* balancing */ { NULL, balancing_to_idle, balancing_to_fatal, NULL, NULL },
 };
 
-/*  ____  _        _       
- * / ___|| |_ __ _| |_ ___ 
+/*  ____  _        _
+ * / ___|| |_ __ _| |_ ___
  * \___ \| __/ _` | __/ _ \
  *  ___) | || (_| | ||  __/
  * |____/ \__\__,_|\__\___|
- *                         
- *   __                  _   _                 
- *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+ *
+ *   __                  _   _
+ *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___
  * | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
  * |  _| |_| | | | | (__| |_| | (_) | | | \__ \
  * |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
@@ -83,6 +89,7 @@ state_t do_init(state_data_t *data) {
     }
 
     identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_INIT);
+    bms_monitor_fsm_state = bms_monitor_fsm_run_state(BMS_MONITOR_FSM_STATE_INIT, nullptr);
 
     switch (next_state) {
         case STATE_IDLE:
@@ -102,17 +109,13 @@ state_t do_idle(state_data_t *data) {
     /* Your Code Here */
     struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
-    if (fsm_idle_data->get_tick != NULL) {
-        uint32_t current_tick = fsm_idle_data->get_tick();
-        if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-            last_tick = current_tick;
+    const uint32_t current_tick = fsm_idle_data->tick;
+    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
+        last_tick = current_tick;
 
-            bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
-        }
-        prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
-    } else {
-        next_state = STATE_FATAL;
+        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
     }
+    prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
 
     switch (next_state) {
         case NO_CHANGE:
@@ -133,9 +136,9 @@ state_t do_idle(state_data_t *data) {
 state_t do_fatal(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    struct FsmData *fsm_fatal_data = (struct FsmData *)data;
+    struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
-    uint32_t current_tick = fsm_fatal_data->get_tick();
+    const uint32_t current_tick = fsm_idle_data->tick;
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
 
@@ -159,9 +162,9 @@ state_t do_fatal(state_data_t *data) {
 state_t do_flash(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
-    struct FsmData *fsm_flash_data = (struct FsmData *)data;
+    struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
-    uint32_t current_tick = fsm_flash_data->get_tick();
+    const uint32_t current_tick = fsm_idle_data->tick;
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
 
@@ -184,9 +187,9 @@ state_t do_flash(state_data_t *data) {
 state_t do_balancing(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    struct FsmData *fsm_balancing_data = (struct FsmData *)data;
+    struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
-    uint32_t current_tick = fsm_balancing_data->get_tick();
+    const uint32_t current_tick = fsm_idle_data->tick;
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
 
@@ -206,14 +209,14 @@ state_t do_balancing(state_data_t *data) {
     return next_state;
 }
 
-/*  _____                    _ _   _              
- * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
+/*  _____                    _ _   _
+ * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __
  *   | || '__/ _` | '_ \/ __| | __| |/ _ \| '_ \
- *   | || | | (_| | | | \__ \ | |_| | (_) | | | | 
- *   |_||_|  \__,_|_| |_|___/_|\__|_|\___/|_| |_| 
- *                                                
- *   __                  _   _                 
- *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+ *   | || | | (_| | | | \__ \ | |_| | (_) | | | |
+ *   |_||_|  \__,_|_| |_|___/_|\__|_|\___/|_| |_|
+ *
+ *   __                  _   _
+ *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___
  * | |_| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
  * |  _| |_| | | | | (__| |_| | (_) | | | \__ \
  * |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
@@ -289,18 +292,18 @@ void fatal_to_flash(state_data_t *data) {
     EAGLETRT_API_UNUSED(data);
 }
 
-/*  ____  _        _        
- * / ___|| |_ __ _| |_ ___  
+/*  ____  _        _
+ * / ___|| |_ __ _| |_ ___
  * \___ \| __/ _` | __/ _ \
- *  ___) | || (_| | ||  __/ 
- * |____/ \__\__,_|\__\___| 
- *                          
- *                                              
- *  _ __ ___   __ _ _ __   __ _  __ _  ___ _ __ 
+ *  ___) | || (_| | ||  __/
+ * |____/ \__\__,_|\__\___|
+ *
+ *
+ *  _ __ ___   __ _ _ __   __ _  __ _  ___ _ __
  * | '_ ` _ \ / _` | '_ \ / _` |/ _` |/ _ \ '__|
- * | | | | | | (_| | | | | (_| | (_| |  __/ |   
- * |_| |_| |_|\__,_|_| |_|\__,_|\__, |\___|_|   
- *                              |___/           
+ * | | | | | | (_| | | | | (_| | (_| |  __/ |
+ * |_| |_| |_|\__,_|_| |_|\__,_|\__, |\___|_|
+ *                              |___/
  */
 
 state_t run_state(state_t cur_state, state_data_t *data) {

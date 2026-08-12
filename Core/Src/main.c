@@ -21,6 +21,8 @@
 #include "adc.h"
 #include "fdcan.h"
 #include "spi.h"
+#include "stm32c0xx_hal.h"
+#include "stm32c0xx_hal_gpio.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -51,6 +53,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+state_t current_state = STATE_INIT;
 
 /* USER CODE END PV */
 
@@ -116,21 +120,25 @@ int main(void) {
         .bms_monitor_ntc_read = nullptr
     };
 
-    state_t current_state = STATE_INIT;
-
-    current_state = run_state(current_state, &post_init_data);
-
     struct FsmData fsm_data = {
-        .get_tick = HAL_GetTick
+        .tick = HAL_GetTick()
     };
+
+    current_state = run_state(STATE_INIT, &post_init_data);
 
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
+    uint32_t t = HAL_GetTick();
     while (1) {
+        fsm_data.tick = HAL_GetTick();
         current_state = run_state(current_state, &fsm_data);
 
+        if (HAL_GetTick() - t >= 500) {
+            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+            t = HAL_GetTick();
+        }
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
