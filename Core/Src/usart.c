@@ -141,15 +141,23 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle) {
 
 /* USER CODE BEGIN 1 */
 
-void usart_log(const char *const fmt, ...) {
-    char buffer[USART_MAX_BUF_SIZE];
+enum PalReturnCode usart_logger_transmit(const struct PalMessage *message) {
+    if (message == NULL) {
+        return PAL_RC_NULL_POINTER;
+    }
 
-    va_list args;
-    va_start(args, fmt);
-    int size = vsnprintf(buffer, sizeof(buffer), fmt, args);
-    va_end(args);
+    if (message->size == 0U) {
+        return PAL_RC_OK;
+    }
 
-    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, size, HAL_MAX_DELAY);
+    // Execute blocking transmission over the USART
+    HAL_StatusTypeDef status = HAL_UART_Transmit(&huart1, (uint8_t *)message->payload, (uint16_t)message->size, 100);
+
+    if (status != HAL_OK) {
+        return PAL_RC_IO_ERROR;
+    }
+
+    return PAL_RC_OK;
 }
 
 /* USER CODE END 1 */

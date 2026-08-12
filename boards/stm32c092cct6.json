@@ -17,7 +17,7 @@
         ],
         "openocd_board": "st_nucleo_c0",
         "openocd_target": "stm32c0x",
-        "svd_path": "STM32C092RCT6.svd"
+        "svd_path": "STM32C092CCT6.svd"
     },
     "frameworks": [
         "arduino",
@@ -39,6 +39,6 @@
             "mbed"
         ]
     },
-    "url": "https://www.st.com/en/evaluation-tools/nucleo-c092rc.html",
+    "url": "https://www.st.com/en/evaluation-tools/nucleo-c092cc.html",
     "vendor": "ST"
 }

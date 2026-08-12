@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "pal.h"
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart1;
@@ -42,13 +42,7 @@ void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
-/*!
- * \brief Print a formatted string via UART
- *
- * \param[in] fmt The string format
- * \param[in] ... values to put inside the formatted string (optional)
- */
-void usart_log(const char *const fmt, ...);
+enum PalReturnCode usart_logger_transmit(const struct PalMessage *message);
 
 /* USER CODE END Prototypes */
 

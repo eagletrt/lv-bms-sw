@@ -32,6 +32,10 @@
 #include "fsm.h"
 #include "post.h"
 #include "can-communication-router-api.h"
+#include "eagletrt-api.h"
+#include "arena-allocator-api.h"
+#include "pal-api.h"
+#include "logger-api.h"
 
 /* USER CODE END Includes */
 
@@ -42,7 +46,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define LOGGER_ENABLED (true)          /*!< Logger status: true to enable active logging, false to mute entirely. */
+#define LOGGER_RX_CAPACITY (1U)        /*!< Receive queue depth. Set to 1 because the logger is transmit-only but needs to be > 0 because of arena allocator. */
+#define LOGGER_TX_CAPACITY (10U)       /*!< Maximum number of log message packets allowed to sit in the outbound transmission queue. */
+#define LOGGER_UART_MAX_MSG_SIZE (64U) /*!< Maximum allocation allowed for an individual log string. */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -62,10 +69,30 @@ state_t current_state = STATE_INIT;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
+EAGLETRT_STATIC struct ArenaAllocatorHandler arena_allocator_handler;
+EAGLETRT_STATIC struct PalHandler logger_pal_handler;
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/*!
+ * \brief Initializes the low-level memory allocation and logging framework.
+ */
+EAGLETRT_STATIC void prv_main_init_logging_configuration() {
+    arena_allocator_api_init(&arena_allocator_handler);
+
+    EAGLETRT_API_UNUSED(pal_api_init(&logger_pal_handler,
+                                     LOGGER_RX_CAPACITY,
+                                     LOGGER_TX_CAPACITY,
+                                     LOGGER_UART_MAX_MSG_SIZE,
+                                     NULL,
+                                     usart_logger_transmit,
+                                     NULL,
+                                     NULL,
+                                     &arena_allocator_handler));
+}
 
 /* USER CODE END 0 */
 
@@ -103,8 +130,10 @@ int main(void) {
     MX_USART1_UART_Init();
     /* USER CODE BEGIN 2 */
 
+    prv_main_init_logging_configuration();
+    EAGLETRT_API_UNUSED(logger_api_init(&logger_pal_handler, LOGGER_ENABLED));
+
     HAL_FDCAN_Start(&hfdcan1);
-    HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
 
     struct PostInitData post_init_data = {
         .can_network_configurations = {
@@ -125,6 +154,9 @@ int main(void) {
     };
 
     current_state = run_state(STATE_INIT, &post_init_data);
+
+    HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+    HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
 
     /* USER CODE END 2 */
 

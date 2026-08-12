@@ -23,6 +23,7 @@
 /* USER CODE BEGIN 0 */
 
 #include "eagletrt.h"
+#include "can-communication-api.h"
 
 /* USER CODE END 0 */
 
@@ -169,6 +170,30 @@ enum CanCommunicationReturnCode fdcan_send_primary(const struct CanCommunication
         return CAN_COMMUNICATION_RC_TRANSMISSION_ERROR;
     }
     return CAN_COMMUNICATION_RC_OK;
+}
+
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
+    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
+        FDCAN_RxHeaderTypeDef header = { 0 };
+        struct CanCommunicationFrame msg = { 0 };
+        HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &header, msg.data);
+        HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+        msg.id = header.Identifier;
+        msg.length = (uint8_t)(header.DataLength >> 16U);
+        can_communication_api_add_to_rx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &msg);
+    }
+}
+
+void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs) {
+    if ((RxFifo1ITs & FDCAN_IT_RX_FIFO1_NEW_MESSAGE) != RESET) {
+        FDCAN_RxHeaderTypeDef header = { 0 };
+        struct CanCommunicationFrame msg = { 0 };
+        HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO1, &header, msg.data);
+        HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
+        msg.id = header.Identifier;
+        msg.length = (uint8_t)(header.DataLength >> 16U);
+        can_communication_api_add_to_rx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &msg);
+    }
 }
 
 /* USER CODE END 1 */
