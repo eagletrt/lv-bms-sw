@@ -56,14 +56,16 @@ EAGLETRT_STATIC void prv_print_debug(void) {
     volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 0.F };
     (void)voltage_api_dump_voltages(voltages, 0U, DEFINES_CELLS_SERIES_COUNT);
 
-    celsius temperatures[DEFINES_LTC_GPIO_COUNT] = { 0.F };
-    (void)temperature_api_dump_temperatures(temperatures, 0U, DEFINES_LTC_GPIO_COUNT);
+    celsius temperatures[DEFINES_CELLS_NTC_COUNT] = { 0.F };
+    (void)temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
 
     const uint32_t open_wire = bms_monitor_api_check_open_wire();
 
-    logger_api_log(LOGGER_LEVEL_INFO, "===== BMS =====");
-    logger_api_log(LOGGER_LEVEL_INFO, "V[mV] %d %d %d %d %d %d", (int)(voltages[0] * 1000.F), (int)(voltages[1] * 1000.F), (int)(voltages[2] * 1000.F), (int)(voltages[3] * 1000.F), (int)(voltages[4] * 1000.F), (int)(voltages[5] * 1000.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "T[dC] %d %d %d %d", (int)(temperatures[0] * 10.F), (int)(temperatures[1] * 10.F), (int)(temperatures[2] * 10.F), (int)(temperatures[3] * 10.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "===== BMS (V=mV, T=dC) =====");
+    logger_api_log(LOGGER_LEVEL_INFO, "V %d %d %d %d %d %d", (int)(voltages[0] * 1000.F), (int)(voltages[1] * 1000.F), (int)(voltages[2] * 1000.F), (int)(voltages[3] * 1000.F), (int)(voltages[4] * 1000.F), (int)(voltages[5] * 1000.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_LTC %d %d %d %d", (int)(temperatures[0] * 10.F), (int)(temperatures[1] * 10.F), (int)(temperatures[2] * 10.F), (int)(temperatures[3] * 10.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MCU0-3 %d %d %d %d", (int)(temperatures[4] * 10.F), (int)(temperatures[5] * 10.F), (int)(temperatures[6] * 10.F), (int)(temperatures[7] * 10.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MCU4-7 %d %d %d %d", (int)(temperatures[8] * 10.F), (int)(temperatures[9] * 10.F), (int)(temperatures[10] * 10.F), (int)(temperatures[11] * 10.F));
     logger_api_log(LOGGER_LEVEL_INFO, "OpenWire 0x%lx %s", (unsigned long)open_wire, (open_wire == 0U) ? "none" : "DETECTED");
 }
 

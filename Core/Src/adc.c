@@ -345,13 +345,17 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
         for (int i = 0; i < ADC_READ_COUNT; i++) {
             voltages[i] = ADC_RAW_VALUE_TO_VOLT(adc_buffer[i], 3.3f, 12);
         }
-        temperature_api_update_temperature(0, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T1]));
-        temperature_api_update_temperature(2, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T2]));
-        temperature_api_update_temperature(3, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T3]));
-        temperature_api_update_temperature(4, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T4]));
-        temperature_api_update_temperature(5, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T5]));
-        temperature_api_update_temperature(6, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T6]));
-        temperature_api_update_temperature(7, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T7]));
+        /* Temperature index layout (DEFINES_CELLS_NTC_COUNT = 12 total):
+           - 0..3  : LTC GPIO NTCs (see bms_monitor_api_read_gpio_temperatures)
+           - 4..11 : MCU-ADC NTCs T0..T7 (this callback). */
+        temperature_api_update_temperature(4, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T0]));
+        temperature_api_update_temperature(5, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T1]));
+        temperature_api_update_temperature(6, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T2]));
+        temperature_api_update_temperature(7, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T3]));
+        temperature_api_update_temperature(8, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T4]));
+        temperature_api_update_temperature(9, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T5]));
+        temperature_api_update_temperature(10, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T6]));
+        temperature_api_update_temperature(11, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T7]));
     }
 }
 

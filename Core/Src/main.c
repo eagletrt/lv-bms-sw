@@ -178,9 +178,9 @@ int main(void) {
         }
 
         if (HAL_GetTick() - t_adc >= 1000) {
-            float temperatures[DEFINES_CELLS_NTC_COUNT] = { 0.0f };
-            temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
-            logger_api_log(LOGGER_LEVEL_DEBUG, "Temperatures: T0=%.2f, T1=%.2f, T2=%.2f, T3=%.2f, T4=%.2f, T5=%.2f, T6=%.2f, T7=%.2f", temperatures[0], temperatures[1], temperatures[2], temperatures[3], temperatures[4], temperatures[5], temperatures[6], temperatures[7]);
+            /* Re-trigger the MCU ADC scan; its DMA/EOC callback refreshes the
+               NTC temperatures (indices 4..11) in the background. The pack
+               snapshot is printed by the FSM debug interface (prv_print_debug). */
             adc_start_read();
             t_adc = HAL_GetTick();
         }
