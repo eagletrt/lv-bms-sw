@@ -20,6 +20,7 @@ The finite state machine has:
 
 #include "eagletrt-api.h"
 #include "bms-monitor-fsm.h"
+#include "can-communication-api.h"
 #include "identity-api.h"
 #include "can-primary.h"
 #include "post-api.h"
@@ -146,6 +147,8 @@ state_t do_idle(state_data_t *data) {
 
     const uint32_t current_tick = fsm_idle_data->tick;
 
+    can_communication_api_process_rx(CAN_COMMUNICATION_NETWORK_PRIMARY);
+
     /* Step the monitor FSM (cell voltages + open-wire) at its cadence. */
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
@@ -161,6 +164,8 @@ state_t do_idle(state_data_t *data) {
     }
 
     prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
+
+    can_communication_api_process_tx(CAN_COMMUNICATION_NETWORK_PRIMARY);
 
     switch (next_state) {
         case NO_CHANGE:
