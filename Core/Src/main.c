@@ -35,7 +35,6 @@
 #include "arena-allocator-api.h"
 #include "pal-api.h"
 #include "logger-api.h"
-#include "temperature-api.h"
 
 /* USER CODE END Includes */
 

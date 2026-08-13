@@ -93,6 +93,15 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *spiHandle) {
 
         /* USER CODE BEGIN SPI1_MspInit 1 */
 
+        /* LTC6810 CSB on PA15, driven manually (SPI uses software NSS). Idle high. */
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
+        GPIO_InitStruct.Pin = LTC_CS_Pin;
+        GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        HAL_GPIO_Init(LTC_CS_GPIO_Port, &GPIO_InitStruct);
+
         /* USER CODE END SPI1_MspInit 1 */
     }
 }
@@ -126,7 +135,9 @@ enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t
     uint16_t timeout = size * 5U;
 
     // TODO: Non-blocking or set a decent enough timeout
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_RESET);
     const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout);
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
     switch (status) {
         case HAL_TIMEOUT:
         case HAL_ERROR:
@@ -151,6 +162,9 @@ enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint
     uint16_t timeout_rx = out_size * 5U;
 
     // TODO: Non-blocking or set a decent enough timeout
+    /* CS is held low across both the command (TX) and the data read (RX): the
+       LTC aborts the read if CSB is deasserted between the two phases. */
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_RESET);
     HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout_tx);
     switch (status) {
         case HAL_TIMEOUT:
@@ -169,10 +183,12 @@ enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint
     }
 
     if (code != BMS_MONITOR_RC_OK) {
+        HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
         return code;
     }
 
     status = HAL_SPI_Receive(&hspi1, out, out_size, timeout_rx);
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
     switch (status) {
         case HAL_TIMEOUT:
         case HAL_ERROR:
@@ -189,7 +205,7 @@ enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint
             break;
     }
 
-    return BMS_MONITOR_RC_OK;
+    return code;
 }
 
 /* USER CODE END 1 */

@@ -34,7 +34,7 @@ The finite state machine has:
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
-constexpr uint32_t bms_monitor_fsm_run_delay = 100U;
+constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
 
 EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
@@ -153,24 +153,9 @@ state_t do_idle(state_data_t *data) {
         bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
     }
 
-    /* Acquire the 4 NTC temperatures from the LTC GPIOs. Two-phase: start the
-       GPIO ADC (ADAX) on one tick, read it back (RDAUX) on the next, so the
-       conversion has time to settle. */
-    static uint32_t last_temp_tick = 0U;
-    static bool temp_read_phase = false;
-    if (current_tick - last_temp_tick >= 200U) {
-        last_temp_tick = current_tick;
-        if (temp_read_phase) {
-            (void)bms_monitor_api_read_gpio_temperatures();
-        } else {
-            (void)bms_monitor_api_start_gpio_conversion();
-        }
-        temp_read_phase = !temp_read_phase;
-    }
-
     /* Serial debug interface at 1 Hz. */
     static uint32_t last_debug_tick = 0U;
-    if (current_tick - last_debug_tick >= 1000U) {
+    if (current_tick - last_debug_tick > 500U) {
         last_debug_tick = current_tick;
         prv_print_debug();
     }

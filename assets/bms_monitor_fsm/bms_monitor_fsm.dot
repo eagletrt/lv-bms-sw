@@ -14,6 +14,10 @@ digraph "gv_fsm example" {
     volt_read_configuration
     read_volt_a
     read_volt_b
+    start_temp_conversion
+    temp_write_configuration
+    temp_read_configuration
+    read_temp_a
     start_open_wire_pup_conversion_first
     open_wire_pup_write_configuration
     start_open_wire_pup_conversion_second
@@ -32,7 +36,11 @@ digraph "gv_fsm example" {
     volt_write_configuration -> volt_read_configuration
     volt_read_configuration -> read_volt_a
     read_volt_a -> read_volt_b
-    read_volt_b -> start_open_wire_pup_conversion_first
+    read_volt_b -> start_temp_conversion
+    start_temp_conversion -> temp_write_configuration
+    temp_write_configuration -> temp_read_configuration
+    temp_read_configuration -> read_temp_a
+    read_temp_a -> start_open_wire_pup_conversion_first
     start_open_wire_pup_conversion_first -> open_wire_pup_write_configuration
     open_wire_pup_write_configuration -> start_open_wire_pup_conversion_second
     start_open_wire_pup_conversion_second -> open_wire_pup_read_configuration
