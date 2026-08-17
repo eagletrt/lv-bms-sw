@@ -22,6 +22,34 @@
 
 EAGLETRT_STATIC struct TemperatureHandler temperature_handler; /*!< Private temperature handler instance. */
 
+/*! NTC voltage-to-temperature polynomial fit (valid over [MIN, MAX] volts). */
+#define TEMPERATURE_NTC_MIN_LIMIT_V (0.0F)
+#define TEMPERATURE_NTC_MAX_LIMIT_V (3.0F)
+#define TEMPERATURE_NTC_COEFF_0 (148.305319086073000)
+#define TEMPERATURE_NTC_COEFF_1 (-317.553729396941300)
+#define TEMPERATURE_NTC_COEFF_2 (444.564306449468700)
+#define TEMPERATURE_NTC_COEFF_3 (-378.912004657724100)
+#define TEMPERATURE_NTC_COEFF_4 (180.457759604731300)
+#define TEMPERATURE_NTC_COEFF_5 (-44.504609710405890)
+#define TEMPERATURE_NTC_COEFF_6 (4.399756702462762)
+
+celsius temperature_api_volt_to_celsius(volt value) {
+    value = EAGLETRT_API_CLAMP(value, (volt)TEMPERATURE_NTC_MIN_LIMIT_V, (volt)TEMPERATURE_NTC_MAX_LIMIT_V);
+    const double val = value;
+    const double val2 = val * val;
+    const double val3 = val2 * val;
+    const double val4 = val2 * val2;
+    const double val5 = val4 * val;
+    const double val6 = val3 * val3;
+    return (celsius)(TEMPERATURE_NTC_COEFF_0 +
+                     (TEMPERATURE_NTC_COEFF_1 * val) +
+                     (TEMPERATURE_NTC_COEFF_2 * val2) +
+                     (TEMPERATURE_NTC_COEFF_3 * val3) +
+                     (TEMPERATURE_NTC_COEFF_4 * val4) +
+                     (TEMPERATURE_NTC_COEFF_5 * val5) +
+                     (TEMPERATURE_NTC_COEFF_6 * val6));
+}
+
 enum TemperatureReturnCode temperature_api_init(void) {
     memset(&temperature_handler, 0U, sizeof(temperature_handler));
     return TEMPERATURE_RC_OK;

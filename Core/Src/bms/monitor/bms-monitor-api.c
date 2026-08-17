@@ -69,43 +69,6 @@ EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temp
     return (1.0F / steinhart) - 273.15F;
 }
 
-/*!
- * \brief           Compute the cell temperature from an NTC voltage read on an
- *                  LTC GPIO auxiliary channel.
- *
- * \details         Assumes the NTC forms the low side of a resistor divider fed
- *                  from DEFINES_NTC_VDD through DEFINES_NTC_R_FIXED:
- *
- *                      VDD --[ R_FIXED ]--+--[ NTC ]-- GND
- *                                         |
- *                                       GPIOx (measured)
- *
- *                  so  R_NTC = R_FIXED * V_gpio / (VDD - V_gpio),
- *                  then the Beta model yields the temperature.
- *
- * \warning         The divider topology and DEFINES_NTC_R_FIXED must match the
- *                  actual schematic. If the NTC is on the high side instead,
- *                  swap the numerator/denominator below.
- *
- * \param[in]       gpio_voltage Voltage measured on the LTC GPIO in V.
- *
- * \return          Calculated temperature in °C.
- */
-EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature_from_voltage(volt gpio_voltage) {
-    float denominator = DEFINES_NTC_VDD - gpio_voltage;
-    if (denominator <= 0.F) {
-        /*! Out-of-range / open reading: clamp to avoid a divide-by-zero. */
-        denominator = 1e-6F;
-    }
-
-    float ntc_resistance = DEFINES_NTC_R_FIXED * (gpio_voltage / denominator);
-
-    float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
-    steinhart += (1.0F / DEFINES_NTC_T0_KELVIN);
-
-    return (1.0F / steinhart) - 273.15F;
-}
-
 enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read) {
     if (send == NULL || send_receive == NULL) {
         return BMS_MONITOR_RC_NULL_POINTER;
@@ -238,8 +201,11 @@ enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRe
         return BMS_MONITOR_RC_DECODE_ERROR;
     }
 
-    for (size_t i = 0U; i < LTC6810_2_CELL_COUNT; ++i) {
-        voltage_api_update_voltage(i, BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]));
+    /* The decode writes this register group's 3 cells into voltages[0..2]; map
+       them to their global cell indices (register A -> 0..2, register B -> 3..5). */
+    const size_t cell_offset = (size_t)reg * LTC6810_2_REG_CELL_COUNT;
+    for (size_t i = 0U; i < LTC6810_2_REG_CELL_COUNT; ++i) {
+        voltage_api_update_voltage(cell_offset + i, BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]));
     }
 
     return BMS_MONITOR_RC_OK;
@@ -306,8 +272,11 @@ enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonito
         return BMS_MONITOR_RC_DECODE_ERROR;
     }
 
-    for (size_t i = 0U; i < LTC6810_2_CELL_COUNT; ++i) {
-        bms_monitor_handler.pup[operation][i] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]);
+    /* Same register-group mapping as read_voltages: place this group's 3 cells
+       at their global indices (register A -> 0..2, register B -> 3..5). */
+    const size_t cell_offset = (size_t)reg * LTC6810_2_REG_CELL_COUNT;
+    for (size_t i = 0U; i < LTC6810_2_REG_CELL_COUNT; ++i) {
+        bms_monitor_handler.pup[operation][cell_offset + i] = BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]);
     }
 
     return BMS_MONITOR_RC_OK;
@@ -331,7 +300,8 @@ uint16_t bms_monitor_api_get_discharge(void) {
 uint32_t bms_monitor_api_check_open_wire(void) {
     uint32_t open_wire = 0U;
     constexpr volt open_wire_epsilon = 0.000005F;
-    constexpr volt open_wire_threshold_volt = LTC6810_2_OPEN_WIRE_THRESHOLD_MV * 1000;
+    /* Threshold is defined in mV (-400 mV); pup[][] readings are in volts. */
+    constexpr volt open_wire_threshold_volt = LTC6810_2_OPEN_WIRE_THRESHOLD_MV / 1000.F;
 
     if (fabs(bms_monitor_handler.pup[LTC6810_2_PUP_ACTIVE][0U]) <= open_wire_epsilon) {
         open_wire = EAGLETRT_API_BIT_SET(open_wire, 0U);
@@ -440,7 +410,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_gpio_temperatures(void) {
     }
 
     for (size_t i = 0U; i < DEFINES_LTC_GPIO_COUNT; ++i) {
-        const celsius temperature = prv_bms_monitor_api_compute_temperature_from_voltage(gpio_voltages[i]);
+        const celsius temperature = temperature_api_volt_to_celsius(gpio_voltages[i]);
         temperature_api_update_temperature(i, temperature);
     }
 

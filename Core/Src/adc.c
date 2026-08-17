@@ -110,35 +110,7 @@ void MX_ADC1_Init(void) {
 
     /** Configure Regular Channel
   */
-    sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-        Error_Handler();
-    }
-
-    /** Configure Regular Channel
-  */
-    sConfig.Channel = ADC_CHANNEL_VREFINT;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-        Error_Handler();
-    }
-
-    /** Configure Regular Channel
-  */
     sConfig.Channel = ADC_CHANNEL_8;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-        Error_Handler();
-    }
-
-    /** Configure Regular Channel
-  */
-    sConfig.Channel = ADC_CHANNEL_VDDA;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-        Error_Handler();
-    }
-
-    /** Configure Regular Channel
-  */
-    sConfig.Channel = ADC_CHANNEL_VSSA;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
         Error_Handler();
     }
@@ -301,37 +273,6 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *adcHandle) {
 
 /* USER CODE BEGIN 1 */
 
-#define TEMP_MIN_LIMIT_V (0.0F)
-#define TEMP_MAX_LIMIT_V (3.0F)
-#define TEMP_COEFF_0 (148.305319086073000)
-#define TEMP_COEFF_1 (-317.553729396941300)
-#define TEMP_COEFF_2 (444.564306449468700)
-#define TEMP_COEFF_3 (-378.912004657724100)
-#define TEMP_COEFF_4 (180.457759604731300)
-#define TEMP_COEFF_5 (-44.504609710405890)
-#define TEMP_COEFF_6 (4.399756702462762)
-
-EAGLETRT_STATIC celsius prv_temp_api_volt_to_celsius(volt value) {
-    constexpr volt temp_min_limit = TEMP_MIN_LIMIT_V;
-    constexpr volt temp_max_limit = TEMP_MAX_LIMIT_V;
-
-    // Value is converted in V and limited to fit the polynomial range
-    value = EAGLETRT_API_CLAMP(value, temp_min_limit, temp_max_limit);
-    const double val = value;
-    const double val2 = val * val;
-    const double val3 = val2 * val;
-    const double val4 = val2 * val2;
-    const double val5 = val4 * val;
-    const double val6 = val3 * val3;
-    return TEMP_COEFF_0 +
-           (TEMP_COEFF_1 * val) +
-           (TEMP_COEFF_2 * val2) +
-           (TEMP_COEFF_3 * val3) +
-           (TEMP_COEFF_4 * val4) +
-           (TEMP_COEFF_5 * val5) +
-           (TEMP_COEFF_6 * val6);
-}
-
 void adc_start_read(void) {
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_READ_COUNT);
 }
@@ -348,14 +289,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
         /* Temperature index layout (DEFINES_CELLS_NTC_COUNT = 12 total):
            - 0..3  : LTC GPIO NTCs (see bms_monitor_api_read_gpio_temperatures)
            - 4..11 : MCU-ADC NTCs T0..T7 (this callback). */
-        temperature_api_update_temperature(4, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T0]));
-        temperature_api_update_temperature(5, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T1]));
-        temperature_api_update_temperature(6, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T2]));
-        temperature_api_update_temperature(7, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T3]));
-        temperature_api_update_temperature(8, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T4]));
-        temperature_api_update_temperature(9, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T5]));
-        temperature_api_update_temperature(10, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T6]));
-        temperature_api_update_temperature(11, prv_temp_api_volt_to_celsius(voltages[ADC_READ_T7]));
+        temperature_api_update_temperature(4, temperature_api_volt_to_celsius(voltages[ADC_READ_T0]));
+        temperature_api_update_temperature(5, temperature_api_volt_to_celsius(voltages[ADC_READ_T1]));
+        temperature_api_update_temperature(6, temperature_api_volt_to_celsius(voltages[ADC_READ_T2]));
+        temperature_api_update_temperature(7, temperature_api_volt_to_celsius(voltages[ADC_READ_T3]));
+        temperature_api_update_temperature(8, temperature_api_volt_to_celsius(voltages[ADC_READ_T4]));
+        temperature_api_update_temperature(9, temperature_api_volt_to_celsius(voltages[ADC_READ_T5]));
+        temperature_api_update_temperature(10, temperature_api_volt_to_celsius(voltages[ADC_READ_T6]));
+        temperature_api_update_temperature(11, temperature_api_volt_to_celsius(voltages[ADC_READ_T7]));
     }
 }
 

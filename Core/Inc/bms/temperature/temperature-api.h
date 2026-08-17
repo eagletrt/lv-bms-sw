@@ -79,6 +79,18 @@ celsius temperature_api_get_average(void);
  */
 enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_t start, size_t size);
 
+/*!
+ * \brief            Convert an NTC divider voltage to a temperature.
+ *
+ * \details          Single calibrated conversion shared by every NTC source
+ *                   (MCU ADC and LTC GPIOs) so all channels read on the same
+ *                   scale. The input voltage is clamped to the fitted range.
+ *
+ * \param[in]        value NTC voltage in V.
+ * \returns          celsius The temperature in °C.
+ */
+celsius temperature_api_volt_to_celsius(volt value);
+
 #else /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 
 #define temperature_api_init() (TEMPERATURE_RC_OK)
@@ -88,6 +100,7 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
 #define temperature_api_get_max() (0.F)
 #define temperature_api_get_average() (0.F)
 #define temperature_api_dump_temperatures(out, start, size) (TEMPERATURE_RC_OK)
+#define temperature_api_volt_to_celsius(value) (0.F)
 
 #endif /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 

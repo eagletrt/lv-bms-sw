@@ -36,7 +36,6 @@
 #define DEFINES_NTC_R0 (10000.F)        /*!< Nominal NTC resistance at 25 °C in Ohm. */
 #define DEFINES_NTC_BETA (3950.F)       /*!< NTC Beta parameter in K. */
 #define DEFINES_NTC_T0_KELVIN (298.15F) /*!< Reference temperature in K. */
-#define DEFINES_NTC_R_FIXED (10000.F)   /*!< Fixed divider resistor in series with each NTC read on the LTC GPIOs, in Ohm. \warning Verify against the schematic. */
 
 /*!
  * \brief           Number of LTC GPIO/auxiliary channels wired to NTCs (GPIO1..GPIO4),
