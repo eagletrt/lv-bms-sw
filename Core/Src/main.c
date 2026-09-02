@@ -49,6 +49,8 @@
 #define LOGGER_RX_CAPACITY (1U)        /*!< Receive queue depth. Set to 1 because the logger is transmit-only but needs to be > 0 because of arena allocator. */
 #define LOGGER_TX_CAPACITY (10U)       /*!< Maximum number of log message packets allowed to sit in the outbound transmission queue. */
 #define LOGGER_UART_MAX_MSG_SIZE (64U) /*!< Maximum allocation allowed for an individual log string. */
+#define HEARTBEAT_PERIOD_MS (500U)     /*!< Toggling period of the heartbeat LED. */
+#define FEEDBACK_POLL_PERIOD_MS (10U)  /*!< Sampling period of the digital feedbacks. */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -164,24 +166,34 @@ int main(void) {
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    uint32_t t = HAL_GetTick();
-    uint32_t t_adc = HAL_GetTick();
+    uint32_t heartbeat_tick = HAL_GetTick();
+    uint32_t feedback_tick = HAL_GetTick();
     adc_start_read();
     while (1) {
-        fsm_data.tick = HAL_GetTick();
+        const uint32_t tick = HAL_GetTick();
+
+        fsm_data.tick = tick;
         current_state = run_state(current_state, &fsm_data);
 
-        if (HAL_GetTick() - t >= 500) {
-            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-            t = HAL_GetTick();
+        /* Drive the ADC scan and the NTC multiplexer. One scan samples one
+           multiplexer channel, so the whole pack is refreshed every
+           DEFINES_NTC_MUX_USED_CHANNEL_COUNT scans. The pack snapshot is printed
+           by the FSM debug interface (prv_print_debug). */
+        adc_routine(tick);
+
+        if (tick - feedback_tick >= FEEDBACK_POLL_PERIOD_MS) {
+            feedback_tick = tick;
+            gpio_update_digital_feedbacks();
         }
 
-        if (HAL_GetTick() - t_adc >= 1000) {
-            /* Re-trigger the MCU ADC scan; its DMA/EOC callback refreshes the
-               NTC temperatures (indices 4..11) in the background. The pack
-               snapshot is printed by the FSM debug interface (prv_print_debug). */
-            adc_start_read();
-            t_adc = HAL_GetTick();
+        if (tick - heartbeat_tick >= HEARTBEAT_PERIOD_MS) {
+            heartbeat_tick = tick;
+            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+            /* LED1 mirrors the health of the board: off while the FSM runs
+               normally, steady on once it has fallen into the fatal state. */
+            HAL_GPIO_WritePin(LED1_GPIO_Port,
+                              LED1_Pin,
+                              (current_state == STATE_FATAL) ? GPIO_PIN_SET : GPIO_PIN_RESET);
         }
 
         /* USER CODE END WHILE */

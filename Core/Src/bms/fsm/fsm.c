@@ -31,7 +31,9 @@ The finite state machine has:
 #include "bms-monitor-api.h"
 #include "voltage-api.h"
 #include "temperature-api.h"
+#include "feedback-api.h"
 #include "defines.h"
+#include "adc.h"
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
@@ -46,9 +48,9 @@ EAGLETRT_STATIC void prv_periodically_send(enum CanPrimaryLvacfsmStatus status, 
 }
 
 /*!
- * \brief Print a compact human-readable snapshot of the pack over the serial
- *        logger: per-cell voltages (mV), the LTC GPIO temperatures (deci-°C)
- *        and the open-wire status.
+ * \brief Print a compact human-readable snapshot of the board over the serial
+ *        logger: per-cell voltages (mV), every NTC of the multiplexer (deci-°C),
+ *        the analog rails (mV), the feedback statuses and the open-wire result.
  *
  * \note  The logger is built against nano.specs without floating-point printf
  *        support, so every value is formatted as an integer.
@@ -64,9 +66,15 @@ EAGLETRT_STATIC void prv_print_debug(void) {
 
     logger_api_log(LOGGER_LEVEL_INFO, "===== BMS (V=mV, T=dC) =====");
     logger_api_log(LOGGER_LEVEL_INFO, "V %d %d %d %d %d %d", (int)(voltages[0] * 1000.F), (int)(voltages[1] * 1000.F), (int)(voltages[2] * 1000.F), (int)(voltages[3] * 1000.F), (int)(voltages[4] * 1000.F), (int)(voltages[5] * 1000.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "T_LTC %d %d %d %d", (int)(temperatures[0] * 10.F), (int)(temperatures[1] * 10.F), (int)(temperatures[2] * 10.F), (int)(temperatures[3] * 10.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "T_MCU0-3 %d %d %d %d", (int)(temperatures[4] * 10.F), (int)(temperatures[5] * 10.F), (int)(temperatures[6] * 10.F), (int)(temperatures[7] * 10.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "T_MCU4-7 %d %d %d %d", (int)(temperatures[8] * 10.F), (int)(temperatures[9] * 10.F), (int)(temperatures[10] * 10.F), (int)(temperatures[11] * 10.F));
+    /* Every NTC now comes from the MCU multiplexer: index n is mux channel n. */
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MUX0-5 %d %d %d %d %d %d", (int)(temperatures[0] * 10.F), (int)(temperatures[1] * 10.F), (int)(temperatures[2] * 10.F), (int)(temperatures[3] * 10.F), (int)(temperatures[4] * 10.F), (int)(temperatures[5] * 10.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11 %d %d %d %d %d %d", (int)(temperatures[6] * 10.F), (int)(temperatures[7] * 10.F), (int)(temperatures[8] * 10.F), (int)(temperatures[9] * 10.F), (int)(temperatures[10] * 10.F), (int)(temperatures[11] * 10.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MCU %d, mux ch %d, VDDA %d", (int)(adc_get_mcu_temperature() * 10.F), (int)adc_get_current_ntc_channel(), (int)(adc_get_vdda() * 1000.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d VIN_UNF %d VSUP %d VOUT %d", (int)(adc_get_vin() * 1000.F), (int)(adc_get_vin_unfused() * 1000.F), (int)(adc_get_vsup() * 1000.F), (int)(adc_get_vout() * 1000.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "LVMS %d 5V %d V_CHRG %d", (int)(adc_get_lvms_out() * 1000.F), (int)(adc_get_mcu_5v() * 1000.F), (int)(adc_get_charger_voltage() * 1000.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT %d I_CHRG %d (mA)", (int)(adc_get_output_current() * 1000.F), (int)(adc_get_charger_current() * 1000.F));
+    /* One digit per feedback, in enum Feedback order: 0 low, 1 error, 2 high. */
+    logger_api_log(LOGGER_LEVEL_INFO, "FB %d%d%d%d%d%d%d%d", (int)feedback_api_get_status(FEEDBACK_SUPPLY_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_SUPPLY_DELAY), (int)feedback_api_get_status(FEEDBACK_CHARGE_STATUS_NEGATED), (int)feedback_api_get_status(FEEDBACK_CHARGE_VIN_VALID_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_DELAY), (int)feedback_api_get_status(FEEDBACK_OUTPUT_FUSE), (int)feedback_api_get_status(FEEDBACK_VOUT));
     logger_api_log(LOGGER_LEVEL_INFO, "OpenWire 0x%lx %s", (unsigned long)open_wire, (open_wire == 0U) ? "none" : "DETECTED");
 }
 

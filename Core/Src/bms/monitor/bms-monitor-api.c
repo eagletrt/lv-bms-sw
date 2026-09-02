@@ -401,20 +401,16 @@ enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size) {
     return BMS_MONITOR_RC_OK;
 }
 
-enum BmsMonitorReturnCode bms_monitor_api_read_gpio_temperatures(void) {
-    volt gpio_voltages[DEFINES_LTC_GPIO_COUNT] = { 0.F };
+enum BmsMonitorReturnCode bms_monitor_api_sample_gpios(void) {
+    return bms_monitor_api_read_gpios(bms_monitor_handler.gpio_voltages, DEFINES_LTC_GPIO_COUNT);
+}
 
-    enum BmsMonitorReturnCode code = bms_monitor_api_read_gpios(gpio_voltages, DEFINES_LTC_GPIO_COUNT);
-    if (code != BMS_MONITOR_RC_OK) {
-        return code;
+volt bms_monitor_api_get_gpio_voltage(size_t index) {
+    if (index >= DEFINES_LTC_GPIO_COUNT) {
+        return 0.F;
     }
 
-    for (size_t i = 0U; i < DEFINES_LTC_GPIO_COUNT; ++i) {
-        const celsius temperature = temperature_api_volt_to_celsius(gpio_voltages[i]);
-        temperature_api_update_temperature(i, temperature);
-    }
-
-    return BMS_MONITOR_RC_OK;
+    return bms_monitor_handler.gpio_voltages[index];
 }
 
 #endif /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */

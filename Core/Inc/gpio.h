@@ -30,6 +30,8 @@ extern "C" {
 
 /* USER CODE BEGIN Includes */
 
+#include "types.h"
+
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
@@ -39,6 +41,15 @@ extern "C" {
 void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+
+/*!
+ * \brief           Sample the digital feedback pins and publish them to the
+ *                  feedback module.
+ *
+ * \details         Covers the feedbacks that are plain logic inputs; the analog
+ *                  ones are refreshed by adc_routine().
+ */
+void gpio_update_digital_feedbacks(void);
 
 /* USER CODE END Prototypes */
 

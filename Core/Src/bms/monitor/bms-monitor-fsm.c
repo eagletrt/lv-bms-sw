@@ -341,7 +341,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_read_temp_a(bms_monitor_fsm_state_dat
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_read_gpio_temperatures(), "read_temp_a");
+    BMS_MON_STEP(bms_monitor_api_sample_gpios(), "read_temp_a");
 
     /*** USER CODE END DO_READ_TEMP_A ***/
 

@@ -151,7 +151,7 @@ uint32_t bms_monitor_api_check_open_wire(void);
  * \brief           Start the GPIO (auxiliary) ADC conversion on the LTC.
  *
  * \details         Issues an ADAX command for all GPIOs. Pair it with
- *                  bms_monitor_api_read_gpios / bms_monitor_api_read_gpio_temperatures
+ *                  bms_monitor_api_read_gpios or bms_monitor_api_sample_gpios
  *                  after the conversion has completed.
  *
  * \retval          BMS_MONITOR_RC_OK on success.
@@ -174,13 +174,28 @@ enum BmsMonitorReturnCode bms_monitor_api_start_gpio_conversion(void);
 enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size);
 
 /*!
- * \brief           Read the 4 LTC GPIO NTC channels and store them, converted to
- *                  °C, via the temperature API (indices 0..DEFINES_LTC_GPIO_COUNT-1).
+ * \brief           Read the 4 LTC GPIO voltages and latch them inside the handler.
+ *
+ * \details         The NTCs of the pack are no longer wired to the LTC GPIOs:
+ *                  they all sit behind the MCU analog multiplexer and are handled
+ *                  by adc_routine(). These auxiliary channels are therefore kept
+ *                  as plain voltages, readable with
+ *                  bms_monitor_api_get_gpio_voltage(), and are not fed to the
+ *                  temperature module any more.
  *
  * \retval          BMS_MONITOR_RC_OK on success.
  * \retval          BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
  */
-enum BmsMonitorReturnCode bms_monitor_api_read_gpio_temperatures(void);
+enum BmsMonitorReturnCode bms_monitor_api_sample_gpios(void);
+
+/*!
+ * \brief           Get one of the LTC GPIO voltages latched by bms_monitor_api_sample_gpios().
+ *
+ * \param[in]       index The GPIO index, 0..DEFINES_LTC_GPIO_COUNT-1.
+ *
+ * \returns         volt The GPIO voltage in V, 0 V if \p index is out of bounds.
+ */
+volt bms_monitor_api_get_gpio_voltage(size_t index);
 
 #else /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 
@@ -195,6 +210,10 @@ enum BmsMonitorReturnCode bms_monitor_api_read_gpio_temperatures(void);
 #define bms_monitor_api_set_discharge() (0U)
 #define bms_monitor_api_read_currents() (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_temperatures() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_start_gpio_conversion() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_read_gpios(out, size) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_sample_gpios() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_get_gpio_voltage(index) (0.F)
 
 #endif /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 
