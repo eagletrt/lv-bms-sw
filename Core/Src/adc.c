@@ -53,6 +53,9 @@ EAGLETRT_STATIC EAGLETRT_VOLATILE enum AdcScanState adc_scan_state = ADC_SCAN_ST
 EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                                  /*!< The multiplexer channel currently selected. */
 EAGLETRT_STATIC uint32_t adc_state_tick = 0U;                                                 /*!< Tick at which the current state was entered in ms. */
 EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                                           /*!< Supply voltage measured through VREFINT in V. */
+EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Ultima tensione NTC letta per ciascun canale del mux. */
+
+
 
 #define ADC_RAW_VALUE_TO_VOLT(VALUE, VREF) ((float)(VALUE) / ADC_FULL_SCALE * (VREF))
 
@@ -131,7 +134,7 @@ void MX_ADC1_Init(void) {
     hadc1.Init.LowPowerAutoWait = DISABLE;
     hadc1.Init.LowPowerAutoPowerOff = DISABLE;
     hadc1.Init.ContinuousConvMode = DISABLE;
-    hadc1.Init.NbrOfConversion = 1;
+    hadc1.Init.NbrOfConversion = 16;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -403,6 +406,10 @@ void adc_routine(uint32_t tick) {
 
             /*! The NTC channel of this scan belongs to the multiplexer channel
                 that was selected while it ran; mux channel n carries NTC n. */
+            if (adc_mux_channel < DEFINES_NTC_MUX_USED_CHANNEL_COUNT) {
+                ntc_voltages[adc_mux_channel] = voltages[ADC_READ_NTC_SENSE];
+            }
+
             if (adc_mux_channel < DEFINES_CELLS_NTC_COUNT) {
                 (void)temperature_api_update_temperature(
                     adc_mux_channel,
@@ -506,6 +513,13 @@ ampere adc_get_output_current(void) {
 
 ampere adc_get_charger_current(void) {
     return voltages[ADC_READ_I_CHRG_SENSE] / DEFINES_SENSE_I_CHRG_GAIN;
+}
+
+float adc_get_ntc_voltage(size_t mux_channel) {
+    if (mux_channel >= DEFINES_NTC_MUX_USED_CHANNEL_COUNT) {
+        return 0.F;
+    }
+    return ntc_voltages[mux_channel];
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {

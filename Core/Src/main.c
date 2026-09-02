@@ -35,6 +35,7 @@
 #include "arena-allocator-api.h"
 #include "pal-api.h"
 #include "logger-api.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -49,8 +50,6 @@
 #define LOGGER_RX_CAPACITY (1U)        /*!< Receive queue depth. Set to 1 because the logger is transmit-only but needs to be > 0 because of arena allocator. */
 #define LOGGER_TX_CAPACITY (10U)       /*!< Maximum number of log message packets allowed to sit in the outbound transmission queue. */
 #define LOGGER_UART_MAX_MSG_SIZE (64U) /*!< Maximum allocation allowed for an individual log string. */
-#define HEARTBEAT_PERIOD_MS (500U)     /*!< Toggling period of the heartbeat LED. */
-#define FEEDBACK_POLL_PERIOD_MS (10U)  /*!< Sampling period of the digital feedbacks. */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -94,6 +93,30 @@ EAGLETRT_STATIC void prv_main_init_logging_configuration() {
                                      NULL,
                                      &arena_allocator_handler));
 }
+static uint8_t mux_channel = 3;
+static uint8_t uart_rx;
+static char uart_rx_buffer[8];
+static uint8_t uart_rx_index = 0;
+
+static void mux_select_channel(uint8_t channel) {
+    channel &= 0x0F;
+
+    HAL_GPIO_WritePin(MUX_A0_MCU_GPIO_Port,
+                      MUX_A0_MCU_Pin,
+                      (channel & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    HAL_GPIO_WritePin(MUX_A1_MCU_GPIO_Port,
+                      MUX_A1_MCU_Pin,
+                      (channel & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    HAL_GPIO_WritePin(MUX_A2_MCU_GPIO_Port,
+                      MUX_A2_MCU_Pin,
+                      (channel & 0x04) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+    HAL_GPIO_WritePin(MUX_A3_MCU_GPIO_Port,
+                      MUX_A3_MCU_Pin,
+                      (channel & 0x08) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
 
 /* USER CODE END 0 */
 
@@ -132,6 +155,10 @@ int main(void) {
     MX_USART1_UART_Init();
     /* USER CODE BEGIN 2 */
 
+    mux_select_channel(0);
+
+    HAL_UART_Receive_IT(&huart1, &uart_rx, 1);
+
     prv_main_init_logging_configuration();
     EAGLETRT_API_UNUSED(logger_api_init(&logger_pal_handler, LOGGER_ENABLED));
 
@@ -166,34 +193,41 @@ int main(void) {
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    uint32_t heartbeat_tick = HAL_GetTick();
-    uint32_t feedback_tick = HAL_GetTick();
-    adc_start_read();
+
+    /* USER CODE BEGIN WHILE */
+    uint32_t t = HAL_GetTick();
+    uint32_t t_print = HAL_GetTick();
+
+    char uart_tx_buffer[256];
+
     while (1) {
-        const uint32_t tick = HAL_GetTick();
+        uint32_t tick = HAL_GetTick();
 
-        fsm_data.tick = tick;
-        current_state = run_state(current_state, &fsm_data);
-
-        /* Drive the ADC scan and the NTC multiplexer. One scan samples one
-           multiplexer channel, so the whole pack is refreshed every
-           DEFINES_NTC_MUX_USED_CHANNEL_COUNT scans. The pack snapshot is printed
-           by the FSM debug interface (prv_print_debug). */
-        adc_routine(tick);
-
-        if (tick - feedback_tick >= FEEDBACK_POLL_PERIOD_MS) {
-            feedback_tick = tick;
-            gpio_update_digital_feedbacks();
+        /* LED */
+        if (tick - t >= 250) {
+            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+            t = tick;
         }
 
-        if (tick - heartbeat_tick >= HEARTBEAT_PERIOD_MS) {
-            heartbeat_tick = tick;
-            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-            /* LED1 mirrors the health of the board: off while the FSM runs
-               normally, steady on once it has fallen into the fatal state. */
-            HAL_GPIO_WritePin(LED1_GPIO_Port,
-                              LED1_Pin,
-                              (current_state == STATE_FATAL) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        /*! Fa avanzare la macchina a stati ADC (settling -> DMA -> complete),
+            gestisce da sola il mux e aggiorna feedback/temperature. */
+        adc_routine(tick);
+
+        /*! Stampa la tabella completa ogni 500 ms. */
+        if (tick - t_print >= 500) {
+            int len = 0;
+
+            len += snprintf(uart_tx_buffer + len, sizeof(uart_tx_buffer) - len, "VDDA=%.2fV VIN=%.2fV VOUT=%.2fV IOUT=%.2fA MCU_T=%.1fC MUXCH=%02u\r\n", adc_get_vdda(), adc_get_vin(), adc_get_vout(), adc_get_output_current(), adc_get_mcu_temperature(), (unsigned)adc_get_current_ntc_channel());
+
+            len += snprintf(uart_tx_buffer + len, sizeof(uart_tx_buffer) - len, "NTC:");
+            for (size_t ch = 0; ch < DEFINES_NTC_MUX_USED_CHANNEL_COUNT; ++ch) {
+                len += snprintf(uart_tx_buffer + len, sizeof(uart_tx_buffer) - len, " [%02u]=%.3fV", (unsigned)ch, adc_get_ntc_voltage(ch));
+            }
+            len += snprintf(uart_tx_buffer + len, sizeof(uart_tx_buffer) - len, "\r\n");
+
+            HAL_UART_Transmit(&huart1, (uint8_t *)uart_tx_buffer, len, 100);
+
+            t_print = tick;
         }
 
         /* USER CODE END WHILE */
@@ -238,6 +272,42 @@ void SystemClock_Config(void) {
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        /*
+         * Accetta numeri ASCII.
+         *
+         * Esempio:
+         * 0 + INVIO
+         * 5 + INVIO
+         * 12 + INVIO
+         */
+
+        if (uart_rx >= '0' && uart_rx <= '9') {
+            if (uart_rx_index < sizeof(uart_rx_buffer) - 1) {
+                uart_rx_buffer[uart_rx_index++] = uart_rx;
+            }
+        } else if (uart_rx == '\r' || uart_rx == '\n') {
+            if (uart_rx_index > 0) {
+                uart_rx_buffer[uart_rx_index] = '\0';
+
+                uint8_t new_channel =
+                    (uint8_t)atoi(uart_rx_buffer);
+
+                if (new_channel <= 15) {
+                    mux_channel = new_channel;
+
+                    mux_select_channel(mux_channel);
+                }
+
+                uart_rx_index = 0;
+            }
+        }
+
+        HAL_UART_Receive_IT(&huart1, &uart_rx, 1);
+    }
+}
 
 /* USER CODE END 4 */
 

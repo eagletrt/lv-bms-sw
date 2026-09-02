@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include <stddef.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -82,7 +82,7 @@ enum AdcRead {
 void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+float adc_get_ntc_voltage(size_t mux_channel);
 /*!
  * \brief           Start a single ADC scan of every enabled channel via DMA.
  *
