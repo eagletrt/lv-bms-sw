@@ -53,9 +53,12 @@ EAGLETRT_STATIC EAGLETRT_VOLATILE enum AdcScanState adc_scan_state = ADC_SCAN_ST
 EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                                  /*!< The multiplexer channel currently selected. */
 EAGLETRT_STATIC uint32_t adc_state_tick = 0U;                                                 /*!< Tick at which the current state was entered in ms. */
 EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                                           /*!< Supply voltage measured through VREFINT in V. */
-EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Ultima tensione NTC letta per ciascun canale del mux. */
+EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Last NTC voltage read on each multiplexer channel, in V. */
+EAGLETRT_STATIC bool adc_mux_hold = false;                                                    /*!< True while the multiplexer is pinned to one channel for debugging. */
 
-
+/*! Window in which the measured +5 V rail is trusted for the ACS724 conversion. */
+#define ADC_ACS724_SUPPLY_MIN_V (4.0F)
+#define ADC_ACS724_SUPPLY_MAX_V (5.5F)
 
 #define ADC_RAW_VALUE_TO_VOLT(VALUE, VREF) ((float)(VALUE) / ADC_FULL_SCALE * (VREF))
 
@@ -416,9 +419,12 @@ void adc_routine(uint32_t tick) {
                     temperature_api_volt_to_celsius(voltages[ADC_READ_NTC_SENSE]));
             }
 
-            /*! Step to the next populated channel and let it settle. */
-            adc_mux_channel = (adc_mux_channel + 1U) % DEFINES_NTC_MUX_USED_CHANNEL_COUNT;
-            prv_adc_mux_select(adc_mux_channel);
+            /*! Step to the next populated channel and let it settle, unless a
+                debug hold is pinning the multiplexer to one channel. */
+            if (!adc_mux_hold) {
+                adc_mux_channel = (adc_mux_channel + 1U) % DEFINES_NTC_MUX_USED_CHANNEL_COUNT;
+                prv_adc_mux_select(adc_mux_channel);
+            }
 
             adc_state_tick = tick;
             adc_scan_state = ADC_SCAN_STATE_SETTLING;
@@ -507,12 +513,48 @@ volt adc_get_charger_voltage(void) {
     return voltages[ADC_READ_V_CHRG_SENSE] / DEFINES_SENSE_V_CHRG_GAIN;
 }
 
-ampere adc_get_output_current(void) {
-    return voltages[ADC_READ_I_OUT_SENSE] / DEFINES_SENSE_I_OUT_GAIN;
+volt adc_get_i_out_sense_voltage(void) {
+    /*! No sensor drives this node on the current schematic, see
+        DEFINES_SENSE_I_OUT_DIVIDER_GAIN: this is the node voltage, nothing more. */
+    return voltages[ADC_READ_I_OUT_SENSE] / DEFINES_SENSE_I_OUT_DIVIDER_GAIN;
+}
+
+volt adc_get_i_chrg_sense_voltage(void) {
+    return voltages[ADC_READ_I_CHRG_SENSE] / DEFINES_SENSE_I_CHRG_DIVIDER_GAIN;
 }
 
 ampere adc_get_charger_current(void) {
-    return voltages[ADC_READ_I_CHRG_SENSE] / DEFINES_SENSE_I_CHRG_GAIN;
+    /*! The ACS724 is ratiometric, so use the +5 V rail the board measures for
+        both its quiescent point and its sensitivity. If that reading is not
+        plausible (rail down, sense line open) fall back to the nominal value
+        rather than dividing by something meaningless. */
+    volt supply = adc_get_mcu_5v();
+    if (supply < ADC_ACS724_SUPPLY_MIN_V || supply > ADC_ACS724_SUPPLY_MAX_V) {
+        supply = DEFINES_SENSE_I_CHRG_SUPPLY_NOMINAL_V;
+    }
+
+    const volt zero = supply * DEFINES_SENSE_I_CHRG_ZERO_RATIO;
+    const float sensitivity = DEFINES_SENSE_I_CHRG_SENSITIVITY_V_A * (supply / DEFINES_SENSE_I_CHRG_SUPPLY_NOMINAL_V);
+
+    return (ampere)((adc_get_i_chrg_sense_voltage() - zero) / sensitivity);
+}
+
+void adc_set_mux_hold(size_t channel) {
+    if (channel >= DEFINES_NTC_MUX_CHANNEL_COUNT) {
+        return;
+    }
+
+    adc_mux_channel = channel;
+    adc_mux_hold = true;
+    prv_adc_mux_select(adc_mux_channel);
+}
+
+void adc_clear_mux_hold(void) {
+    adc_mux_hold = false;
+}
+
+bool adc_is_mux_held(void) {
+    return adc_mux_hold;
 }
 
 float adc_get_ntc_voltage(size_t mux_channel) {

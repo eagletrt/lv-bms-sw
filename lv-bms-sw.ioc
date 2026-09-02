@@ -121,6 +121,7 @@ NVIC.NonMaskableInt_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.PendSV_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.SVCall_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.SysTick_IRQn=true\:3\:0\:false\:false\:true\:false\:true\:false
+NVIC.USART1_IRQn=true\:1\:0\:false\:false\:true\:true\:true\:true
 PA0.GPIOParameters=GPIO_Label
 PA0.GPIO_Label=MCU_5V_SENSE
 PA0.Locked=true

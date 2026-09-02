@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-#include <stddef.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -73,16 +73,16 @@ enum AdcRead {
     ADC_READ_COUNT              /*!< The number of conversions in a single scan */
 };
 
-#define ADC_RESOLUTION_BITS (12U) /*!< ADC resolution in bits, has to match hadc1.Init.Resolution. */
-#define ADC_MUX_SETTLE_MS (2U)    /*!< Time given to the multiplexer and to the NTC divider to settle after an address change. */
-#define ADC_SCAN_TIMEOUT_MS (50U) /*!< A scan that does not complete within this time is aborted and restarted. */
+#define ADC_RESOLUTION_BITS (12U)  /*!< ADC resolution in bits, has to match hadc1.Init.Resolution. */
+#define ADC_MUX_SETTLE_MS (2U)     /*!< Time given to the multiplexer and to the NTC divider to settle after an address change. */
+#define ADC_SCAN_TIMEOUT_MS (200U) /*!< A scan that does not complete within this time is aborted and restarted. Has to stay above the worst-case blocking time of the debug print. */
 
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-float adc_get_ntc_voltage(size_t mux_channel);
+
 /*!
  * \brief           Start a single ADC scan of every enabled channel via DMA.
  *
@@ -152,23 +152,72 @@ celsius adc_get_mcu_temperature(void);
 /*!
  * \defgroup        adc_sense Scaled readings of the analog sense front-ends.
  *
- * \details         Each getter divides the measured pin voltage by the matching
- *                  \c DEFINES_SENSE_*_GAIN constant in defines.h. Those gains are
- *                  placeholders set to unity, so until they are taken from the
- *                  schematic these return the pin voltage as-is.
+ * \details         Each getter undoes the 10 k / 18 k or 10 k / 1k3 attenuation of
+ *                  its sense line (\c DEFINES_SENSE_*_GAIN in defines.h) so it
+ *                  returns the voltage present on the rail itself, not the one
+ *                  measured on the MCU pin.
+ *
+ * \note            adc_get_charger_current() goes one step further and also undoes
+ *                  the transfer function of the ACS724 that measures it. There is
+ *                  no equivalent for the output current: nothing drives
+ *                  I_OUT_SENSED on the schematic, so only the node voltage is
+ *                  available, see \c DEFINES_SENSE_I_OUT_DIVIDER_GAIN.
  *
  * \{
  */
 
-volt adc_get_vin(void);               /*!< Fused input voltage in V. */
-volt adc_get_vin_unfused(void);       /*!< Unfused input voltage in V. */
-volt adc_get_vsup(void);              /*!< Supply voltage in V. */
-volt adc_get_vout(void);              /*!< Output voltage in V. */
-volt adc_get_lvms_out(void);          /*!< LVMS output voltage in V. */
-volt adc_get_mcu_5v(void);            /*!< 5 V rail voltage in V. */
-volt adc_get_charger_voltage(void);   /*!< Charger voltage in V. */
-ampere adc_get_output_current(void);  /*!< Output current in A. */
-ampere adc_get_charger_current(void); /*!< Charger current in A. */
+volt adc_get_vin(void);                  /*!< Fused input voltage in V. */
+volt adc_get_vin_unfused(void);          /*!< Unfused input voltage in V. */
+volt adc_get_vsup(void);                 /*!< Supply voltage in V. */
+volt adc_get_vout(void);                 /*!< Output voltage in V. */
+volt adc_get_lvms_out(void);             /*!< LVMS output voltage in V. */
+volt adc_get_mcu_5v(void);               /*!< 5 V rail voltage in V. */
+volt adc_get_charger_voltage(void);      /*!< Charger voltage in V. */
+volt adc_get_i_out_sense_voltage(void);  /*!< I_OUT_SENSED node in V. No sensor drives it, see the note above. */
+volt adc_get_i_chrg_sense_voltage(void); /*!< I_CHRG, the ACS724 output, in V. */
+ampere adc_get_charger_current(void);    /*!< Charger current in A, positive into the battery. */
+
+/*! \} */
+
+/*!
+ * \defgroup        adc_mux Manual control of the NTC multiplexer.
+ *
+ * \details         adc_routine() normally walks every populated channel on its
+ *                  own. For bench work it is useful to freeze it on one channel
+ *                  and watch a single NTC; that is what a hold does. It only
+ *                  stops the stepping, the scans keep running, so the held
+ *                  channel keeps being refreshed.
+ *
+ * \{
+ */
+
+/*!
+ * \brief           Pin the multiplexer to one channel and stop the automatic stepping.
+ *
+ * \param[in]       channel The channel to hold, ignored if >= DEFINES_NTC_MUX_CHANNEL_COUNT.
+ */
+void adc_set_mux_hold(size_t channel);
+
+/*!
+ * \brief           Resume walking every populated multiplexer channel.
+ */
+void adc_clear_mux_hold(void);
+
+/*!
+ * \brief           Tell whether the multiplexer is currently held on one channel.
+ *
+ * \returns         bool True if held, false if cycling.
+ */
+bool adc_is_mux_held(void);
+
+/*!
+ * \brief           Get the last NTC voltage measured on a multiplexer channel.
+ *
+ * \param[in]       mux_channel The channel index.
+ *
+ * \returns         float The NTC divider voltage in V, 0 V if the channel is out of bounds.
+ */
+float adc_get_ntc_voltage(size_t mux_channel);
 
 /*! \} */
 
