@@ -55,6 +55,34 @@ enum TemperatureReturnCode temperature_api_init(void) {
     return TEMPERATURE_RC_OK;
 }
 
+enum TemperatureReturnCode temperature_api_update_temperature_status(size_t index, enum TemperatureStatus status) {
+    if (index >= DEFINES_CELLS_NTC_COUNT) {
+        return TEMPERATURE_RC_OUT_OF_BOUNDS;
+    }
+
+    temperature_handler.statuses[index] = status;
+    return TEMPERATURE_RC_OK;
+}
+
+enum TemperatureStatus temperature_api_get_channel_status(size_t index) {
+    if (index >= DEFINES_CELLS_NTC_COUNT) {
+        return TEMPERATURE_STATUS_OPEN;
+    }
+
+    return temperature_handler.statuses[index];
+}
+
+uint32_t temperature_api_get_fault_bitmask(void) {
+    uint32_t faults = 0U;
+    for (size_t i = 0U; i < DEFINES_CELLS_NTC_COUNT; ++i) {
+        if (temperature_handler.statuses[i] != TEMPERATURE_STATUS_OK) {
+            faults |= (1UL << i);
+        }
+    }
+
+    return faults;
+}
+
 enum TemperatureReturnCode temperature_api_update_temperature(size_t index, celsius temperature) {
     if (index >= DEFINES_CELLS_NTC_COUNT) {
         return TEMPERATURE_RC_OUT_OF_BOUNDS;
@@ -80,18 +108,34 @@ enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, con
 }
 
 celsius temperature_api_get_min(void) {
-    celsius min = temperature_handler.temperatures[0U];
+    celsius min = 0.F;
+    bool found = false;
+
+    /*! Channels flagged open or shorted hold a stale or meaningless value and
+        would otherwise drag the pack minimum down to the bottom of the fit. */
     for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
-        min = EAGLETRT_API_MIN(min, temperature_handler.temperatures[i]);
+        if (temperature_handler.statuses[i] != TEMPERATURE_STATUS_OK) {
+            continue;
+        }
+
+        min = found ? EAGLETRT_API_MIN(min, temperature_handler.temperatures[i]) : temperature_handler.temperatures[i];
+        found = true;
     }
 
     return min;
 }
 
 celsius temperature_api_get_max(void) {
-    celsius max = temperature_handler.temperatures[0U];
+    celsius max = 0.F;
+    bool found = false;
+
     for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
-        max = EAGLETRT_API_MAX(max, temperature_handler.temperatures[i]);
+        if (temperature_handler.statuses[i] != TEMPERATURE_STATUS_OK) {
+            continue;
+        }
+
+        max = found ? EAGLETRT_API_MAX(max, temperature_handler.temperatures[i]) : temperature_handler.temperatures[i];
+        found = true;
     }
 
     return max;
@@ -99,11 +143,18 @@ celsius temperature_api_get_max(void) {
 
 celsius temperature_api_get_average(void) {
     celsius average = 0.F;
+    size_t count = 0U;
+
     for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
+        if (temperature_handler.statuses[i] != TEMPERATURE_STATUS_OK) {
+            continue;
+        }
+
         average += temperature_handler.temperatures[i];
+        ++count;
     }
 
-    return average / DEFINES_CELLS_NTC_COUNT;
+    return (count == 0U) ? 0.F : (average / (celsius)count);
 }
 
 enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_t start, size_t size) {

@@ -93,7 +93,15 @@
  *                  | Shunt | Ratio  | Source at 3.3 V on the pin | Used for            |
  *                  |-------|--------|----------------------------|---------------------|
  *                  | 18 k  | 0.6429 | 5.13 V                     | 5 V-range signals   |
- *                  | 1k3   | 0.1150 | 28.7 V                     | 24 V-range signals  |
+ *                  | 1.5 k | 0.1304 | 25.3 V                     | 24 V-range signals  |
+ *
+ *                  The 24 V shunt was 1k3 on the first build and is now 1.5 k,
+ *                  matching the "ADC sensibility" note on the sheet (24 V ->
+ *                  3.13 V at the pin). Confirmed against a live board: with 1.5 k
+ *                  VSUP decodes to 23.89 V while the six cells sum to 24.20 V,
+ *                  with 1k3 it read 27.08 V. The 5 V lines kept their 18 k, which
+ *                  the same board confirms twice over: the 5 V rail reads 5.04 V
+ *                  and the I_OUT sense node sits at exactly Vcc/2.
  *
  *                  So <tt>V_pin = V_source * ratio</tt> and the ADC layer divides
  *                  the measured pin voltage by the ratio to recover the source.
@@ -105,7 +113,7 @@
 
 #define DEFINES_SENSE_DIVIDER_SERIES_OHM (10000.F)   /*!< Series leg, one element of RN1/RN2/RN3. */
 #define DEFINES_SENSE_DIVIDER_5V_SHUNT_OHM (18000.F) /*!< Shunt leg of the 5 V-range lines (R2, R4, R6, R9, R11). */
-#define DEFINES_SENSE_DIVIDER_24V_SHUNT_OHM (1300.F) /*!< Shunt leg of the 24 V-range lines (R3, R5, R7, R8, R10, R12, R13). */
+#define DEFINES_SENSE_DIVIDER_24V_SHUNT_OHM (1500.F) /*!< Shunt leg of the 24 V-range lines (R3, R5, R7, R8, R10, R12, R13). */
 
 /*!
  * \brief           Attenuation of a sense line, V at the MCU pin per V at the source.
@@ -115,18 +123,18 @@
 #define DEFINES_SENSE_DIVIDER_RATIO(SHUNT) ((SHUNT) / (DEFINES_SENSE_DIVIDER_SERIES_OHM + (SHUNT)))
 
 #define DEFINES_SENSE_5V_RANGE_GAIN DEFINES_SENSE_DIVIDER_RATIO(DEFINES_SENSE_DIVIDER_5V_SHUNT_OHM)   /*!< 0.642857 */
-#define DEFINES_SENSE_24V_RANGE_GAIN DEFINES_SENSE_DIVIDER_RATIO(DEFINES_SENSE_DIVIDER_24V_SHUNT_OHM) /*!< 0.115044 */
+#define DEFINES_SENSE_24V_RANGE_GAIN DEFINES_SENSE_DIVIDER_RATIO(DEFINES_SENSE_DIVIDER_24V_SHUNT_OHM) /*!< 0.130435 */
 
 /*! \defgroup       sense_voltage Per-line attenuation of the voltage senses.
  *  \{
  */
 
-#define DEFINES_SENSE_VIN_GAIN DEFINES_SENSE_24V_RANGE_GAIN         /*!< VIN_SENSED -> VIN_SENSE_MCU, R13 1k3. */
-#define DEFINES_SENSE_VIN_UNFUSED_GAIN DEFINES_SENSE_24V_RANGE_GAIN /*!< VIN_UNFUSED_SENSED -> VIN_UNFUSED_SENSE_MCU, R12 1k3. */
-#define DEFINES_SENSE_VSUP_GAIN DEFINES_SENSE_24V_RANGE_GAIN        /*!< VSUP_SENSED -> VSUP_SENSE_MCU, R7 1k3. */
-#define DEFINES_SENSE_VOUT_GAIN DEFINES_SENSE_24V_RANGE_GAIN        /*!< VOUTD -> VOUT_FB_MCU, R8 1k3. */
-#define DEFINES_SENSE_LVMS_OUT_GAIN DEFINES_SENSE_24V_RANGE_GAIN    /*!< LVMS_OUT_SENSED -> LVMS_OUT_SENSE_MCU, R5 1k3. */
-#define DEFINES_SENSE_V_CHRG_GAIN DEFINES_SENSE_24V_RANGE_GAIN      /*!< V_CHRG_SENSED -> V_CHRG_SENSE_MCU, R10 1k3. */
+#define DEFINES_SENSE_VIN_GAIN DEFINES_SENSE_24V_RANGE_GAIN         /*!< VIN_SENSED -> VIN_SENSE_MCU, R13 1.5k. */
+#define DEFINES_SENSE_VIN_UNFUSED_GAIN DEFINES_SENSE_24V_RANGE_GAIN /*!< VIN_UNFUSED_SENSED -> VIN_UNFUSED_SENSE_MCU, R12 1.5k. */
+#define DEFINES_SENSE_VSUP_GAIN DEFINES_SENSE_24V_RANGE_GAIN        /*!< VSUP_SENSED -> VSUP_SENSE_MCU, R7 1.5k. */
+#define DEFINES_SENSE_VOUT_GAIN DEFINES_SENSE_24V_RANGE_GAIN        /*!< VOUTD -> VOUT_FB_MCU, R8 1.5k. */
+#define DEFINES_SENSE_LVMS_OUT_GAIN DEFINES_SENSE_24V_RANGE_GAIN    /*!< LVMS_OUT_SENSED -> LVMS_OUT_SENSE_MCU, R5 1.5k. */
+#define DEFINES_SENSE_V_CHRG_GAIN DEFINES_SENSE_24V_RANGE_GAIN      /*!< V_CHRG_SENSED -> V_CHRG_SENSE_MCU, R10 1.5k. */
 #define DEFINES_SENSE_MCU_5V_GAIN DEFINES_SENSE_5V_RANGE_GAIN       /*!< +5V -> 5V_SENSE_MCU, R6 18k. */
 
 /*! \} */

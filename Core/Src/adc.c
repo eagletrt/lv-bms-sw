@@ -56,6 +56,23 @@ EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                             
 EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Last NTC voltage read on each multiplexer channel, in V. */
 EAGLETRT_STATIC bool adc_mux_hold = false;                                                    /*!< True while the multiplexer is pinned to one channel for debugging. */
 
+/*!
+ * \defgroup ntc_health Thresholds telling a real NTC reading from a broken channel.
+ *
+ * \details  The multiplexer common node is pulled up to 3V3 through R59 and each
+ *           NTC pulls it down. A channel with no NTC on it therefore parks at the
+ *           pull-up rail and a shorted one sits at ground, neither of which the
+ *           volt-to-celsius fit can represent. The open threshold is a fraction of
+ *           the measured VDDA rather than a fixed voltage so it tracks the supply,
+ *           and it sits above the top of the fitted range, so it can only ever
+ *           flag readings that were already unusable.
+ *
+ * \{
+ */
+#define ADC_NTC_OPEN_RATIO (0.95F) /*!< Fraction of VDDA at or above which the channel counts as open. */
+#define ADC_NTC_SHORT_V (0.05F)    /*!< Voltage at or below which the channel counts as shorted. */
+/*! \} */
+
 /*! Window in which the measured +5 V rail is trusted for the ACS724 conversion. */
 #define ADC_ACS724_SUPPLY_MIN_V (4.0F)
 #define ADC_ACS724_SUPPLY_MAX_V (5.5F)
@@ -414,9 +431,23 @@ void adc_routine(uint32_t tick) {
             }
 
             if (adc_mux_channel < DEFINES_CELLS_NTC_COUNT) {
-                (void)temperature_api_update_temperature(
-                    adc_mux_channel,
-                    temperature_api_volt_to_celsius(voltages[ADC_READ_NTC_SENSE]));
+                const volt ntc = voltages[ADC_READ_NTC_SENSE];
+                enum TemperatureStatus status = TEMPERATURE_STATUS_OK;
+
+                if (ntc >= (adc_vdda * ADC_NTC_OPEN_RATIO)) {
+                    status = TEMPERATURE_STATUS_OPEN;
+                } else if (ntc <= ADC_NTC_SHORT_V) {
+                    status = TEMPERATURE_STATUS_SHORTED;
+                }
+
+                (void)temperature_api_update_temperature_status(adc_mux_channel, status);
+
+                /*! Only convert what the fit can actually represent: a broken
+                    channel would otherwise be clamped and read as a very cold
+                    cell, which is indistinguishable from a real fault. */
+                if (status == TEMPERATURE_STATUS_OK) {
+                    (void)temperature_api_update_temperature(adc_mux_channel, temperature_api_volt_to_celsius(ntc));
+                }
             }
 
             /*! Step to the next populated channel and let it settle, unless a

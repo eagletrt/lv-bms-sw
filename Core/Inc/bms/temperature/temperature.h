@@ -21,6 +21,23 @@
 #define TEMPERATURE_DISCHARGE_MAX_C TEMPERATURE_CHARGE_MAX_C /*!< Maximum allowed cell temperature in °C in discharge */
 
 /*!
+ * \brief            Health of a single NTC channel.
+ *
+ * \details          Every cell NTC is the bottom leg of a divider whose top leg
+ *                  is the pull-up on the multiplexer common node. That makes the
+ *                  two failure modes trivial to tell apart from a real reading:
+ *                  a disconnected NTC leaves the node sitting at the pull-up
+ *                  rail, a shorted one pins it to ground. Both land far outside
+ *                  the range the volt-to-celsius fit covers, so they have to be
+ *                  reported rather than converted.
+ */
+enum TemperatureStatus {
+    TEMPERATURE_STATUS_OK = 0,  /*!< The channel is reading a plausible NTC voltage. */
+    TEMPERATURE_STATUS_OPEN,    /*!< The channel sits at the pull-up rail: NTC missing or wire broken. */
+    TEMPERATURE_STATUS_SHORTED, /*!< The channel is pinned to ground: NTC or harness shorted. */
+};
+
+/*!
  * \brief            Return codes for the temperature module functions.
  */
 enum TemperatureReturnCode {
@@ -33,7 +50,8 @@ enum TemperatureReturnCode {
  * \brief            Temperature module handler structure.
  */
 struct TemperatureHandler {
-    celsius temperatures[DEFINES_CELLS_NTC_COUNT]; /*!< An array of temperatures in °C */
+    celsius temperatures[DEFINES_CELLS_NTC_COUNT];            /*!< An array of temperatures in °C */
+    enum TemperatureStatus statuses[DEFINES_CELLS_NTC_COUNT]; /*!< Health of each NTC channel */
 };
 
 #endif /*! TEMPERATURE_H */

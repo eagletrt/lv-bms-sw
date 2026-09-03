@@ -35,6 +35,7 @@
 #include "arena-allocator-api.h"
 #include "pal-api.h"
 #include "logger-api.h"
+#include "bms-monitor-api.h"
 #include "defines.h"
 
 /* USER CODE END Includes */
@@ -53,6 +54,7 @@
 #define HEARTBEAT_PERIOD_MS (500U)     /*!< Toggling period of the heartbeat LED. */
 #define FEEDBACK_POLL_PERIOD_MS (10U)  /*!< Sampling period of the digital feedbacks. */
 #define CONSOLE_RX_BUFFER_SIZE (8U)    /*!< Longest console command accepted, in characters. */
+#define DISCHARGE_TEST_STEP_MS (5000U) /*!< Dwell on each cell during the discharge sweep. */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -99,19 +101,66 @@ EAGLETRT_STATIC void prv_main_init_logging_configuration() {
 /*!
  * \brief Console state used by the NTC multiplexer command.
  *
- * \details The serial console accepts one command, typed on the same USART the
- *          logger prints on:
- *            - a number 0..15 followed by ENTER pins the multiplexer to that
- *              channel, so a single NTC can be watched;
- *            - 'a' releases it and the multiplexer goes back to walking every
- *              channel by itself.
- *          Anything else is ignored. The actual pinning is done by the ADC
+ * \details The serial console, typed on the same USART the logger prints on:
+ *            - a number 0..15 followed by ENTER pins the NTC multiplexer to that
+ *              channel, so a single NTC can be watched. A number out of range
+ *              releases it, so a typo cannot leave it stuck;
+ *            - 'm' releases the multiplexer explicitly;
+ *            - 'a' toggles the discharge sweep, see
+ *              prv_main_discharge_test_routine().
+ *          Anything else is ignored. The pinning itself is done by the ADC
  *          module, which owns the address lines, so the command and the scan
  *          loop no longer fight over them.
  */
 EAGLETRT_STATIC uint8_t console_rx_char;
 EAGLETRT_STATIC char console_rx_buffer[CONSOLE_RX_BUFFER_SIZE];
 EAGLETRT_STATIC uint8_t console_rx_index = 0U;
+
+/*! Set from the console interrupt, consumed by prv_main_discharge_test_routine(). */
+EAGLETRT_STATIC EAGLETRT_VOLATILE bool discharge_test_toggle_request = false;
+EAGLETRT_STATIC bool discharge_test_active = false; /*!< True while the sweep is running. */
+EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being discharged, 0-based. */
+EAGLETRT_STATIC uint32_t discharge_test_tick = 0U;  /*!< Tick at which the current cell was selected. */
+
+/*!
+ * \brief Walk the balancing FET of one cell at a time, for bench testing.
+ *
+ * \details Toggled from the console with 'a'. While running it discharges cell 1,
+ *          then 2, and so on up to cell 6, #DISCHARGE_TEST_STEP_MS on each, then
+ *          wraps. Only one cell at a time: the LTC6810 rejects adjacent cells, and
+ *          bms_monitor_api_set_discharge() enforces that.
+ *
+ *          Nothing here talks to the LTC. It only moves the requested
+ *          configuration, which the BMS monitor FSM already pushes out on every
+ *          one of its cycles, so the change reaches the chip on its own.
+ *
+ * \param[in] tick The current tick in ms.
+ */
+EAGLETRT_STATIC void prv_main_discharge_test_routine(uint32_t tick) {
+    if (discharge_test_toggle_request) {
+        discharge_test_toggle_request = false;
+        discharge_test_active = !discharge_test_active;
+        discharge_test_cell = 0U;
+        discharge_test_tick = tick;
+
+        (void)bms_monitor_api_set_discharge(discharge_test_active ? (uint8_t)(1U << discharge_test_cell) : 0U);
+        logger_api_log(LOGGER_LEVEL_INFO,
+                       "[DCHG] %s",
+                       discharge_test_active ? "sweep on, cell 1" : "sweep off");
+    }
+
+    if (!discharge_test_active) {
+        return;
+    }
+
+    if ((tick - discharge_test_tick) >= DISCHARGE_TEST_STEP_MS) {
+        discharge_test_tick = tick;
+        discharge_test_cell = (uint8_t)((discharge_test_cell + 1U) % DEFINES_CELLS_SERIES_COUNT);
+
+        (void)bms_monitor_api_set_discharge((uint8_t)(1U << discharge_test_cell));
+        logger_api_log(LOGGER_LEVEL_INFO, "[DCHG] cell %d", (int)(discharge_test_cell + 1U));
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -203,6 +252,7 @@ int main(void) {
            DEFINES_NTC_MUX_USED_CHANNEL_COUNT scans. The snapshot of the board is
            printed by the FSM debug interface (prv_print_debug). */
         adc_routine(tick);
+        prv_main_discharge_test_routine(tick);
 
         if (tick - feedback_tick >= FEEDBACK_POLL_PERIOD_MS) {
             feedback_tick = tick;
@@ -271,9 +321,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         if (console_rx_index < (CONSOLE_RX_BUFFER_SIZE - 1U)) {
             console_rx_buffer[console_rx_index++] = (char)console_rx_char;
         }
-    } else if (console_rx_char == 'a' || console_rx_char == 'A') {
+    } else if (console_rx_char == 'm' || console_rx_char == 'M') {
         /*! Release the multiplexer straight away, no ENTER needed. */
         adc_clear_mux_hold();
+        console_rx_index = 0U;
+    } else if (console_rx_char == 'a' || console_rx_char == 'A') {
+        /*! Only raise a request here: the sweep touches the BMS monitor
+            configuration, which belongs to the main loop, not to an interrupt. */
+        discharge_test_toggle_request = true;
         console_rx_index = 0U;
     } else if (console_rx_char == '\r' || console_rx_char == '\n') {
         if (console_rx_index > 0U) {

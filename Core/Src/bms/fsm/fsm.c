@@ -71,6 +71,7 @@ EAGLETRT_STATIC void prv_print_debug(void) {
        The raw divider voltages are printed next to the temperatures because the
        NTC pull-up R59 is still unset on the schematic, so the volt-to-celsius
        curve cannot be trusted yet while the voltages can. */
+    logger_api_log(LOGGER_LEVEL_INFO, "Tmin %d Tmax %d Tavg %d", (int)(temperature_api_get_min() * 10.F), (int)(temperature_api_get_max() * 10.F), (int)(temperature_api_get_average() * 10.F));
     logger_api_log(LOGGER_LEVEL_INFO, "T_MUX0-5 %d %d %d %d %d %d", (int)(temperatures[0] * 10.F), (int)(temperatures[1] * 10.F), (int)(temperatures[2] * 10.F), (int)(temperatures[3] * 10.F), (int)(temperatures[4] * 10.F), (int)(temperatures[5] * 10.F));
     logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11 %d %d %d %d %d %d", (int)(temperatures[6] * 10.F), (int)(temperatures[7] * 10.F), (int)(temperatures[8] * 10.F), (int)(temperatures[9] * 10.F), (int)(temperatures[10] * 10.F), (int)(temperatures[11] * 10.F));
     logger_api_log(LOGGER_LEVEL_INFO, "NTCV0-5 %d %d %d %d %d %d", (int)(adc_get_ntc_voltage(0U) * 1000.F), (int)(adc_get_ntc_voltage(1U) * 1000.F), (int)(adc_get_ntc_voltage(2U) * 1000.F), (int)(adc_get_ntc_voltage(3U) * 1000.F), (int)(adc_get_ntc_voltage(4U) * 1000.F), (int)(adc_get_ntc_voltage(5U) * 1000.F));
@@ -86,6 +87,10 @@ EAGLETRT_STATIC void prv_print_debug(void) {
     /* The LTC auxiliary inputs carry the balancing/charger resistor NTCs, not
        cell NTCs, so they stay out of the temperature module and are shown raw. */
     logger_api_log(LOGGER_LEVEL_INFO, "TS_LTC %d %d %d %d", (int)(bms_monitor_api_get_gpio_voltage(0U) * 1000.F), (int)(bms_monitor_api_get_gpio_voltage(1U) * 1000.F), (int)(bms_monitor_api_get_gpio_voltage(2U) * 1000.F), (int)(bms_monitor_api_get_gpio_voltage(3U) * 1000.F));
+
+    /* NTC channels that are open or shorted, one bit each, same shape as the
+       cell open-wire mask. Those channels are left out of min/max/average. */
+    logger_api_log(LOGGER_LEVEL_INFO, "NTCflt 0x%lx DCC 0x%x", (unsigned long)temperature_api_get_fault_bitmask(), (unsigned)bms_monitor_api_get_discharge());
 
     /* One digit per feedback, in enum Feedback order: 0 low, 1 error, 2 high. */
     logger_api_log(LOGGER_LEVEL_INFO, "FB %d%d%d%d%d%d%d%d", (int)feedback_api_get_status(FEEDBACK_SUPPLY_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_SUPPLY_DELAY), (int)feedback_api_get_status(FEEDBACK_CHARGE_STATUS_NEGATED), (int)feedback_api_get_status(FEEDBACK_CHARGE_VIN_VALID_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_DELAY), (int)feedback_api_get_status(FEEDBACK_OUTPUT_FUSE), (int)feedback_api_get_status(FEEDBACK_VOUT));
