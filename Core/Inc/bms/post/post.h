@@ -30,6 +30,10 @@ struct PostInitData {
     bms_monitor_send_receive_callback bms_monitor_send_receive;
     bms_monitor_ntc_read_callback bms_monitor_ntc_read;
     fsm_get_tick_callback get_tick;
+    /*! Board services the FSM needs but must not reach for itself, since nothing
+        under Core/{Inc,Src}/bms may depend on the HAL. */
+    fsm_set_master_relay_callback set_master_relay;
+    fsm_read_board_measurements_callback read_board_measurements;
 };
 
 #endif // POST_H

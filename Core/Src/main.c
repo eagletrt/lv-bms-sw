@@ -123,6 +123,38 @@ EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being di
 EAGLETRT_STATIC uint32_t discharge_test_tick = 0U;  /*!< Tick at which the current cell was selected. */
 
 /*!
+ * \brief Collect everything the FSM reports but does not measure itself.
+ *
+ * \details The FSM lives under Core/Src/bms, which may not include the HAL, so
+ *          the peripheral getters are read here and handed over as plain values.
+ *
+ * \param[out] out The snapshot to fill.
+ */
+EAGLETRT_STATIC void prv_main_read_board_measurements(struct FsmBoardMeasurements *out) {
+    if (out == NULL) {
+        return;
+    }
+
+    out->vdda = adc_get_vdda();
+    out->mcu_temperature = adc_get_mcu_temperature();
+    out->vin = adc_get_vin();
+    out->vin_unfused = adc_get_vin_unfused();
+    out->vsup = adc_get_vsup();
+    out->vout = adc_get_vout();
+    out->lvms_out = adc_get_lvms_out();
+    out->mcu_5v = adc_get_mcu_5v();
+    out->charger_voltage = adc_get_charger_voltage();
+    out->charger_current = adc_get_charger_current();
+    out->i_out_sense = adc_get_i_out_sense_voltage();
+    out->ntc_mux_channel = adc_get_current_ntc_channel();
+    out->ntc_mux_held = adc_is_mux_held();
+
+    for (size_t i = 0U; i < DEFINES_CELLS_NTC_COUNT; ++i) {
+        out->ntc_voltages[i] = adc_get_ntc_voltage(i);
+    }
+}
+
+/*!
  * \brief Walk the balancing FET of one cell at a time, for bench testing.
  *
  * \details Toggled from the console with 'a'. While running it discharges cell 1,
@@ -215,7 +247,12 @@ int main(void) {
         },
         .bms_monitor_send = spi_bms_monitor_send,
         .bms_monitor_send_receive = spi_bms_monitor_send_receive,
-        .bms_monitor_ntc_read = nullptr
+        .bms_monitor_ntc_read = nullptr,
+        /*! do_init() needs a time base to run its pre-flight acquisition. */
+        .get_tick = HAL_GetTick,
+        /*! Board services the FSM cannot reach for itself. */
+        .set_master_relay = gpio_set_master_relay,
+        .read_board_measurements = prv_main_read_board_measurements
     };
 
     struct FsmData fsm_data = {
@@ -238,8 +275,6 @@ int main(void) {
     /* USER CODE BEGIN WHILE */
     uint32_t heartbeat_tick = HAL_GetTick();
     uint32_t feedback_tick = HAL_GetTick();
-
-    adc_start_read();
 
     while (1) {
         const uint32_t tick = HAL_GetTick();

@@ -20,9 +20,40 @@ extern "C" {
 #endif
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "defines.h"
+#include "types.h"
 
 struct FsmData {
     uint32_t tick;
+};
+
+/*!
+ * \brief            Everything the FSM wants to report that is measured by the
+ *                   board rather than by one of the abstract modules.
+ *
+ * \details          The FSM must not reach into the peripheral drivers, so the
+ *                   board layer fills this in through
+ *                   #fsm_read_board_measurements_callback and the FSM only ever
+ *                   reads plain numbers out of it.
+ */
+struct FsmBoardMeasurements {
+    volt vdda;                                  /*!< Analog supply measured through VREFINT in V */
+    celsius mcu_temperature;                    /*!< MCU die temperature in °C */
+    volt vin;                                   /*!< Fused input voltage in V */
+    volt vin_unfused;                           /*!< Unfused input voltage in V */
+    volt vsup;                                  /*!< Supply voltage in V */
+    volt vout;                                  /*!< Output voltage in V */
+    volt lvms_out;                              /*!< LVMS output voltage in V */
+    volt mcu_5v;                                /*!< 5 V rail voltage in V */
+    volt charger_voltage;                       /*!< Charger voltage in V */
+    ampere charger_current;                     /*!< Charger current in A */
+    volt i_out_sense;                           /*!< Output current sense node in V */
+    size_t ntc_mux_channel;                     /*!< Multiplexer channel currently selected */
+    bool ntc_mux_held;                          /*!< True while the multiplexer is pinned for debugging */
+    volt ntc_voltages[DEFINES_CELLS_NTC_COUNT]; /*!< Last raw NTC voltage of each channel in V */
 };
 
 // State data object
@@ -30,7 +61,24 @@ struct FsmData {
 // header if you need
 typedef void state_data_t;
 
+/*!
+ * \brief            Callback returning the current tick in ms.
+ */
 typedef uint32_t (*fsm_get_tick_callback)(void);
+
+/*!
+ * \brief            Callback opening or closing the master output relay.
+ *
+ * \param[in]        closed True to connect the output, false to release it.
+ */
+typedef void (*fsm_set_master_relay_callback)(bool closed);
+
+/*!
+ * \brief            Callback filling a snapshot of the board measurements.
+ *
+ * \param[out]       out The snapshot to populate.
+ */
+typedef void (*fsm_read_board_measurements_callback)(struct FsmBoardMeasurements *out);
 
 // NOTHING SHALL BE CHANGED AFTER THIS LINE!
 
