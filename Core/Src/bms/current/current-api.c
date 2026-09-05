@@ -51,7 +51,7 @@ enum CurrentReturnCode current_api_update_current(size_t index, ampere current) 
     return CURRENT_RC_OK;
 }
 
-enum CurrentReturnCode current_api_update_currents(size_t index, ampere *currents, size_t size) {
+enum CurrentReturnCode current_api_update_currents(size_t index, const ampere *currents, size_t size) {
     if (currents == NULL) {
         return CURRENT_RC_NULL_POINTER;
     }

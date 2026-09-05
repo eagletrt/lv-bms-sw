@@ -47,7 +47,7 @@ enum CurrentReturnCode current_api_update_current(size_t index, ampere current);
  * \retval           CURRENT_RC_NULL_POINTER if currents is NULL.
  * \retval           CURRENT_RC_OUT_OF_BOUNDS if index is greater than the total number of currents or if the size is too big.
  */
-enum CurrentReturnCode current_api_update_currents(size_t index, ampere *currents, size_t size);
+enum CurrentReturnCode current_api_update_currents(size_t index, const ampere *currents, size_t size);
 
 /*!
  * \brief            Copy a list of adjacent currents.

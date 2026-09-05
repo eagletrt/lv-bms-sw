@@ -10,9 +10,9 @@
 #include "can-communication-router-api.h"
 #include "can-primary-api.h"
 
-EAGLETRT_STATIC void prv_dispatch_rx(uint32_t id, union CanPrimaryMessages message) {
+EAGLETRT_STATIC void prv_dispatch_rx(uint32_t frame_id, union CanPrimaryMessages message) {
     EAGLETRT_API_UNUSED(message);
-    switch (id) {
+    switch (frame_id) {
         default:
             break;
     }

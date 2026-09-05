@@ -26,7 +26,6 @@ The finite state machine has:
 #include "can-primary.h"
 #include "post-api.h"
 #include "eagletrt.h"
-#include "post-api.h"
 #include "post.h"
 #include "logger-api.h"
 #include "bms-monitor-api.h"
@@ -47,6 +46,9 @@ constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
  *          re-read the same data.
  */
 constexpr uint32_t fsm_relay_check_period = 50U;
+
+/*! Period of the serial snapshot in ms. */
+constexpr uint32_t fsm_debug_print_period = 500U;
 
 /*!
  * \brief Consecutive healthy checks required before the relay is closed.
@@ -226,6 +228,47 @@ EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
 /*! Longest rendering of one temperature, "-24.0" plus its terminator. */
 #define FSM_TEMPERATURE_ROW_SIZE (48U)
 
+/*! Channels printed per NTC row, so the lines stay inside the logger budget. */
+#define FSM_ROW_CHANNEL_COUNT (6U)
+
+/*! Scale taking a base unit to its milli- form for the integer log fields. */
+#define FSM_MILLI_PER_UNIT (1000.F)
+
+/*!
+ * \brief Render a value in its milli- unit, the form every integer field of the
+ *        log uses.
+ *
+ * \param[in] value The value in its base unit.
+ *
+ * \returns int The value in milli-units, truncated.
+ */
+EAGLETRT_STATIC int prv_milli(float value) {
+    return (int)(value * FSM_MILLI_PER_UNIT);
+}
+
+/*!
+ * \brief Render a run of voltages as millivolt fields into one string.
+ *
+ * \param[in]  values The array to read from.
+ * \param[in]  first  Index of the first value in the row.
+ * \param[in]  count  Number of values in the row.
+ * \param[out] out    Buffer receiving the row, leading space included.
+ * \param[in]  size   Size of \p out.
+ */
+EAGLETRT_STATIC void prv_format_milli_row(const volt *values, size_t first, size_t count, char *out, size_t size) {
+    size_t used = 0U;
+    out[0] = '\0';
+
+    for (size_t i = 0U; i < count; ++i) {
+        const int written = snprintf(out + used, size - used, " %d", prv_milli(values[first + i]));
+
+        if (written < 0 || (size_t)written >= (size - used)) {
+            break;
+        }
+        used += (size_t)written;
+    }
+}
+
 /*! Shown in place of a reading that does not exist. */
 #define FSM_NO_READING "--"
 
@@ -289,12 +332,11 @@ EAGLETRT_STATIC void prv_print_debug(void) {
     const uint32_t open_wire = bms_monitor_api_check_open_wire();
 
     logger_api_log(LOGGER_LEVEL_INFO, "===== BMS (V=mV, T=C, I=mA) =====");
-    logger_api_log(LOGGER_LEVEL_INFO, "V %d %d %d %d %d %d", (int)(voltages[0] * 1000.F), (int)(voltages[1] * 1000.F), (int)(voltages[2] * 1000.F), (int)(voltages[3] * 1000.F), (int)(voltages[4] * 1000.F), (int)(voltages[5] * 1000.F));
+    char row[FSM_TEMPERATURE_ROW_SIZE];
 
-    /* Every cell NTC comes from the MCU multiplexer: index n is mux channel n.
-       The raw divider voltages are printed next to the temperatures because the
-       NTC pull-up R59 is still unset on the schematic, so the volt-to-celsius
-       curve cannot be trusted yet while the voltages can. */
+    prv_format_milli_row(voltages, 0U, DEFINES_CELLS_SERIES_COUNT, row, sizeof(row));
+    logger_api_log(LOGGER_LEVEL_INFO, "V%s", row);
+
     /*! Every channel faulty means the aggregates were computed over nothing, so
         they are no more real than the individual slots. */
     constexpr uint32_t all_channels = (1UL << DEFINES_CELLS_NTC_COUNT) - 1UL;
@@ -306,30 +348,34 @@ EAGLETRT_STATIC void prv_print_debug(void) {
         logger_api_log(LOGGER_LEVEL_INFO, "Tmin %.1f Tmax %.1f Tavg %.1f", (double)temperature_api_get_min(), (double)temperature_api_get_max(), (double)temperature_api_get_average());
     }
 
-    /*! One scratch buffer per field: they are all live at the same time inside a
-        single logger call and C does not fix the order the arguments are built. */
-    char row[FSM_TEMPERATURE_ROW_SIZE];
-
-    prv_format_temperature_row(0U, 6U, temperatures, row, sizeof(row));
+    /* Every cell NTC comes from the MCU multiplexer: index n is mux channel n.
+       The raw divider voltages are printed next to the temperatures because the
+       NTC pull-up R59 is still unset on the schematic, so the volt-to-celsius
+       curve cannot be trusted yet while the voltages can. */
+    prv_format_temperature_row(0U, FSM_ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
     logger_api_log(LOGGER_LEVEL_INFO, "T_MUX0-5%s", row);
 
-    prv_format_temperature_row(6U, 6U, temperatures, row, sizeof(row));
+    prv_format_temperature_row(FSM_ROW_CHANNEL_COUNT, FSM_ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
     logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11%s", row);
+
     const struct FsmBoardMeasurements *board = &fsm_board_measurements;
 
-    logger_api_log(LOGGER_LEVEL_INFO, "NTCV0-5 %d %d %d %d %d %d", (int)(board->ntc_voltages[0] * 1000.F), (int)(board->ntc_voltages[1] * 1000.F), (int)(board->ntc_voltages[2] * 1000.F), (int)(board->ntc_voltages[3] * 1000.F), (int)(board->ntc_voltages[4] * 1000.F), (int)(board->ntc_voltages[5] * 1000.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "NTCV6-11 %d %d %d %d %d %d", (int)(board->ntc_voltages[6] * 1000.F), (int)(board->ntc_voltages[7] * 1000.F), (int)(board->ntc_voltages[8] * 1000.F), (int)(board->ntc_voltages[9] * 1000.F), (int)(board->ntc_voltages[10] * 1000.F), (int)(board->ntc_voltages[11] * 1000.F));
+    prv_format_milli_row(board->ntc_voltages, 0U, FSM_ROW_CHANNEL_COUNT, row, sizeof(row));
+    logger_api_log(LOGGER_LEVEL_INFO, "NTCV0-5%s", row);
 
-    logger_api_log(LOGGER_LEVEL_INFO, "MCU %.1f mux %d%s VDDA %d", (double)board->mcu_temperature, (int)board->ntc_mux_channel, board->ntc_mux_held ? " HOLD" : "", (int)(board->vdda * 1000.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", (int)(board->vin * 1000.F), (int)(board->vin_unfused * 1000.F), (int)(board->vsup * 1000.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", (int)(board->vout * 1000.F), (int)(board->lvms_out * 1000.F), (int)(board->mcu_5v * 1000.F));
-    logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", (int)(board->charger_voltage * 1000.F), (int)(board->charger_current * 1000.F));
+    prv_format_milli_row(board->ntc_voltages, FSM_ROW_CHANNEL_COUNT, FSM_ROW_CHANNEL_COUNT, row, sizeof(row));
+    logger_api_log(LOGGER_LEVEL_INFO, "NTCV6-11%s", row);
+
+    logger_api_log(LOGGER_LEVEL_INFO, "MCU %.1f mux %d%s VDDA %d", (double)board->mcu_temperature, (int)board->ntc_mux_channel, board->ntc_mux_held ? " HOLD" : "", prv_milli(board->vdda));
+    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", prv_milli(board->vin), prv_milli(board->vin_unfused), prv_milli(board->vsup));
+    logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", prv_milli(board->vout), prv_milli(board->lvms_out), prv_milli(board->mcu_5v));
+    logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", prv_milli(board->charger_voltage), prv_milli(board->charger_current));
     /* No sensor drives I_OUT_SENSED, so only the node voltage means anything. */
-    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT_node %d (no sensor)", (int)(board->i_out_sense * 1000.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT_node %d (no sensor)", prv_milli(board->i_out_sense));
 
     /* The LTC auxiliary inputs carry the balancing/charger resistor NTCs, not
        cell NTCs, so they stay out of the temperature module and are shown raw. */
-    logger_api_log(LOGGER_LEVEL_INFO, "TS_LTC %d %d %d %d", (int)(bms_monitor_api_get_gpio_voltage(0U) * 1000.F), (int)(bms_monitor_api_get_gpio_voltage(1U) * 1000.F), (int)(bms_monitor_api_get_gpio_voltage(2U) * 1000.F), (int)(bms_monitor_api_get_gpio_voltage(3U) * 1000.F));
+    logger_api_log(LOGGER_LEVEL_INFO, "TS_LTC %d %d %d %d", prv_milli(bms_monitor_api_get_gpio_voltage(0U)), prv_milli(bms_monitor_api_get_gpio_voltage(1U)), prv_milli(bms_monitor_api_get_gpio_voltage(2U)), prv_milli(bms_monitor_api_get_gpio_voltage(3U)));
 
     /* NTC channels that are open or shorted, one bit each, same shape as the
        cell open-wire mask. Those channels are left out of min/max/average. */
@@ -448,7 +494,7 @@ state_t do_idle(state_data_t *data) {
 
     /* Serial debug interface at 1 Hz. */
     static uint32_t last_debug_tick = 0U;
-    if (current_tick - last_debug_tick > 500U) {
+    if (current_tick - last_debug_tick > fsm_debug_print_period) {
         last_debug_tick = current_tick;
         prv_print_debug();
     }
@@ -654,8 +700,9 @@ void fatal_to_flash(state_data_t *data) {
 
 state_t run_state(state_t cur_state, state_data_t *data) {
     state_t new_state = state_table[cur_state](data);
-    if (new_state == NO_CHANGE)
+    if (new_state == NO_CHANGE) {
         new_state = cur_state;
+    }
 
     if (new_state != cur_state) {
         logger_api_log(LOGGER_LEVEL_INFO, "[FSM] %s -> %s", state_names[cur_state], state_names[new_state]);

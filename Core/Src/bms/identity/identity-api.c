@@ -44,6 +44,7 @@ enum IdentityReturnCode identity_api_send_state(enum CanPrimaryLvacfsmStatus sta
     return IDENTITY_RC_OK;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 enum IdentityReturnCode identity_api_periodically_send_state(enum CanPrimaryLvacfsmStatus status, uint32_t tick) {
     if (tick - identity_handler.last_send_tick_status >= can_primary_cycle_time_lvacfsm) {
         identity_handler.last_send_tick_status = tick;

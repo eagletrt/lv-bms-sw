@@ -23,8 +23,8 @@
 EAGLETRT_STATIC struct TemperatureHandler temperature_handler; /*!< Private temperature handler instance. */
 
 /*! NTC voltage-to-temperature polynomial fit (valid over [MIN, MAX] volts). */
-#define TEMPERATURE_NTC_MIN_LIMIT_V (0.0F)
-#define TEMPERATURE_NTC_MAX_LIMIT_V (3.0F)
+constexpr volt temperature_ntc_min_limit_v = 0.0F;
+constexpr volt temperature_ntc_max_limit_v = 3.0F;
 #define TEMPERATURE_NTC_COEFF_0 (148.305319086073000)
 #define TEMPERATURE_NTC_COEFF_1 (-317.553729396941300)
 #define TEMPERATURE_NTC_COEFF_2 (444.564306449468700)
@@ -34,7 +34,7 @@ EAGLETRT_STATIC struct TemperatureHandler temperature_handler; /*!< Private temp
 #define TEMPERATURE_NTC_COEFF_6 (4.399756702462762)
 
 celsius temperature_api_volt_to_celsius(volt value) {
-    value = EAGLETRT_API_CLAMP(value, (volt)TEMPERATURE_NTC_MIN_LIMIT_V, (volt)TEMPERATURE_NTC_MAX_LIMIT_V);
+    value = EAGLETRT_API_CLAMP(value, temperature_ntc_min_limit_v, temperature_ntc_max_limit_v);
     const double val = value;
     const double val2 = val * val;
     const double val3 = val2 * val;

@@ -18,8 +18,6 @@
 #include "defines.h"
 #include "ltc6810-2.h"
 #include "ltc6810-2-api.h"
-#include "bms-monitor.h"
-#include "bms-monitor-api.h"
 #include "types.h"
 #include "voltage-api.h"
 #include "temperature-api.h"
@@ -35,7 +33,11 @@ EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
  * \returns         bool True if valid, false otherwise.
  */
 EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
-    return cells & (cells << 1U) || cells & 0b11000000;
+    /*! Bits above the cells this board wires up: DCC6 drives S6, which is not
+        connected, and bit 7 is not part of the 7 bit discharge field. */
+    constexpr uint8_t unsupported_cells_mask = 0b11000000U;
+
+    return cells & (cells << 1U) || cells & unsupported_cells_mask;
 }
 
 /*!
@@ -66,7 +68,7 @@ EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temp
     float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
     steinhart += (1.0F / DEFINES_NTC_T0_KELVIN);
 
-    return (1.0F / steinhart) - 273.15F;
+    return (1.0F / steinhart) - DEFINES_ZERO_CELSIUS_K;
 }
 
 enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read) {
