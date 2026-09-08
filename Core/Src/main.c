@@ -36,6 +36,8 @@
 #include "pal-api.h"
 #include "logger-api.h"
 #include "bms-monitor-api.h"
+#include "balancing-api.h"
+#include "voltage-api.h"
 #include "defines.h"
 
 /* USER CODE END Includes */
@@ -107,7 +109,8 @@ EAGLETRT_STATIC void prv_main_init_logging_configuration() {
  *              releases it, so a typo cannot leave it stuck;
  *            - 'm' releases the multiplexer explicitly;
  *            - 'a' toggles the discharge sweep, see
- *              prv_main_discharge_test_routine().
+ *              prv_main_discharge_test_routine();
+ *            - 'b' toggles cell balancing, see prv_main_balancing_routine().
  *          Anything else is ignored. The pinning itself is done by the ADC
  *          module, which owns the address lines, so the command and the scan
  *          loop no longer fight over them.
@@ -118,6 +121,8 @@ EAGLETRT_STATIC uint8_t console_rx_index = 0U;
 
 /*! Set from the console interrupt, consumed by prv_main_discharge_test_routine(). */
 EAGLETRT_STATIC EAGLETRT_VOLATILE bool discharge_test_toggle_request = false;
+
+EAGLETRT_STATIC EAGLETRT_VOLATILE bool balancing_toggle_request = false;
 EAGLETRT_STATIC bool discharge_test_active = false; /*!< True while the sweep is running. */
 EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being discharged, 0-based. */
 EAGLETRT_STATIC uint32_t discharge_test_tick = 0U;  /*!< Tick at which the current cell was selected. */
@@ -169,6 +174,10 @@ EAGLETRT_STATIC void prv_main_read_board_measurements(struct FsmBoardMeasurement
  * \param[in] tick The current tick in ms.
  */
 EAGLETRT_STATIC void prv_main_discharge_test_routine(uint32_t tick) {
+    if (balancing_api_is_active()) {
+        return;
+    }
+
     if (discharge_test_toggle_request) {
         discharge_test_toggle_request = false;
         discharge_test_active = !discharge_test_active;
@@ -191,6 +200,26 @@ EAGLETRT_STATIC void prv_main_discharge_test_routine(uint32_t tick) {
 
         (void)bms_monitor_api_set_discharge((uint8_t)(1U << discharge_test_cell));
         logger_api_log(LOGGER_LEVEL_INFO, "[DCHG] cell %d", (int)(discharge_test_cell + 1U));
+    }
+}
+
+/*!
+ * \brief           Consume a console 'b' press by toggling the balancing module.
+ *
+ */
+EAGLETRT_STATIC void prv_main_balancing_routine(void) {
+    if (!balancing_toggle_request) {
+        return;
+    }
+    balancing_toggle_request = false;
+
+    if (balancing_api_is_active()) {
+        (void)balancing_api_stop();
+        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] off");
+    } else if (balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V) == BALANCING_RC_OK) {
+        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] on");
+    } else {
+        logger_api_log(LOGGER_LEVEL_WARN, "[BAL] refused, pack voltages not valid");
     }
 }
 
@@ -288,6 +317,7 @@ int main(void) {
            printed by the FSM debug interface (prv_print_debug). */
         adc_routine(tick);
         prv_main_discharge_test_routine(tick);
+        prv_main_balancing_routine();
 
         if (tick - feedback_tick >= FEEDBACK_POLL_PERIOD_MS) {
             feedback_tick = tick;
@@ -364,6 +394,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         /*! Only raise a request here: the sweep touches the BMS monitor
             configuration, which belongs to the main loop, not to an interrupt. */
         discharge_test_toggle_request = true;
+        console_rx_index = 0U;
+    } else if (console_rx_char == 'b' || console_rx_char == 'B') {
+        balancing_toggle_request = true;
         console_rx_index = 0U;
     } else if (console_rx_char == '\r' || console_rx_char == '\n') {
         if (console_rx_index > 0U) {

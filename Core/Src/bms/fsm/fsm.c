@@ -29,6 +29,7 @@ The finite state machine has:
 #include "post.h"
 #include "logger-api.h"
 #include "bms-monitor-api.h"
+#include "balancing-api.h"
 #include "voltage-api.h"
 #include "temperature-api.h"
 #include "feedback-api.h"
@@ -503,6 +504,10 @@ state_t do_idle(state_data_t *data) {
 
     can_communication_api_process_tx(CAN_COMMUNICATION_NETWORK_PRIMARY);
 
+    if (balancing_api_is_active()) {
+        next_state = STATE_BALANCING;
+    }
+
     switch (next_state) {
         case NO_CHANGE:
         case STATE_FLASH:
@@ -588,6 +593,12 @@ state_t do_balancing(state_data_t *data) {
         bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
     }
 
+    (void)balancing_api_run(current_tick);
+
+    if (!balancing_api_is_active()) {
+        next_state = STATE_IDLE;
+    }
+
     switch (next_state) {
         case NO_CHANGE:
         case STATE_IDLE:
@@ -668,6 +679,7 @@ void idle_to_fatal(state_data_t *data) {
 void balancing_to_idle(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
+    (void)balancing_api_stop();
 }
 
 // This function is called in 1 transition:
@@ -675,6 +687,7 @@ void balancing_to_idle(state_data_t *data) {
 void balancing_to_fatal(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
+    (void)balancing_api_stop();
 }
 
 // This function is called in 1 transition:
