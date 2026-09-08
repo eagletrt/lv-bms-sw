@@ -13,6 +13,7 @@
 #include "voltage-api.h"
 #include "feedback-api.h"
 #include "temperature-api.h"
+#include "balancing-api.h"
 
 enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
     if (post_init_data == nullptr ||
@@ -50,6 +51,10 @@ enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
     }
 
     if (temperature_api_init() != TEMPERATURE_RC_OK) {
+        post_return_code = POST_RC_UNINITIALIZED_MODULE;
+    }
+
+    if (balancing_api_init() != BALANCING_RC_OK) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 

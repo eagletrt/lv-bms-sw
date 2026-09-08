@@ -562,6 +562,7 @@ state_t do_flash(state_data_t *data) {
     struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
     const uint32_t current_tick = fsm_idle_data->tick;
+
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
 
@@ -587,6 +588,9 @@ state_t do_balancing(state_data_t *data) {
     struct FsmData *fsm_idle_data = (struct FsmData *)data;
 
     const uint32_t current_tick = fsm_idle_data->tick;
+
+    can_communication_api_process_rx(CAN_COMMUNICATION_NETWORK_PRIMARY);
+
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
         last_tick = current_tick;
 
@@ -594,6 +598,20 @@ state_t do_balancing(state_data_t *data) {
     }
 
     (void)balancing_api_run(current_tick);
+
+    /* Hold the output closed only while the pack keeps checking out. */
+    prv_fsm_supervise_master_relay(current_tick);
+
+    /* Serial debug interface at 1 Hz. */
+    static uint32_t last_debug_tick = 0U;
+    if (current_tick - last_debug_tick > fsm_debug_print_period) {
+        last_debug_tick = current_tick;
+        prv_print_debug();
+    }
+
+    prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
+
+    can_communication_api_process_tx(CAN_COMMUNICATION_NETWORK_PRIMARY);
 
     if (!balancing_api_is_active()) {
         next_state = STATE_IDLE;

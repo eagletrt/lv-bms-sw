@@ -15,13 +15,13 @@
 #include "config.h"
 #include "defines.h"
 #include "eagletrt.h"
-#include "eagletrt-api.h"
+#include "eagletrt.h"
 #include "voltage-api.h"
 #include "bms-monitor-api.h"
 
-EAGLETRT_STATIC struct BalancingHandler balancing_handler; /*!< Private balancing handler instance. */
-
 #ifdef CONFIG_BALANCING_MODULE_ENABLE
+
+EAGLETRT_STATIC struct BalancingHandler balancing_handler; /*!< Private balancing handler instance. */
 
 /*!
  * \brief            Check whether a cell should be discharged.
@@ -63,6 +63,7 @@ enum BalancingReturnCode balancing_api_init(void) {
     return BALANCING_RC_OK;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 enum BalancingReturnCode balancing_api_start(volt target, volt threshold) {
     if (target < VOLTAGE_MIN_V || target > VOLTAGE_MAX_V) {
         return BALANCING_RC_OUT_OF_BOUNDS;
