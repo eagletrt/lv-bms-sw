@@ -119,17 +119,30 @@ enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonito
 /*!
  * \brief           Set the cells to discharge.
  *
- * \param[in]       The bitmask representing wich where the n-bit is representing the n-th cell.
+ * \details         Bit n selects cell n + 1, so bit 0 is the first cell of the
+ *                  pack and bit DEFINES_CELLS_SERIES_COUNT - 1 the last. This is
+ *                  not the layout of the LTC discharge register; the module
+ *                  translates, so callers never deal with DCC numbering.
  *
- * \retval          BMS_MONITOR_RC_INVALID_ARGUMENT if there are two ore more adjacent cells in discharge.
- * \retval          BMS_MANAGER_RC_OK on success.
+ *                  Adjacent cells cannot discharge together, and the LTC applies
+ *                  the request on the next configuration write, not immediately.
+ *
+ * \param[in]       cells The bitmask of cells to discharge.
+ *
+ * \retval          BMS_MONITOR_RC_INVALID_ARGUMENT if two or more adjacent cells
+ *                  are selected, or a bit past the last cell is set.
+ * \retval          BMS_MONITOR_RC_OK on success.
  */
 enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells);
 
 /*!
  * \brief           Get the cells that are being currently discharged.
  *
- * \returns         uint16_t The bitmask representing wich where the n-bit is representing the n-th cell.
+ * \details         Read back from the LTC, in the same bit layout
+ *                  bms_monitor_api_set_discharge() takes, so it reflects what the
+ *                  chip actually has rather than what was last requested.
+ *
+ * \returns         uint16_t The bitmask of discharging cells, bit n being cell n + 1.
  */
 uint16_t bms_monitor_api_get_discharge(void);
 

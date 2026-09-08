@@ -323,8 +323,26 @@ void test_bms_monitor_api_set_discharge_valid(void) {
 
 void test_bms_monitor_api_set_discharge_dcc(void) {
     bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    /*! Cells 0, 2 and 4 land on DCC1, DCC3 and DCC5: the register carries DCC0 in
+        its bit 0, so the cell mask is shifted up by one. */
     bms_monitor_api_set_discharge(0b00010101U);
-    TEST_ASSERT_EQUAL(0b00010101U, bms_monitor_handler.requested_configuration.DCC);
+    TEST_ASSERT_EQUAL(0b00101010U, bms_monitor_handler.requested_configuration.DCC);
+}
+
+void test_bms_monitor_api_set_discharge_dcc_last_cell(void) {
+    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    /*! The last cell has to reach DCC6, the top bit of the discharge field. */
+    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_set_discharge(1U << (DEFINES_CELLS_SERIES_COUNT - 1U)));
+    TEST_ASSERT_EQUAL(1U << DEFINES_CELLS_SERIES_COUNT, bms_monitor_handler.requested_configuration.DCC);
+}
+
+void test_bms_monitor_api_set_discharge_dcc_never_uses_dcc0(void) {
+    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    /*! DCC0 drives the unconnected S0 switch; no cell may ever map onto it. */
+    for (uint8_t cell = 0U; cell < DEFINES_CELLS_SERIES_COUNT; ++cell) {
+        bms_monitor_api_set_discharge((uint8_t)(1U << cell));
+        TEST_ASSERT_EQUAL_MESSAGE(0U, bms_monitor_handler.requested_configuration.DCC & 1U, "a cell mapped onto DCC0");
+    }
 }
 
 void test_bms_monitor_api_set_discharge_dcto_off(void) {
@@ -350,8 +368,20 @@ void test_bms_monitor_api_set_discharge_dcto_30s(void) {
 
 void test_bms_monitor_api_get_discharge(void) {
     bms_monitor_api_init(send_fake, send_receive_fake, NULL);
-    bms_monitor_handler.actual_configuration.DCC = 0b00010101U;
+    /*! Mirror of the set direction: DCC1, DCC3 and DCC5 read back as cells 0, 2 and 4. */
+    bms_monitor_handler.actual_configuration.DCC = 0b00101010U;
     TEST_ASSERT_EQUAL(0b00010101U, bms_monitor_api_get_discharge());
+}
+
+void test_bms_monitor_api_get_discharge_round_trip(void) {
+    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    /*! What is requested is what the chip reports back, once it echoes it. */
+    for (uint8_t cell = 0U; cell < DEFINES_CELLS_SERIES_COUNT; ++cell) {
+        const uint8_t mask = (uint8_t)(1U << cell);
+        bms_monitor_api_set_discharge(mask);
+        bms_monitor_handler.actual_configuration.DCC = bms_monitor_handler.requested_configuration.DCC;
+        TEST_ASSERT_EQUAL(mask, bms_monitor_api_get_discharge());
+    }
 }
 
 void test_bms_monitor_api_get_discharge_zero(void) {
@@ -480,6 +510,8 @@ int main(void) {
     RUN_TEST(test_bms_monitor_api_set_discharge_invalid_high_bits);
     RUN_TEST(test_bms_monitor_api_set_discharge_valid);
     RUN_TEST(test_bms_monitor_api_set_discharge_dcc);
+    RUN_TEST(test_bms_monitor_api_set_discharge_dcc_last_cell);
+    RUN_TEST(test_bms_monitor_api_set_discharge_dcc_never_uses_dcc0);
     RUN_TEST(test_bms_monitor_api_set_discharge_dcto_off);
     RUN_TEST(test_bms_monitor_api_set_discharge_dcto_30s);
 
@@ -491,6 +523,7 @@ int main(void) {
 	 */
 
     RUN_TEST(test_bms_monitor_api_get_discharge);
+    RUN_TEST(test_bms_monitor_api_get_discharge_round_trip);
     RUN_TEST(test_bms_monitor_api_get_discharge_zero);
 
     /*! \} */

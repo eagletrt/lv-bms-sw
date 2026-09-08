@@ -379,7 +379,7 @@ EAGLETRT_STATIC void prv_print_debug(void) {
 
     /* NTC channels that are open or shorted, one bit each, same shape as the
        cell open-wire mask. Those channels are left out of min/max/average. */
-    logger_api_log(LOGGER_LEVEL_INFO, "NTCflt 0x%lx DCC 0x%x", (unsigned long)ntc_faults, (unsigned)bms_monitor_api_get_discharge());
+    logger_api_log(LOGGER_LEVEL_INFO, "NTCflt 0x%lx BAL 0x%x", (unsigned long)ntc_faults, (unsigned)bms_monitor_api_get_discharge());
 
     /* One digit per feedback, in enum Feedback order: 0 low, 1 error, 2 high. */
     logger_api_log(LOGGER_LEVEL_INFO, "FB %d%d%d%d%d%d%d%d", (int)feedback_api_get_status(FEEDBACK_SUPPLY_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_SUPPLY_DELAY), (int)feedback_api_get_status(FEEDBACK_CHARGE_STATUS_NEGATED), (int)feedback_api_get_status(FEEDBACK_CHARGE_VIN_VALID_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_DELAY), (int)feedback_api_get_status(FEEDBACK_OUTPUT_FUSE), (int)feedback_api_get_status(FEEDBACK_VOUT));

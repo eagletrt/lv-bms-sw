@@ -33,11 +33,42 @@ EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
  * \returns         bool True if valid, false otherwise.
  */
 EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
-    /*! Bits above the cells this board wires up: DCC6 drives S6, which is not
-        connected, and bit 7 is not part of the 7 bit discharge field. */
+    /*! Bits past the DEFINES_CELLS_SERIES_COUNT cells the pack actually has. */
     constexpr uint8_t unsupported_cells_mask = 0b11000000U;
 
     return cells & (cells << 1U) || cells & unsupported_cells_mask;
+}
+
+/*!
+ * \brief           Turn a cell bitmask into the LTC discharge field.
+ *
+ * \details         The caller counts cells from bit 0, the LTC does not: its
+ *                  discharge field carries DCC0 in bit 0 and DCC1..DCC6 in bits
+ *                  1..6, and DCC1 is the one that discharges the first cell.
+ *                  DCC0 belongs to the extra S0 switch, which this board leaves
+ *                  unconnected, so setting bit 0 of the register does nothing at
+ *                  all. Shifting here keeps that quirk inside the module that
+ *                  owns the LTC driver, and confirmed on hardware: register
+ *                  0x02 discharges cell 1, 0x04 cell 2, and so on to 0x40 for
+ *                  cell 6.
+ *
+ * \param[in]       cells Bitmask of cells to discharge, bit 0 being the first cell.
+ *
+ * \returns         uint8_t The value for Ltc68102Cfgr::DCC.
+ */
+EAGLETRT_STATIC uint8_t prv_bms_monitor_api_cells_to_dcc(uint8_t cells) {
+    return (uint8_t)(cells << 1U);
+}
+
+/*!
+ * \brief           Turn an LTC discharge field back into a cell bitmask.
+ *
+ * \param[in]       dcc The value read back from Ltc68102Cfgr::DCC.
+ *
+ * \returns         uint8_t Bitmask of discharging cells, bit 0 being the first cell.
+ */
+EAGLETRT_STATIC uint8_t prv_bms_monitor_api_dcc_to_cells(uint8_t dcc) {
+    return (uint8_t)(dcc >> 1U);
 }
 
 /*!
@@ -290,13 +321,13 @@ enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells) {
     }
 
     bms_monitor_handler.requested_configuration.DCTO = (cells == 0U) ? LTC6810_2_DCTO_OFF : LTC6810_2_DCTO_30S;
-    bms_monitor_handler.requested_configuration.DCC = cells;
+    bms_monitor_handler.requested_configuration.DCC = prv_bms_monitor_api_cells_to_dcc(cells);
 
     return BMS_MONITOR_RC_OK;
 }
 
 uint16_t bms_monitor_api_get_discharge(void) {
-    return bms_monitor_handler.actual_configuration.DCC;
+    return prv_bms_monitor_api_dcc_to_cells(bms_monitor_handler.actual_configuration.DCC);
 }
 
 uint32_t bms_monitor_api_check_open_wire(void) {
