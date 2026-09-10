@@ -17,6 +17,8 @@
 #include "defines.h"
 #include "eagletrt.h"
 #include "eagletrt-api.h"
+#include "can-primary-api.h"
+#include "can-communication-api.h"
 
 #ifdef CONFIG_TEMPERATURE_MODULE_ENABLE
 
@@ -111,8 +113,6 @@ celsius temperature_api_get_min(void) {
     celsius min = 0.F;
     bool found = false;
 
-    /*! Channels flagged open or shorted hold a stale or meaningless value and
-        would otherwise drag the pack minimum down to the bottom of the fit. */
     for (size_t i = 0; i < DEFINES_CELLS_NTC_COUNT; ++i) {
         if (temperature_handler.statuses[i] != TEMPERATURE_STATUS_OK) {
             continue;
@@ -167,6 +167,70 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
     }
 
     memcpy(out, temperature_handler.temperatures + start, size * sizeof(*out));
+    return TEMPERATURE_RC_OK;
+}
+
+enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32_t tick_ms) {
+    /*! Gate to can_primary_cycle_time_lvactemperature (200 ms). */
+    if (tick_ms - temperature_handler.last_tick_ms < can_primary_cycle_time_lvactemperature) {
+        return TEMPERATURE_RC_OK;
+    }
+    temperature_handler.last_tick_ms = tick_ms;
+
+    celsius temperatures[DEFINES_CELLS_NTC_COUNT];
+    temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
+
+    union CanPrimaryMessages message;
+
+    for (uint8_t group = 0U; group < 2U; ++group) {
+        message = (union CanPrimaryMessages){ 0 };
+
+        if (group == 0U) {
+            message.lvactemperature.group_payload.mux_0.voltage1 = temperatures[0];
+            message.lvactemperature.group_payload.mux_0.voltage2 = temperatures[1];
+            message.lvactemperature.group_payload.mux_0.voltage3 = temperatures[2];
+            message.lvactemperature.group_payload.mux_0.voltage4 = temperatures[3];
+            message.lvactemperature.group_payload.mux_0.voltage5 = temperatures[4];
+            message.lvactemperature.group_payload.mux_0.voltage6 = temperatures[5];
+        } else {
+            message.lvactemperature.group_payload.mux_1.voltage7 = temperatures[6];
+            message.lvactemperature.group_payload.mux_1.voltage8 = temperatures[7];
+            message.lvactemperature.group_payload.mux_1.voltage9 = temperatures[8];
+            message.lvactemperature.group_payload.mux_1.voltage10 = temperatures[9];
+            message.lvactemperature.group_payload.mux_1.voltage11 = temperatures[10];
+            message.lvactemperature.group_payload.mux_1.voltage12 = temperatures[11];
+        }
+
+        message.lvactemperature.group = group;
+
+        struct CanCommunicationFrame frame = {
+            .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE,
+            .length = can_primary_byte_size_lvactemperature,
+        };
+
+        if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
+            EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
+        }
+    }
+
+    /*! Send LvacTemperatureInfo summary frame (min, max, average). */
+    message = (union CanPrimaryMessages){
+        .lvactemperatureinfo = {
+            .min = temperature_api_get_min(),
+            .max = temperature_api_get_max(),
+            .average = temperature_api_get_average(),
+        }
+    };
+
+    struct CanCommunicationFrame frame = {
+        .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO,
+        .length = can_primary_byte_size_lvactemperatureinfo,
+    };
+
+    if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
+        EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
+    }
+
     return TEMPERATURE_RC_OK;
 }
 

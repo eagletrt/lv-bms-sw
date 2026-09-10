@@ -127,9 +127,20 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
  *                   scale. The input voltage is clamped to the fitted range.
  *
  * \param[in]        value NTC voltage in V.
+ *
  * \returns          celsius The temperature in °C.
  */
 celsius temperature_api_volt_to_celsius(volt value);
+
+/*!
+ * \brief            Periodically send temperatures over CAN.
+ *
+ * \param[in]        tick_ms The system tick in ms.
+ *
+ * \retval           TEMPERATURE_RC_OK on success.
+ * \retval           TEMPERATURE_RC_COMMUNICATION_ERROR if queuing a frame failed.
+ */
+enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32_t tick_ms);
 
 #else /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 
@@ -144,6 +155,7 @@ celsius temperature_api_volt_to_celsius(volt value);
 #define temperature_api_get_average() (0.F)
 #define temperature_api_dump_temperatures(out, start, size) (TEMPERATURE_RC_OK)
 #define temperature_api_volt_to_celsius(value) (0.F)
+#define temperature_api_periodically_send_temperatures(tick) (TEMPERATURE_RC_OK)
 
 #endif /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 

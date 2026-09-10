@@ -41,9 +41,10 @@ enum TemperatureStatus {
  * \brief            Return codes for the temperature module functions.
  */
 enum TemperatureReturnCode {
-    TEMPERATURE_RC_OK,            /*!< Function executed successfully */
-    TEMPERATURE_RC_NULL_POINTER,  /*!< Unexpected NULL pointer */
-    TEMPERATURE_RC_OUT_OF_BOUNDS, /*!< A value is greater/lower than the maximum/minimum allowed value */
+    TEMPERATURE_RC_OK,                 /*!< Function executed successfully */
+    TEMPERATURE_RC_NULL_POINTER,       /*!< Unexpected NULL pointer */
+    TEMPERATURE_RC_OUT_OF_BOUNDS,      /*!< A value is greater/lower than the maximum/minimum allowed value */
+    TEMPERATURE_RC_COMMUNICATION_ERROR /*!< Failed to queue a CAN frame */
 };
 
 /*!
@@ -52,6 +53,7 @@ enum TemperatureReturnCode {
 struct TemperatureHandler {
     celsius temperatures[DEFINES_CELLS_NTC_COUNT];            /*!< An array of temperatures in °C */
     enum TemperatureStatus statuses[DEFINES_CELLS_NTC_COUNT]; /*!< Health of each NTC channel */
+    uint32_t last_tick_ms;                                    /*!< Last tick for periodic temperature CAN send */
 };
 
 #endif /*! TEMPERATURE_H */
