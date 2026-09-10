@@ -22,9 +22,10 @@
  * \brief            Return codes for the voltage module functions.
  */
 enum VoltageReturnCode {
-    VOLTAGE_RC_OK,            /*!< Function executed successfully */
-    VOLTAGE_RC_NULL_POINTER,  /*!< Unexpected NULL pointer */
-    VOLTAGE_RC_OUT_OF_BOUNDS, /*!< A value is greater/lower than the maximum/minimum allowed voltage */
+    VOLTAGE_RC_OK,                 /*!< Function executed successfully */
+    VOLTAGE_RC_NULL_POINTER,       /*!< Unexpected NULL pointer */
+    VOLTAGE_RC_OUT_OF_BOUNDS,      /*!< A value is greater/lower than the maximum/minimum allowed voltage */
+    VOLTAGE_RC_COMMUNICATION_ERROR /*!< Failed to queue a CAN frame */
 };
 
 /*!
@@ -32,6 +33,8 @@ enum VoltageReturnCode {
  */
 struct VoltageHandler {
     volt voltages[DEFINES_CELLS_SERIES_COUNT]; /*!< An array of voltages in V */
+    uint32_t last_tick_cell_voltage_ms;        /*!< Last tick for LvacCellVoltage */
+    uint32_t last_tick_voltage_information_ms; /*!< Last tick for LvacVoltageInfo */
 };
 
 #endif /*! VOLTAGE_H */

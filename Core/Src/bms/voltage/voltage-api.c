@@ -17,6 +17,8 @@
 #include "defines.h"
 #include "eagletrt.h"
 #include "eagletrt-api.h"
+#include "can-primary-api.h"
+#include "can-communication-api.h"
 
 #ifdef CONFIG_VOLTAGE_MODULE_ENABLE
 
@@ -97,6 +99,65 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
     }
 
     memcpy(out, voltage_handler.voltages + start, size * sizeof(*out));
+    return VOLTAGE_RC_OK;
+}
+
+enum VoltageReturnCode voltage_api_periodically_send_cell_voltages(uint32_t tick_ms) {
+    if (tick_ms - voltage_handler.last_tick_cell_voltage_ms < can_primary_cycle_time_lvaccellvoltage) {
+        return VOLTAGE_RC_OK;
+    }
+    voltage_handler.last_tick_cell_voltage_ms = tick_ms;
+
+    volt cells[DEFINES_CELLS_SERIES_COUNT];
+    voltage_api_dump_voltages(cells, 0U, DEFINES_CELLS_SERIES_COUNT);
+
+    union CanPrimaryMessages message = {
+        .lvaccellvoltage = {
+            .voltage1 = cells[0],
+            .voltage2 = cells[1],
+            .voltage3 = cells[2],
+            .voltage4 = cells[3],
+            .voltage5 = cells[4],
+            .voltage6 = cells[5],
+        }
+    };
+
+    struct CanCommunicationFrame frame = {
+        .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACCELLVOLTAGE,
+        .length = can_primary_byte_size_lvaccellvoltage,
+    };
+
+    if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
+        EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
+    }
+
+    return VOLTAGE_RC_OK;
+}
+
+enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_t tick_ms) {
+    if (tick_ms - voltage_handler.last_tick_voltage_information_ms < can_primary_cycle_time_lvacvoltageinfo) {
+        return VOLTAGE_RC_OK;
+    }
+    voltage_handler.last_tick_voltage_information_ms = tick_ms;
+
+    union CanPrimaryMessages message = {
+        .lvacvoltageinfo = {
+            .total = voltage_api_get_sum(),
+            .min = voltage_api_get_min(),
+            .max = voltage_api_get_max(),
+            .average = voltage_api_get_average(),
+        }
+    };
+
+    struct CanCommunicationFrame frame = {
+        .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACVOLTAGEINFO,
+        .length = can_primary_byte_size_lvacvoltageinfo,
+    };
+
+    if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
+        EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
+    }
+
     return VOLTAGE_RC_OK;
 }
 
