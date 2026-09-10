@@ -182,35 +182,36 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
 
     union CanPrimaryMessages message;
 
-    for (uint8_t group = 0U; group < 2U; ++group) {
-        message = (union CanPrimaryMessages){ 0 };
+    const uint8_t group = temperature_handler.current_group;
+    temperature_handler.current_group = (group == 0U) ? 1U : 0U;
 
-        if (group == 0U) {
-            message.lvactemperature.group_payload.mux_0.voltage1 = temperatures[0];
-            message.lvactemperature.group_payload.mux_0.voltage2 = temperatures[1];
-            message.lvactemperature.group_payload.mux_0.voltage3 = temperatures[2];
-            message.lvactemperature.group_payload.mux_0.voltage4 = temperatures[3];
-            message.lvactemperature.group_payload.mux_0.voltage5 = temperatures[4];
-            message.lvactemperature.group_payload.mux_0.voltage6 = temperatures[5];
-        } else {
-            message.lvactemperature.group_payload.mux_1.voltage7 = temperatures[6];
-            message.lvactemperature.group_payload.mux_1.voltage8 = temperatures[7];
-            message.lvactemperature.group_payload.mux_1.voltage9 = temperatures[8];
-            message.lvactemperature.group_payload.mux_1.voltage10 = temperatures[9];
-            message.lvactemperature.group_payload.mux_1.voltage11 = temperatures[10];
-            message.lvactemperature.group_payload.mux_1.voltage12 = temperatures[11];
-        }
+    message = (union CanPrimaryMessages){ 0 };
 
-        message.lvactemperature.group = group;
+    if (group == 0U) {
+        message.lvactemperature.group_payload.mux_0.voltage1 = temperatures[0];
+        message.lvactemperature.group_payload.mux_0.voltage2 = temperatures[1];
+        message.lvactemperature.group_payload.mux_0.voltage3 = temperatures[2];
+        message.lvactemperature.group_payload.mux_0.voltage4 = temperatures[3];
+        message.lvactemperature.group_payload.mux_0.voltage5 = temperatures[4];
+        message.lvactemperature.group_payload.mux_0.voltage6 = temperatures[5];
+    } else {
+        message.lvactemperature.group_payload.mux_1.voltage7 = temperatures[6];
+        message.lvactemperature.group_payload.mux_1.voltage8 = temperatures[7];
+        message.lvactemperature.group_payload.mux_1.voltage9 = temperatures[8];
+        message.lvactemperature.group_payload.mux_1.voltage10 = temperatures[9];
+        message.lvactemperature.group_payload.mux_1.voltage11 = temperatures[10];
+        message.lvactemperature.group_payload.mux_1.voltage12 = temperatures[11];
+    }
 
-        struct CanCommunicationFrame frame = {
-            .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE,
-            .length = can_primary_byte_size_lvactemperature,
-        };
+    message.lvactemperature.group = group;
 
-        if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
-            EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
-        }
+    struct CanCommunicationFrame frame = {
+        .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE,
+        .length = can_primary_byte_size_lvactemperature,
+    };
+
+    if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
+        EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
 
     /*! Send LvacTemperatureInfo summary frame (min, max, average). */
@@ -222,7 +223,7 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
         }
     };
 
-    struct CanCommunicationFrame frame = {
+    frame = (struct CanCommunicationFrame){
         .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO,
         .length = can_primary_byte_size_lvactemperatureinfo,
     };

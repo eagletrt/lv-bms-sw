@@ -242,7 +242,7 @@ void check_periodically_send_temperatures_sends_once_cycle_elapsed(void) {
     temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3U, test_captured_count, "Three frames (2 mux + info) must be emitted once the cycle time has elapsed.");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, test_captured_count, "Two frames (1 mux + info) must be emitted once the cycle time has elapsed.");
 }
 
 void check_periodically_send_temperatures_does_not_resend_within_same_cycle(void) {
@@ -250,7 +250,7 @@ void check_periodically_send_temperatures_does_not_resend_within_same_cycle(void
     temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature + 1);
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3U, test_captured_count, "A second call within the same cycle must not emit additional frames.");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, test_captured_count, "A second call within the same cycle must not emit additional frames.");
 }
 
 void check_periodically_send_temperatures_first_frame_is_mux_group_0(void) {
@@ -264,14 +264,17 @@ void check_periodically_send_temperatures_second_frame_is_mux_group_1(void) {
     temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[1].id, "The second frame must be LvacTemperature.");
+    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature * 2U);
+    prv_flush_primary();
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[2].id, "The second call's frame must be LvacTemperature group 1.");
 }
 
 void check_periodically_send_temperatures_third_frame_is_info(void) {
     temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO, test_captured_frames[2].id, "The third frame must be LvacTemperatureInfo.");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO, test_captured_frames[1].id, "The second frame must be LvacTemperatureInfo.");
 }
 
 void check_periodically_send_temperatures_encodes_mux_group_0(void) {
@@ -304,10 +307,13 @@ void check_periodically_send_temperatures_encodes_mux_group_1(void) {
     temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
     prv_flush_primary();
 
-    union CanPrimaryMessages msg = { 0 };
-    EAGLETRT_API_UNUSED(can_primary_api_deserialize_from_id(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[1].data, &msg));
+    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature * 2U);
+    prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(1U, msg.lvactemperature.group, "Mux group must be 1 for the second frame.");
+    union CanPrimaryMessages msg = { 0 };
+    EAGLETRT_API_UNUSED(can_primary_api_deserialize_from_id(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[2].data, &msg));
+
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(1U, msg.lvactemperature.group, "Mux group must be 1 for the second call.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(2.5F, msg.lvactemperature.group_payload.mux_1.voltage7, "voltage7 must match NTC 6.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(2.8F, msg.lvactemperature.group_payload.mux_1.voltage8, "voltage8 must match NTC 7.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.0F, msg.lvactemperature.group_payload.mux_1.voltage9, "voltage9 must match NTC 8.");
@@ -326,7 +332,7 @@ void check_periodically_send_temperatures_encodes_info(void) {
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
-    EAGLETRT_API_UNUSED(can_primary_api_deserialize_from_id(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO, test_captured_frames[2].data, &msg));
+    EAGLETRT_API_UNUSED(can_primary_api_deserialize_from_id(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO, test_captured_frames[1].data, &msg));
 
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(10.F, msg.lvactemperatureinfo.min, "Min temperature must be encoded.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(120.F, msg.lvactemperatureinfo.max, "Max temperature must be encoded.");

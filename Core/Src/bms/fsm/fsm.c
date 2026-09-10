@@ -98,6 +98,11 @@ EAGLETRT_STATIC void prv_periodically_send(enum CanPrimaryLvacfsmStatus status, 
     identity_api_periodically_send_state(status, tick);
     identity_api_periodically_send_version(tick);
     identity_api_periodically_send_libcan_version(tick);
+
+    voltage_api_periodically_send_cell_voltages(tick);
+    voltage_api_periodically_send_voltage_information(tick);
+
+    temperature_api_periodically_send_temperatures(tick);
 }
 
 /*!

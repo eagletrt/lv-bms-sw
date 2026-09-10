@@ -54,6 +54,7 @@ struct TemperatureHandler {
     celsius temperatures[DEFINES_CELLS_NTC_COUNT];            /*!< An array of temperatures in °C */
     enum TemperatureStatus statuses[DEFINES_CELLS_NTC_COUNT]; /*!< Health of each NTC channel */
     uint32_t last_tick_ms;                                    /*!< Last tick for periodic temperature CAN send */
+    uint8_t current_group;                                    /*!< Mux group index alternating 0/1 */
 };
 
 #endif /*! TEMPERATURE_H */

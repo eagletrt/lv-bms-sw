@@ -135,6 +135,11 @@ celsius temperature_api_volt_to_celsius(volt value);
 /*!
  * \brief            Periodically send temperatures over CAN.
  *
+ * \details          Sends one multiplexed LvacTemperature frame per call,
+ *                  alternating group 0 (NTCs 1-6) and group 1 (NTCs 7-12)
+ *                  each 200 ms tick, plus one LvacTemperatureInfo summary
+ *                  frame (min, max, average) every tick.
+ *
  * \param[in]        tick_ms The system tick in ms.
  *
  * \retval           TEMPERATURE_RC_OK on success.
