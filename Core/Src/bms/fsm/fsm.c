@@ -30,6 +30,7 @@ The finite state machine has:
 #include "logger-api.h"
 #include "bms-monitor-api.h"
 #include "balancing-api.h"
+#include "current-api.h"
 #include "voltage-api.h"
 #include "temperature-api.h"
 #include "feedback-api.h"
@@ -166,17 +167,10 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
         return FSM_SAFETY_OPEN_WIRE;
     }
 
-    /*
-     * if (temperature_api_get_fault_bitmask() != 0U) {
-     *     return FSM_SAFETY_NTC_FAULT;
-     * }
-     *
-     * const celsius t_min = temperature_api_get_min();
-     * const celsius t_max = temperature_api_get_max();
-     * if (t_min < TEMPERATURE_DISCHARGE_MIN_C || t_max > TEMPERATURE_DISCHARGE_MAX_C) {
-     *     return FSM_SAFETY_TEMPERATURE_RANGE;
-     * }
-     */
+    const celsius t_max = temperature_api_get_max();
+    if (t_max > TEMPERATURE_DISCHARGE_MAX_C) {
+        return FSM_SAFETY_TEMPERATURE_RANGE;
+    }
 
     return FSM_SAFETY_OK;
 }
@@ -376,8 +370,8 @@ EAGLETRT_STATIC void prv_print_debug(void) {
     logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", prv_milli(board->vin), prv_milli(board->vin_unfused), prv_milli(board->vsup));
     logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", prv_milli(board->vout), prv_milli(board->lvms_out), prv_milli(board->mcu_5v));
     logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", prv_milli(board->charger_voltage), prv_milli(board->charger_current));
-    /* No sensor drives I_OUT_SENSED, so only the node voltage means anything. */
-    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT_node %d (no sensor)", prv_milli(board->i_out_sense));
+    /* Pack current as stored in the current module, i.e. what goes out on CAN. */
+    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT %d", prv_milli(current_api_get_cells_output_current()));
 
     /* The LTC auxiliary inputs carry the balancing/charger resistor NTCs, not
        cell NTCs, so they stay out of the temperature module and are shown raw. */

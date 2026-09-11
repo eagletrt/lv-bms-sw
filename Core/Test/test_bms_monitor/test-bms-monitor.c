@@ -207,70 +207,6 @@ void test_bms_monitor_api_read_voltages_send_receive_error(void) {
 /*! \} */
 
 /*!
- * \defgroup		bms_monitor_api_read_currents Test for bms_monitor_api_read_currents function.
- * \{
- */
-
-void test_bms_monitor_api_read_currents_null_callback(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
-    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_read_currents(), "no callback set not detected");
-}
-
-static enum BmsMonitorReturnCode ntc_read_fake_custom(size_t channel, raw_ampere *raw) {
-    (void)channel;
-    *raw = 512U; /* mid-scale 10-bit ADC value */
-    return BMS_MONITOR_RC_OK;
-}
-
-void test_bms_monitor_api_read_currents_ok(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, ntc_read_fake);
-    ntc_read_fake_fake.custom_fake = ntc_read_fake_custom;
-
-    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_OK, bms_monitor_api_read_currents(), "read currents failed");
-    TEST_ASSERT_EQUAL_MESSAGE(DEFINES_NTC_COUNT, ntc_read_fake_fake.call_count, "callback not called for each NTC");
-
-    /* raw=512 → 512 * VDD / (2^RES - 1) */
-    ampere expected = 512.0F * (DEFINES_NTC_VDD / (float)((1U << BMS_MONITOR_ADC_RESOLUTION) - 1U));
-    ampere currents[DEFINES_NTC_COUNT];
-    current_api_dump_currents(currents, 0U, DEFINES_NTC_COUNT);
-    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
-        TEST_ASSERT_EQUAL_FLOAT_MESSAGE(expected, currents[i], "current not stored correctly");
-    }
-
-    /* output_current = sum of all NTC currents = 16 * expected */
-    ampere output = current_api_get_output_current();
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(expected * (float)DEFINES_NTC_COUNT, output, "output current not computed");
-}
-
-/*! \} */
-
-/*!
- * \defgroup		bms_monitor_api_read_temperatures Test for bms_monitor_api_read_temperatures function.
- * \{
- */
-
-void test_bms_monitor_api_read_temperatures_ok(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
-
-    /* Pre-populate currents in current module */
-    ampere currents[DEFINES_NTC_COUNT];
-    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
-        currents[i] = 0.005F;
-    }
-    current_api_update_currents(0U, currents, DEFINES_NTC_COUNT);
-
-    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_OK, bms_monitor_api_read_temperatures(), "read temperatures failed");
-
-    celsius temps[DEFINES_NTC_COUNT];
-    temperature_api_dump_temperatures(temps, 0U, DEFINES_NTC_COUNT);
-    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
-        TEST_ASSERT_FALSE_MESSAGE(temps[i] == 0.0F, "temperature not stored correctly");
-    }
-}
-
-/*! \} */
-
-/*!
  * \defgroup		bms_monitor_api_read_open_wire_voltages Test for bms_monitor_api_read_open_wire_voltages function.
  * \{
  */
@@ -469,25 +405,6 @@ int main(void) {
 
     RUN_TEST(test_bms_monitor_api_read_voltages_decode_error);
     RUN_TEST(test_bms_monitor_api_read_voltages_send_receive_error);
-
-    /*! \} */
-
-    /*!
-	 * \defgroup	 bms_monitor_api_read_currents Test for read_currents function.
-	 * \{
-	 */
-
-    RUN_TEST(test_bms_monitor_api_read_currents_null_callback);
-    RUN_TEST(test_bms_monitor_api_read_currents_ok);
-
-    /*! \} */
-
-    /*!
-	 * \defgroup	 bms_monitor_api_read_temperatures Test for read_temperatures function.
-	 * \{
-	 */
-
-    RUN_TEST(test_bms_monitor_api_read_temperatures_ok);
 
     /*! \} */
 

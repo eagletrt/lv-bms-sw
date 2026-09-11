@@ -150,7 +150,6 @@ EAGLETRT_STATIC void prv_main_read_board_measurements(struct FsmBoardMeasurement
     out->mcu_5v = adc_get_mcu_5v();
     out->charger_voltage = adc_get_charger_voltage();
     out->charger_current = adc_get_charger_current();
-    out->i_out_sense = adc_get_i_out_sense_voltage();
     out->ntc_mux_channel = adc_get_current_ntc_channel();
     out->ntc_mux_held = adc_is_mux_held();
 

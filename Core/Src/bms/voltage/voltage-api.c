@@ -6,6 +6,7 @@
  * \brief           Voltage module APIs.
  */
 
+#include "current-api.h"
 #include "voltage.h"
 #include "voltage-api.h"
 
@@ -146,7 +147,7 @@ enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_
             .min = voltage_api_get_min(),
             .max = voltage_api_get_max(),
             .average = voltage_api_get_average(),
-        }
+            .current = current_api_get_cells_output_current() }
     };
 
     struct CanCommunicationFrame frame = {

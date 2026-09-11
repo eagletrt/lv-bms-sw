@@ -50,7 +50,6 @@ struct FsmBoardMeasurements {
     volt mcu_5v;                                /*!< 5 V rail voltage in V */
     volt charger_voltage;                       /*!< Charger voltage in V */
     ampere charger_current;                     /*!< Charger current in A */
-    volt i_out_sense;                           /*!< Output current sense node in V */
     size_t ntc_mux_channel;                     /*!< Multiplexer channel currently selected */
     bool ntc_mux_held;                          /*!< True while the multiplexer is pinned for debugging */
     volt ntc_voltages[DEFINES_CELLS_NTC_COUNT]; /*!< Last raw NTC voltage of each channel in V */

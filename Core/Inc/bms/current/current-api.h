@@ -26,48 +26,24 @@
 enum CurrentReturnCode current_api_init(void);
 
 /*!
- * \brief            Update a single current current.
+ * \brief            Store the current flowing out of the cells.
  *
- * \param[in]        index The index of the current to update.
- * \param[in]        current The new current in A.
+ * \details          Fed by the board layer from the pack Hall sensor after every
+ *                   ADC scan. Positive means current leaving the pack into the
+ *                   load, negative means current going into it.
  *
- * \retval           CURRENT_RC_OK on success.
- * \retval           CURRENT_RC_OUT_OF_BOUNDS if index is greater than the total number of currents.
- */
-enum CurrentReturnCode current_api_update_current(size_t index, ampere current);
-
-/*!
- * \brief            Update multiple current currents.
- *
- * \param[in]        index The start index of the currents to update.
- * \param[in]        currents A pointer to the array of currents to copy.
- * \param[in]        size The number of elements to copy.
+ * \param[in]        current The current in A.
  *
  * \retval           CURRENT_RC_OK on success.
- * \retval           CURRENT_RC_NULL_POINTER if currents is NULL.
- * \retval           CURRENT_RC_OUT_OF_BOUNDS if index is greater than the total number of currents or if the size is too big.
  */
-enum CurrentReturnCode current_api_update_currents(size_t index, const ampere *currents, size_t size);
-
-/*!
- * \brief            Copy a list of adjacent currents.
- *
- * \param[out]       out A pointer to the array where the currents are copied into.
- * \param[in]        strart The index of the first index to copy.
- * \param[in]        size The number of currents that should be copied.
- *
- * \retval           CURRENT_RC_OK on success.
- * \retval           CURRENT_RC_NULL_POINTER if out is NULL.
- * \retval           CURRENT_RC_OUT_OF_BOUNDS if index is greater than the total number of currents or if the size is too big.
- */
-enum CurrentReturnCode current_api_dump_currents(ampere *out, size_t start, size_t size);
+enum CurrentReturnCode current_api_set_cells_output_current(ampere current);
 
 /*!
  * \brief            Get the output current in A.
  *
  * \returns          ampere The current in A.
  */
-ampere current_api_get_output_current(void);
+ampere current_api_get_cells_output_current(void);
 
 /*!
  * \brief            Get the power in kW.
@@ -79,7 +55,8 @@ kilowatt current_api_get_power(void);
 #else /*! CONFIG_CURRENT_MODULE_ENABLE */
 
 #define current_api_init() (CURRENT_RC_OK)
-#define current_api_get_output_current() (0.F)
+#define current_api_set_cells_output_current(current) (CURRENT_RC_OK)
+#define current_api_get_cells_output_current() (0.F)
 #define current_api_get_power() (0.F)
 
 #endif /*! CONFIG_CURRENT_MODULE_ENABLE */

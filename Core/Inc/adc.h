@@ -157,11 +157,12 @@ celsius adc_get_mcu_temperature(void);
  *                  returns the voltage present on the rail itself, not the one
  *                  measured on the MCU pin.
  *
- * \note            adc_get_charger_current() goes one step further and also undoes
- *                  the transfer function of the ACS724 that measures it. There is
- *                  no equivalent for the output current: nothing drives
- *                  I_OUT_SENSED on the schematic, so only the node voltage is
- *                  available, see \c DEFINES_SENSE_I_OUT_DIVIDER_GAIN.
+ * \note            The two current getters go one step further and also undo the
+ *                  transfer function of the Hall sensor behind each line, see the
+ *                  \c sense_current and \c sense_i_out groups in defines.h. The
+ *                  *_sense_voltage getters expose the sensor output itself, which
+ *                  is what you want when checking the zero-current offset on the
+ *                  bench.
  *
  * \{
  */
@@ -173,9 +174,10 @@ volt adc_get_vout(void);                 /*!< Output voltage in V. */
 volt adc_get_lvms_out(void);             /*!< LVMS output voltage in V. */
 volt adc_get_mcu_5v(void);               /*!< 5 V rail voltage in V. */
 volt adc_get_charger_voltage(void);      /*!< Charger voltage in V. */
-volt adc_get_i_out_sense_voltage(void);  /*!< I_OUT_SENSED node in V. No sensor drives it, see the note above. */
+volt adc_get_i_out_sense_voltage(void);  /*!< I_OUT_SENSED, the pack current sensor output, in V. */
 volt adc_get_i_chrg_sense_voltage(void); /*!< I_CHRG, the ACS724 output, in V. */
 ampere adc_get_charger_current(void);    /*!< Charger current in A, positive into the battery. */
+ampere adc_get_output_current(void);     /*!< Pack output current in A, positive out of the pack (see DEFINES_SENSE_I_OUT_DIRECTION). */
 
 /*! \} */
 

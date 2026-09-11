@@ -26,6 +26,7 @@
 #include "eagletrt-api.h"
 
 #include "defines.h"
+#include "current-api.h"
 #include "feedback-api.h"
 #include "temperature-api.h"
 
@@ -73,9 +74,60 @@ EAGLETRT_STATIC bool adc_mux_hold = false;                                      
 #define ADC_NTC_SHORT_V (0.05F)    /*!< Voltage at or below which the channel counts as shorted. */
 /*! \} */
 
-/*! Window in which the measured +5 V rail is trusted for the ACS724 conversion. */
-#define ADC_ACS724_SUPPLY_MIN_V (4.0F)
-#define ADC_ACS724_SUPPLY_MAX_V (5.5F)
+/*! Window in which the measured +5 V rail is trusted for the Hall sensor conversions. */
+#define ADC_ACS_SUPPLY_MIN_V (4.0F)
+#define ADC_ACS_SUPPLY_MAX_V (5.5F)
+
+/*!
+ * \brief           Transfer function of a ratiometric Allegro bidirectional Hall sensor.
+ *
+ * \details         Both current sensors on the board are this shape: they idle at
+ *                  a fixed fraction of their supply and move a fixed number of
+ *                  volts per ampere, with both figures scaling with the supply.
+ */
+struct AdcAcsSensor {
+    float supply_nominal_v; /*!< Vcc the sensitivity is specified at, in V */
+    float zero_ratio;       /*!< Quiescent output as a fraction of Vcc */
+    float sensitivity_v_a;  /*!< Output swing per ampere at nominal Vcc, in V/A */
+};
+
+EAGLETRT_STATIC const struct AdcAcsSensor adc_acs_charger = {
+    .supply_nominal_v = DEFINES_SENSE_I_CHRG_SUPPLY_NOMINAL_V,
+    .zero_ratio = DEFINES_SENSE_I_CHRG_ZERO_RATIO,
+    .sensitivity_v_a = DEFINES_SENSE_I_CHRG_SENSITIVITY_V_A,
+};
+
+EAGLETRT_STATIC const struct AdcAcsSensor adc_acs_output = {
+    .supply_nominal_v = DEFINES_SENSE_I_OUT_SUPPLY_NOMINAL_V,
+    .zero_ratio = DEFINES_SENSE_I_OUT_ZERO_RATIO,
+    .sensitivity_v_a = DEFINES_SENSE_I_OUT_SENSITIVITY_V_A,
+};
+
+/*!
+ * \brief           Turn a Hall sensor output voltage into a current.
+ *
+ * \details         The sensors are ratiometric, so the +5 V rail the board
+ *                  measures is used for both the quiescent point and the
+ *                  sensitivity. If that reading is not plausible (rail down,
+ *                  sense line open) the nominal supply is used instead, rather
+ *                  than dividing by something meaningless.
+ *
+ * \param[in]       sensor   The sensor's transfer function.
+ * \param[in]       v_sensed The sensor output in V, divider already undone.
+ *
+ * \returns         ampere The current in A, sign as the sensor sees it.
+ */
+EAGLETRT_STATIC ampere prv_adc_acs_decode(const struct AdcAcsSensor *sensor, volt v_sensed) {
+    volt supply = adc_get_mcu_5v();
+    if (supply < ADC_ACS_SUPPLY_MIN_V || supply > ADC_ACS_SUPPLY_MAX_V) {
+        supply = sensor->supply_nominal_v;
+    }
+
+    const volt zero = supply * sensor->zero_ratio;
+    const float sensitivity = sensor->sensitivity_v_a * (supply / sensor->supply_nominal_v);
+
+    return (ampere)((v_sensed - zero) / sensitivity);
+}
 
 #define ADC_RAW_VALUE_TO_VOLT(VALUE, VREF) ((float)(VALUE) / ADC_FULL_SCALE * (VREF))
 
@@ -424,6 +476,10 @@ void adc_routine(uint32_t tick) {
             prv_adc_convert_scan();
             prv_adc_update_feedbacks();
 
+            /*! The pack current is a plain per-scan measurement; hand it to the
+                current module the same way the feedbacks are handed over. */
+            (void)current_api_set_cells_output_current(adc_get_output_current());
+
             /*! The NTC channel of this scan belongs to the multiplexer channel
                 that was selected while it ran; mux channel n carries NTC n. */
             if (adc_mux_channel < DEFINES_NTC_MUX_USED_CHANNEL_COUNT) {
@@ -545,8 +601,6 @@ volt adc_get_charger_voltage(void) {
 }
 
 volt adc_get_i_out_sense_voltage(void) {
-    /*! No sensor drives this node on the current schematic, see
-        DEFINES_SENSE_I_OUT_DIVIDER_GAIN: this is the node voltage, nothing more. */
     return voltages[ADC_READ_I_OUT_SENSE] / DEFINES_SENSE_I_OUT_DIVIDER_GAIN;
 }
 
@@ -555,19 +609,11 @@ volt adc_get_i_chrg_sense_voltage(void) {
 }
 
 ampere adc_get_charger_current(void) {
-    /*! The ACS724 is ratiometric, so use the +5 V rail the board measures for
-        both its quiescent point and its sensitivity. If that reading is not
-        plausible (rail down, sense line open) fall back to the nominal value
-        rather than dividing by something meaningless. */
-    volt supply = adc_get_mcu_5v();
-    if (supply < ADC_ACS724_SUPPLY_MIN_V || supply > ADC_ACS724_SUPPLY_MAX_V) {
-        supply = DEFINES_SENSE_I_CHRG_SUPPLY_NOMINAL_V;
-    }
+    return prv_adc_acs_decode(&adc_acs_charger, adc_get_i_chrg_sense_voltage());
+}
 
-    const volt zero = supply * DEFINES_SENSE_I_CHRG_ZERO_RATIO;
-    const float sensitivity = DEFINES_SENSE_I_CHRG_SENSITIVITY_V_A * (supply / DEFINES_SENSE_I_CHRG_SUPPLY_NOMINAL_V);
-
-    return (ampere)((adc_get_i_chrg_sense_voltage() - zero) / sensitivity);
+ampere adc_get_output_current(void) {
+    return DEFINES_SENSE_I_OUT_DIRECTION * prv_adc_acs_decode(&adc_acs_output, adc_get_i_out_sense_voltage());
 }
 
 void adc_set_mux_hold(size_t channel) {

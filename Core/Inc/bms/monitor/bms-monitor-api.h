@@ -14,7 +14,6 @@
 #include "config.h"
 
 #define BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(raw_value) ((volt)((raw_value) * 0.0001F))
-#define BMS_MONITOR_API_RAW_CURRENT_TO_AMPERE(raw_value) ((ampere)((raw_value) * (DEFINES_NTC_VDD / (float)((1U << BMS_MONITOR_ADC_RESOLUTION) - 1U))))
 
 #ifdef CONFIG_BMS_MONITOR_MODULE_ENABLE
 

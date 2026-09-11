@@ -187,23 +187,17 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
 
     message = (union CanPrimaryMessages){ 0 };
 
-    if (group == 0U) {
-        message.lvactemperature.group_payload.mux_0.voltage1 = temperatures[0];
-        message.lvactemperature.group_payload.mux_0.voltage2 = temperatures[1];
-        message.lvactemperature.group_payload.mux_0.voltage3 = temperatures[2];
-        message.lvactemperature.group_payload.mux_0.voltage4 = temperatures[3];
-        message.lvactemperature.group_payload.mux_0.voltage5 = temperatures[4];
-        message.lvactemperature.group_payload.mux_0.voltage6 = temperatures[5];
-    } else {
-        message.lvactemperature.group_payload.mux_1.voltage7 = temperatures[6];
-        message.lvactemperature.group_payload.mux_1.voltage8 = temperatures[7];
-        message.lvactemperature.group_payload.mux_1.voltage9 = temperatures[8];
-        message.lvactemperature.group_payload.mux_1.voltage10 = temperatures[9];
-        message.lvactemperature.group_payload.mux_1.voltage11 = temperatures[10];
-        message.lvactemperature.group_payload.mux_1.voltage12 = temperatures[11];
-    }
-
     message.lvactemperature.group = group;
+
+    constexpr size_t group_size = 6U;
+    message.lvactemperature.group_payload.mux_0 = (struct CanPrimaryLvactemperatureGroupMux0){
+        .voltage1 = temperatures[group * group_size + 0U],
+        .voltage2 = temperatures[group * group_size + 1U],
+        .voltage3 = temperatures[group * group_size + 2U],
+        .voltage4 = temperatures[group * group_size + 3U],
+        .voltage5 = temperatures[group * group_size + 4U],
+        .voltage6 = temperatures[group * group_size + 5U],
+    };
 
     struct CanCommunicationFrame frame = {
         .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE,

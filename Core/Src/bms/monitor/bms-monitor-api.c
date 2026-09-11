@@ -71,37 +71,6 @@ EAGLETRT_STATIC uint8_t prv_bms_monitor_api_dcc_to_cells(uint8_t dcc) {
     return (uint8_t)(dcc >> 1U);
 }
 
-/*!
- * \brief           Compute the cell temperature based on the NTC current.
- *
- * \details         The conversion is based on two physical principles:
- *
- *                  1. Ohm's Law:
- *                     R_NTC = V_DD / I
- *                     Determines the NTC resistance (R_NTC) from the fixed supply voltage (V_DD)
- *                     and the measured current (I).
- *
- *                  2. Beta Parameter Model:
- *                     1 / T = (1 / T0) + (1 / Beta) * ln(R_NTC / R0)
- *                     Models the semiconductor's exponential non-linear drop in resistance
- *                     as temperature increases, yielding absolute temperature (T) in K.
- *
- *                  3. Kelvin to Celsius scale convertion:
- *                     T_celsius = T - 273.15
- *
- * \param[in]       current Measured current flowing through the NTC sensor in C.
- *
- * \return          Calculated cell temperature in °C.
- */
-EAGLETRT_STATIC __attribute__((unused)) celsius prv_bms_monitor_api_compute_temperature(ampere current) {
-    float ntc_resistance = DEFINES_NTC_VDD / current;
-
-    float steinhart = logf(ntc_resistance / DEFINES_NTC_R0) / DEFINES_NTC_BETA;
-    steinhart += (1.0F / DEFINES_NTC_T0_KELVIN);
-
-    return (1.0F / steinhart) - DEFINES_ZERO_CELSIUS_K;
-}
-
 enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read) {
     if (send == NULL || send_receive == NULL) {
         return BMS_MONITOR_RC_NULL_POINTER;
@@ -245,6 +214,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRe
 }
 
 enum BmsMonitorReturnCode bms_monitor_api_read_currents(void) {
+    /*
     raw_ampere raw_currents[DEFINES_NTC_COUNT] = { 0 };
 
     if (bms_monitor_handler.ntc_read == NULL) {
@@ -262,11 +232,13 @@ enum BmsMonitorReturnCode bms_monitor_api_read_currents(void) {
         ampere current = BMS_MONITOR_API_RAW_CURRENT_TO_AMPERE(raw_currents[i]);
         current_api_update_current(i, current);
     }
+    */
 
     return BMS_MONITOR_RC_OK;
 }
 
 enum BmsMonitorReturnCode bms_monitor_api_read_temperatures(void) {
+    /*
     ampere currents[DEFINES_NTC_COUNT] = { 0.F };
     current_api_dump_currents(currents, 0U, DEFINES_NTC_COUNT);
 
@@ -274,6 +246,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_temperatures(void) {
         celsius temperature = prv_bms_monitor_api_compute_temperature(currents[i]);
         temperature_api_update_temperature(i, temperature);
     }
+    */
 
     return BMS_MONITOR_RC_OK;
 }

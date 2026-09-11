@@ -24,21 +24,6 @@
  */
 
 /*!
- * \defgroup        ntc NTC-related definitions.
- *
- * \warning         Currently they are possible values, not the actual ones. Datasheet is missinig
- *
- * \{
- */
-
-#define DEFINES_NTC_COUNT (12U)          /*!< The number of NTCs (12 across the 18 cells). */
-#define DEFINES_NTC_VDD (3.3F)           /*!< Supply voltage for the NTC circuit in V. */
-#define DEFINES_NTC_R0 (10000.F)         /*!< Nominal NTC resistance at 25 °C in Ohm. */
-#define DEFINES_NTC_BETA (3950.F)        /*!< NTC Beta parameter in K. */
-#define DEFINES_NTC_T0_KELVIN (298.15F)  /*!< Reference temperature in K. */
-#define DEFINES_ZERO_CELSIUS_K (273.15F) /*!< 0 °C expressed in K. */
-
-/*!
  * \defgroup        ntc_mux NTC analog multiplexer.
  *
  * \details         Every NTC of the pack is routed through a single 16:1 analog
@@ -61,8 +46,8 @@
  * \{
  */
 
-#define DEFINES_NTC_MUX_CHANNEL_COUNT (16U)                  /*!< Number of channels the multiplexer can address. */
-#define DEFINES_NTC_MUX_USED_CHANNEL_COUNT DEFINES_NTC_COUNT /*!< Number of multiplexer channels actually wired to an NTC. */
+#define DEFINES_NTC_MUX_CHANNEL_COUNT (16U)                          /*!< Number of channels the multiplexer can address. */
+#define DEFINES_NTC_MUX_USED_CHANNEL_COUNT (DEFINES_CELLS_NTC_COUNT) /*!< Number of multiplexer channels actually wired to an NTC. */
 
 /*! \} */
 
@@ -176,17 +161,51 @@
 #define DEFINES_SENSE_I_CHRG_RANGE_A (5.F)                            /*!< Nominal full scale of the sensor, +/- this value in A. */
 
 /*!
- * \brief           Attenuation of the I_OUT_SENSED line, R4 18k.
+ * \defgroup        sense_i_out Pack output current sensor.
  *
- * \warning         The divider is populated and reaches I_OUT_SENSE_MCU (PB0), but
- *                  nothing on the schematic drives I_OUT_SENSED: the only current
- *                  sensor on the board is the charger one above, and the output
- *                  path ("Board output" sheet) is just F14 20 A into the relay K1
- *                  with no shunt or Hall sensor. Until a sensor exists there is no
- *                  output current to compute, so only the raw node voltage is
- *                  exposed, through adc_get_i_out_sense_voltage().
+ * \details         The current leaving the cells is measured by a bidirectional
+ *                  Allegro Hall sensor with a 50 A range, supplied from the same
+ *                  +5 V rail as the charger one, driving I_OUT_SENSED. It is not
+ *                  on the schematic sheets in this repository; what is known is
+ *                  that it idles at Vcc/2 (measured 2.52 V on a 5.04 V rail, so
+ *                  the ratiometric midpoint) and scales linearly from there. The
+ *                  line then goes through the same 10 k / 18 k divider as every
+ *                  other 5 V-range signal to I_OUT_SENSE_MCU (PB0).
+ *
+ *                  Decoding is identical to the charger sensor:
+ *
+ *                      V_sensed = V_pin / DIVIDER_GAIN
+ *                      V_zero   = Vcc * ZERO_RATIO
+ *                      S        = SENSITIVITY_V_A * (Vcc / SUPPLY_NOMINAL_V)
+ *                      I        = DIRECTION * (V_sensed - V_zero) / S
+ *
+ *                  Sanity check at Vcc = 5 V: +/-50 A -> 4.5 V / 0.5 V at the
+ *                  sensor -> 2.89 V / 0.32 V at the pin, inside the 3V3 clamp.
+ *                  With the output fused at 20 A the working range is the middle
+ *                  of that, roughly 1.7-3.3 V at the sensor.
+ *
+ * \note            SENSITIVITY_V_A is the figure every Allegro bidirectional
+ *                  50 A part shares (ACS724-50AB, ACS758-050B, ACS770-050B:
+ *                  40 mV/A at 5 V). The exact part number has not been
+ *                  confirmed; if it turns out to be one with a different scale,
+ *                  only this constant changes.
+ *
+ * \note            DIRECTION fixes the sign so that a positive current is one
+ *                  flowing out of the pack into the load. Hall sensors read the
+ *                  opposite way when IP+ and IP- are swapped; if discharging
+ *                  shows up negative on the bench, flip this to -1.
+ *
+ * \{
  */
-#define DEFINES_SENSE_I_OUT_DIVIDER_GAIN DEFINES_SENSE_5V_RANGE_GAIN
+
+#define DEFINES_SENSE_I_OUT_DIVIDER_GAIN DEFINES_SENSE_5V_RANGE_GAIN /*!< I_OUT_SENSED -> I_OUT_SENSE_MCU, R4 18k. */
+#define DEFINES_SENSE_I_OUT_SUPPLY_NOMINAL_V (5.F)                   /*!< Vcc the sensitivity is specified at, in V. */
+#define DEFINES_SENSE_I_OUT_SENSITIVITY_V_A (0.040F)                 /*!< Sensitivity at nominal Vcc, in V/A. */
+#define DEFINES_SENSE_I_OUT_ZERO_RATIO (0.5F)                        /*!< Quiescent output as a fraction of Vcc. */
+#define DEFINES_SENSE_I_OUT_RANGE_A (50.F)                           /*!< Full scale of the sensor, +/- this value in A. */
+#define DEFINES_SENSE_I_OUT_DIRECTION (1.F)                          /*!< +1 if positive means out of the pack, -1 to invert. */
+
+/*! \} */
 
 /*! \} */
 

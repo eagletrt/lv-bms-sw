@@ -12,9 +12,6 @@
 #include "defines.h"
 #include "types.h"
 
-#define CURRENT_MAX_A (45.F)        /*!< Maximum allowed current value in A */
-#define CURRENT_MAX_POWER_KW (80.F) /*!< Maximum allowed power in kW */
-
 /*!
  * \brief            Return codes for the voltage module functions.
  */
@@ -28,8 +25,7 @@ enum CurrentReturnCode {
  * \brief            Current module handler structure.
  */
 struct CurrentHandler {
-    ampere output_current;              /*!< The output current value in A */
-    ampere currents[DEFINES_NTC_COUNT]; /*!< An array of NTC currents in A  */
+    ampere cell_out_current; /*!< The output current from cells in A */
 };
 
 #endif /*! CURRENT_H */

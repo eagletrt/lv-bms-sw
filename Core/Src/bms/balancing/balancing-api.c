@@ -15,7 +15,6 @@
 #include "config.h"
 #include "defines.h"
 #include "eagletrt.h"
-#include "eagletrt.h"
 #include "voltage-api.h"
 #include "bms-monitor-api.h"
 
