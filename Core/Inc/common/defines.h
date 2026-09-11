@@ -198,12 +198,12 @@
  * \{
  */
 
-#define DEFINES_SENSE_I_OUT_DIVIDER_GAIN DEFINES_SENSE_5V_RANGE_GAIN /*!< I_OUT_SENSED -> I_OUT_SENSE_MCU, R4 18k. */
-#define DEFINES_SENSE_I_OUT_SUPPLY_NOMINAL_V (5.F)                   /*!< Vcc the sensitivity is specified at, in V. */
-#define DEFINES_SENSE_I_OUT_SENSITIVITY_V_A (0.040F)                 /*!< Sensitivity at nominal Vcc, in V/A. */
-#define DEFINES_SENSE_I_OUT_ZERO_RATIO (0.5F)                        /*!< Quiescent output as a fraction of Vcc. */
-#define DEFINES_SENSE_I_OUT_RANGE_A (50.F)                           /*!< Full scale of the sensor, +/- this value in A. */
-#define DEFINES_SENSE_I_OUT_DIRECTION (1.F)                          /*!< +1 if positive means out of the pack, -1 to invert. */
+#define DEFINES_SENSE_I_OUT_DIVIDER_GAIN DEFINES_SENSE_5V_RANGE_GAIN                                                                                      /*!< I_OUT_SENSED -> I_OUT_SENSE_MCU, R4 18k. */
+#define DEFINES_SENSE_I_OUT_SUPPLY_NOMINAL_V (5.F)                                                                                                        /*!< Vcc the sensitivity is specified at, in V. */
+#define DEFINES_SENSE_I_OUT_RANGE_A (60.F)                                                                                                                /*!< Full scale of the sensor, +/- this value in A. */
+#define DEFINES_SENSE_I_OUT_SENSITIVITY_V_A ((DEFINES_SENSE_I_OUT_SUPPLY_NOMINAL_V - (DEFINES_SENSE_I_OUT_ZERO_RATIO * 2)) / DEFINES_SENSE_I_OUT_RANGE_A) /*!< Sensitivity at nominal Vcc, in V/A. */
+#define DEFINES_SENSE_I_OUT_ZERO_RATIO (0.5F)                                                                                                             /*!< Quiescent output as a fraction of Vcc. */
+#define DEFINES_SENSE_I_OUT_DIRECTION (1.F)                                                                                                               /*!< +1 if positive means out of the pack, -1 to invert. */
 
 /*! \} */
 
