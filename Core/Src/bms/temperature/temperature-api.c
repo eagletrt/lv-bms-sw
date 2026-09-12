@@ -191,12 +191,12 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
 
     constexpr size_t group_size = 6U;
     message.lvactemperature.group_payload.mux_0 = (struct CanPrimaryLvactemperatureGroupMux0){
-        .voltage1 = temperatures[group * group_size + 0U],
-        .voltage2 = temperatures[group * group_size + 1U],
-        .voltage3 = temperatures[group * group_size + 2U],
-        .voltage4 = temperatures[group * group_size + 3U],
-        .voltage5 = temperatures[group * group_size + 4U],
-        .voltage6 = temperatures[group * group_size + 5U],
+        .temperature1 = temperatures[group * group_size + 0U],
+        .temperature2 = temperatures[group * group_size + 1U],
+        .temperature3 = temperatures[group * group_size + 2U],
+        .temperature4 = temperatures[group * group_size + 3U],
+        .temperature5 = temperatures[group * group_size + 4U],
+        .temperature6 = temperatures[group * group_size + 5U],
     };
 
     struct CanCommunicationFrame frame = {
