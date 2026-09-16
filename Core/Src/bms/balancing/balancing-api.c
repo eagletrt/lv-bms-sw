@@ -86,7 +86,7 @@ enum BalancingReturnCode balancing_api_run(uint32_t tick) {
         return BALANCING_RC_OK;
     }
 
-    if ((tick - balancing_handler.last_set) < BALANCING_STATE_TIMEOUT_MS) {
+    if ((tick - balancing_handler.last_set) >= BALANCING_STATE_TIMEOUT_MS) {
         balancing_api_stop();
         return BALANCING_RC_STATE_TIMEOUT;
     }
@@ -124,6 +124,8 @@ enum BalancingReturnCode balancing_api_set_state_handle(uint32_t tick, bool acti
     } else if (!active && balancing_handler.is_active) {
         balancing_api_stop();
     }
+
+    return BALANCING_RC_OK;
 }
 
 #endif /*! CONFIG_BALANCING_MODULE_ENABLE */
