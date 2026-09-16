@@ -8,11 +8,21 @@
  */
 
 #include "can-communication-router-api.h"
+#include "balancing-api.h"
 #include "can-primary-api.h"
+#include "can-primary.h"
+#include "stm32c0xx_hal.h"
+#include <threads.h>
 
 EAGLETRT_STATIC void prv_dispatch_rx(uint32_t frame_id, union CanPrimaryMessages message) {
     EAGLETRT_API_UNUSED(message);
     switch (frame_id) {
+        case CAN_PRIMARY_MESSAGE_FRAME_ID_RASPBERRYLVACBALANCINGSET:
+            const bool active = message.raspberrylvacbalancingset.start;
+            const volt threshold = message.raspberrylvacbalancingset.threshold;
+            balancing_api_set_state_handle(HAL_GetTick(), active, threshold);
+            break;
+
         default:
             break;
     }

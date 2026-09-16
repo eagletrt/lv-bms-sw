@@ -30,15 +30,11 @@ enum BalancingReturnCode balancing_api_init(void);
  *                   threshold. Pass voltage_api_get_min() as target to balance
  *                   the pack down to its lowest cell.
  *
- * \param[in]        target The voltage each discharged cell should reach in V.
  * \param[in]        threshold The imbalance tolerated above \p target in V.
  *
  * \retval           BALANCING_RC_OK on success.
- * \retval           BALANCING_RC_OUT_OF_BOUNDS if target is outside the valid
- *                   cell voltage range, e.g. before the monitor has produced
- *                   its first readings.
  */
-enum BalancingReturnCode balancing_api_start(volt target, volt threshold);
+enum BalancingReturnCode balancing_api_start(volt threshold);
 
 /*!
  * \brief            Stop balancing and release every discharge FET.
@@ -62,6 +58,7 @@ enum BalancingReturnCode balancing_api_stop(void);
  * \param[in]        tick The current tick in ms.
  *
  * \retval           BALANCING_RC_OK on success.
+ * \retval           BALANCING_RC_STATE_TIMEOUT if last status update was >= 3s
  */
 enum BalancingReturnCode balancing_api_run(uint32_t tick);
 
@@ -72,13 +69,21 @@ enum BalancingReturnCode balancing_api_run(uint32_t tick);
  */
 bool balancing_api_is_active(void);
 
+/*!
+ * \brief            Handle te received balancing status message.
+ *
+ * \returns          BALANCING_RC_OK on success.
+ */
+enum BalancingReturnCode balancing_api_set_state_handle(uint32_t tick, bool active, volt threshold);
+
 #else /*! CONFIG_BALANCING_MODULE_ENABLE */
 
 #define balancing_api_init() EAGLETRT_API_NOP()
-#define balancing_api_start(target, threshold) (BALANCING_RC_OK)
+#define balancing_api_start(threshold) (BALANCING_RC_OK)
 #define balancing_api_stop() (BALANCING_RC_OK)
 #define balancing_api_run(tick) (BALANCING_RC_OK)
 #define balancing_api_is_active() (false)
+#define balancing_api_set_state_handle(tick, active, threshold)
 
 #endif /*! CONFIG_BALANCING_MODULE_ENABLE */
 

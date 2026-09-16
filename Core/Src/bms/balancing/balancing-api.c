@@ -63,12 +63,10 @@ enum BalancingReturnCode balancing_api_init(void) {
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-enum BalancingReturnCode balancing_api_start(volt target, volt threshold) {
-    if (target < VOLTAGE_MIN_V || target > VOLTAGE_MAX_V) {
-        return BALANCING_RC_OUT_OF_BOUNDS;
-    }
+enum BalancingReturnCode balancing_api_start(volt threshold) {
+    // TODO: add threshold check.
 
-    balancing_handler.target = target;
+    balancing_handler.target = voltage_api_get_min();
     balancing_handler.threshold = threshold;
     balancing_handler.odd_phase = false;
     balancing_handler.last_run = 0U;
@@ -86,6 +84,11 @@ enum BalancingReturnCode balancing_api_stop(void) {
 enum BalancingReturnCode balancing_api_run(uint32_t tick) {
     if (!balancing_handler.is_active) {
         return BALANCING_RC_OK;
+    }
+
+    if ((tick - balancing_handler.last_set) < BALANCING_STATE_TIMEOUT_MS) {
+        balancing_api_stop();
+        return BALANCING_RC_STATE_TIMEOUT;
     }
 
     if ((tick - balancing_handler.last_run) < BALANCING_RUN_PERIOD_MS) {
@@ -111,6 +114,16 @@ enum BalancingReturnCode balancing_api_run(uint32_t tick) {
 
 bool balancing_api_is_active(void) {
     return balancing_handler.is_active;
+}
+
+enum BalancingReturnCode balancing_api_set_state_handle(uint32_t tick, bool active, volt threshold) {
+    balancing_handler.last_set = tick;
+
+    if (active && !balancing_handler.is_active) {
+        balancing_api_start(threshold);
+    } else if (!active && balancing_handler.is_active) {
+        balancing_api_stop();
+    }
 }
 
 #endif /*! CONFIG_BALANCING_MODULE_ENABLE */

@@ -492,13 +492,6 @@ state_t do_idle(state_data_t *data) {
     /* Hold the output closed only while the pack keeps checking out. */
     prv_fsm_supervise_master_relay(current_tick);
 
-    /* Serial debug interface at 1 Hz. */
-    static uint32_t last_debug_tick = 0U;
-    if (current_tick - last_debug_tick > fsm_debug_print_period) {
-        last_debug_tick = current_tick;
-        prv_print_debug();
-    }
-
     prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
 
     can_communication_api_process_tx(CAN_COMMUNICATION_NETWORK_PRIMARY);
@@ -600,13 +593,6 @@ state_t do_balancing(state_data_t *data) {
 
     /* Hold the output closed only while the pack keeps checking out. */
     prv_fsm_supervise_master_relay(current_tick);
-
-    /* Serial debug interface at 1 Hz. */
-    static uint32_t last_debug_tick = 0U;
-    if (current_tick - last_debug_tick > fsm_debug_print_period) {
-        last_debug_tick = current_tick;
-        prv_print_debug();
-    }
 
     prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
 

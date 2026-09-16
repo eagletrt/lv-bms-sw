@@ -21,7 +21,9 @@
 #include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
+#include "logger.h"
 #include "spi.h"
+#include "temperature-api.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -39,6 +41,7 @@
 #include "balancing-api.h"
 #include "voltage-api.h"
 #include "defines.h"
+#include "current-api.h"
 
 /* USER CODE END Includes */
 
@@ -57,6 +60,9 @@
 #define FEEDBACK_POLL_PERIOD_MS (10U)  /*!< Sampling period of the digital feedbacks. */
 #define CONSOLE_RX_BUFFER_SIZE (8U)    /*!< Longest console command accepted, in characters. */
 #define DISCHARGE_TEST_STEP_MS (5000U) /*!< Dwell on each cell during the discharge sweep. */
+#define MILLI_PER_UNIT (1000.F) /!* Scale taking a base unit to its milli- form for the integer log fields. */
+#define ROW_SIZE (48U)
+#define ROW_CHANNEL_COUNT (6U)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -128,9 +134,7 @@ EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being di
 EAGLETRT_STATIC uint32_t discharge_test_tick = 0U;  /*!< Tick at which the current cell was selected. */
 
 /*!
- * \brief Collect everything the FSM reports but does not measure itself.
- *
- * \details The FSM lives under Core/Src/bms, which may not include the HAL, so
+ * \brief Collect everything the FSM reports but does not measure itself. * * \details The FSM lives under Core/Src/bms, which may not include the HAL, so
  *          the peripheral getters are read here and handed over as plain values.
  *
  * \param[out] out The snapshot to fill.
@@ -220,6 +224,111 @@ EAGLETRT_STATIC void prv_main_balancing_routine(void) {
     } else {
         logger_api_log(LOGGER_LEVEL_WARN, "[BAL] refused, pack voltages not valid");
     }
+}
+
+/*!
+ * \brief Render a value in its milli- unit, the form every integer field of the
+ *        log uses.
+ *
+ * \param[in] value The value in its base unit.
+ *
+ * \returns int The value in milli-units, truncated.
+ */
+EAGLETRT_STATIC int prv_milli(float value) {
+    return (int)(value * MILLI_PER_UNIT);
+}
+
+/*!
+ * \brief Render a run of voltages as millivolt fields into one string.
+ *
+ * \param[in]  values The array to read from.
+ * \param[in]  first  Index of the first value in the row.
+ * \param[in]  count  Number of values in the row.
+ * \param[out] out    Buffer receiving the row, leading space included.
+ * \param[in]  size   Size of \p out.
+ */
+EAGLETRT_STATIC void prv_format_milli_row(const volt *values, size_t first, size_t count, char *out, size_t size) {
+    size_t used = 0U;
+    out[0] = '\0';
+
+    for (size_t i = 0U; i < count; ++i) {
+        const int written = snprintf(out + used, size - used, " %d", prv_milli(values[first + i]));
+
+        if (written < 0 || (size_t)written >= (size - used)) {
+            break;
+        }
+        used += (size_t)written;
+    }
+}
+
+/*!
+ * \brief Render a row of NTC temperatures into one string.
+ *
+ * \details A channel flagged open or shorted is never converted, so its slot
+ *          still holds the 0 °C it was initialised with, which would read as a
+ *          real measurement near freezing. Those get a dash instead.
+ *
+ *          The whole row is built here rather than passed to the logger as
+ *          floats because printf cannot pick between a number and a literal per
+ *          field, and that choice is exactly what the dash needs.
+ *
+ * \param[in]  first        Index of the first channel in the row.
+ * \param[in]  count        Number of channels in the row.
+ * \param[in]  temperatures The dumped temperatures.
+ * \param[out] out          Buffer receiving the rendered row, leading space included.
+ * \param[in]  size         Size of \p out.
+ */
+EAGLETRT_STATIC void prv_format_temperature_row(size_t first, size_t count, const celsius *temperatures, char *out, size_t size) {
+    size_t used = 0U;
+    out[0] = '\0';
+
+    for (size_t i = 0U; i < count; ++i) {
+        const size_t index = first + i;
+        const bool valid = temperature_api_get_channel_status(index) == TEMPERATURE_STATUS_OK;
+
+        const int written = valid ? snprintf(out + used, size - used, " %.1f", (double)temperatures[index])
+                                  : snprintf(out + used, size - used, " " FSM_NO_READING);
+
+        /*! Stop on truncation rather than letting used run past the buffer. */
+        if (written < 0 || (size_t)written >= (size - used)) {
+            break;
+        }
+        used += (size_t)written;
+    }
+}
+
+EAGLETRT_STATIC void prv_print_info() {
+    volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 0.F };
+    voltage_api_dump_voltages(voltages, 0U, DEFINES_CELLS_SERIES_COUNT);
+
+    celsius temperatures[DEFINES_CELLS_NTC_COUNT] = { 0.F };
+    temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
+
+    const uint32_t open_wire = bms_monitor_api_check_open_wire();
+
+    logger_api_log(LOGGER_LEVEL_INFO, "===== LV BMS Data =====");
+    char row[ROW_SIZE];
+
+    prv_format_milli_row(voltages, 0U, DEFINES_CELLS_SERIES_COUNT, row, sizeof(row));
+    logger_api_log(LOGGER_LEVEL_INFO, "V%s", row);
+
+    /* Every cell NTC comes from the MCU multiplexer: index n is mux channel n.
+       The raw divider voltages are printed next to the temperatures because the
+       NTC pull-up R59 is still unset on the schematic, so the volt-to-celsius
+       curve cannot be trusted yet while the voltages can. */
+    prv_format_temperature_row(0U, ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MUX0-5%s", row);
+
+    prv_format_temperature_row(ROW_CHANNEL_COUNT, ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
+    logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11%s", row);
+
+    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", prv_milli(board->vin), prv_milli(board->vin_unfused), prv_milli(board->vsup));
+    logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", prv_milli(board->vout), prv_milli(board->lvms_out), prv_milli(board->mcu_5v));
+    logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", prv_milli(board->charger_voltage), prv_milli(board->charger_current));
+    /* Pack current as stored in the current module, i.e. what goes out on CAN. */
+    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT %d", prv_milli(current_api_get_cells_output_current()));
+
+    logger_api_log(LOGGER_LEVEL_INFO, "OpenWire 0x%lx %s", (unsigned long)open_wire, (open_wire == 0U) ? "none" : "DETECTED");
 }
 
 /* USER CODE END 0 */
@@ -385,18 +494,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         if (console_rx_index < (CONSOLE_RX_BUFFER_SIZE - 1U)) {
             console_rx_buffer[console_rx_index++] = (char)console_rx_char;
         }
-    } else if (console_rx_char == 'm' || console_rx_char == 'M') {
-        /*! Release the multiplexer straight away, no ENTER needed. */
-        adc_clear_mux_hold();
-        console_rx_index = 0U;
-    } else if (console_rx_char == 'a' || console_rx_char == 'A') {
-        /*! Only raise a request here: the sweep touches the BMS monitor
-            configuration, which belongs to the main loop, not to an interrupt. */
-        discharge_test_toggle_request = true;
-        console_rx_index = 0U;
-    } else if (console_rx_char == 'b' || console_rx_char == 'B') {
-        balancing_toggle_request = true;
-        console_rx_index = 0U;
+    } else if (console_rx_char == 'i' || console_rx_char == 'A') {
+        // print debug infos
+        prv_print_info();
     } else if (console_rx_char == '\r' || console_rx_char == '\n') {
         if (console_rx_index > 0U) {
             uint32_t channel = 0U;
