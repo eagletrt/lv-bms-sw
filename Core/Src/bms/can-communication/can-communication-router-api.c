@@ -12,7 +12,6 @@
 #include "can-primary-api.h"
 #include "can-primary.h"
 #include "stm32c0xx_hal.h"
-#include <threads.h>
 
 EAGLETRT_STATIC void prv_dispatch_rx(uint32_t frame_id, union CanPrimaryMessages message) {
     EAGLETRT_API_UNUSED(message);

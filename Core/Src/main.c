@@ -30,6 +30,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <stdio.h>
+
 #include "fsm.h"
 #include "post.h"
 #include "can-communication-router-api.h"
@@ -60,9 +62,11 @@
 #define FEEDBACK_POLL_PERIOD_MS (10U)  /*!< Sampling period of the digital feedbacks. */
 #define CONSOLE_RX_BUFFER_SIZE (8U)    /*!< Longest console command accepted, in characters. */
 #define DISCHARGE_TEST_STEP_MS (5000U) /*!< Dwell on each cell during the discharge sweep. */
-#define MILLI_PER_UNIT (1000.F) /!* Scale taking a base unit to its milli- form for the integer log fields. */
+#define MILLI_PER_UNIT (1000.F)        /*!< Scale taking a base unit to its milli- form for the integer log fields. */
 #define ROW_SIZE (48U)
 #define ROW_CHANNEL_COUNT (6U)
+/*! Shown in place of a reading that does not exist. */
+#define NO_READING "--"
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -219,7 +223,7 @@ EAGLETRT_STATIC void prv_main_balancing_routine(void) {
     if (balancing_api_is_active()) {
         (void)balancing_api_stop();
         logger_api_log(LOGGER_LEVEL_INFO, "[BAL] off");
-    } else if (balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V) == BALANCING_RC_OK) {
+    } else if (balancing_api_start(BALANCING_THRESHOLD_V) == BALANCING_RC_OK) {
         logger_api_log(LOGGER_LEVEL_INFO, "[BAL] on");
     } else {
         logger_api_log(LOGGER_LEVEL_WARN, "[BAL] refused, pack voltages not valid");
@@ -287,7 +291,7 @@ EAGLETRT_STATIC void prv_format_temperature_row(size_t first, size_t count, cons
         const bool valid = temperature_api_get_channel_status(index) == TEMPERATURE_STATUS_OK;
 
         const int written = valid ? snprintf(out + used, size - used, " %.1f", (double)temperatures[index])
-                                  : snprintf(out + used, size - used, " " FSM_NO_READING);
+                                  : snprintf(out + used, size - used, " " NO_READING);
 
         /*! Stop on truncation rather than letting used run past the buffer. */
         if (written < 0 || (size_t)written >= (size - used)) {
@@ -322,9 +326,9 @@ EAGLETRT_STATIC void prv_print_info() {
     prv_format_temperature_row(ROW_CHANNEL_COUNT, ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
     logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11%s", row);
 
-    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", prv_milli(board->vin), prv_milli(board->vin_unfused), prv_milli(board->vsup));
-    logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", prv_milli(board->vout), prv_milli(board->lvms_out), prv_milli(board->mcu_5v));
-    logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", prv_milli(board->charger_voltage), prv_milli(board->charger_current));
+    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", prv_milli(adc_get_vin()), prv_milli(adc_get_vin_unfused()), prv_milli(adc_get_vsup()));
+    logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", prv_milli(adc_get_vout()), prv_milli(adc_get_lvms_out()), prv_milli(adc_get_mcu_5v()));
+    logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", prv_milli(adc_get_charger_voltage()), prv_milli(adc_get_charger_current()));
     /* Pack current as stored in the current module, i.e. what goes out on CAN. */
     logger_api_log(LOGGER_LEVEL_INFO, "I_OUT %d", prv_milli(current_api_get_cells_output_current()));
 

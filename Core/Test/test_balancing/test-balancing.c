@@ -66,19 +66,12 @@ void test_balancing_api_start_valid(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.80F, 3.75F, 3.70F, 3.85F, 3.72F, 3.79F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
 
-    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V));
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(BALANCING_THRESHOLD_V));
 
     TEST_ASSERT_FLOAT_WITHIN(0.0001F, 3.70F, balancing_handler.target);
     TEST_ASSERT_EQUAL_FLOAT(BALANCING_THRESHOLD_V, balancing_handler.threshold);
     TEST_ASSERT_TRUE(balancing_handler.is_active);
     TEST_ASSERT_TRUE(balancing_api_is_active());
-}
-
-void test_balancing_api_start_refuses_invalid_target(void) {
-    TEST_ASSERT_EQUAL(BALANCING_RC_OUT_OF_BOUNDS, balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V));
-    TEST_ASSERT_EQUAL(BALANCING_RC_OUT_OF_BOUNDS, balancing_api_start(2.0F, BALANCING_THRESHOLD_V));
-    TEST_ASSERT_EQUAL(BALANCING_RC_OUT_OF_BOUNDS, balancing_api_start(4.3F, BALANCING_THRESHOLD_V));
-    TEST_ASSERT_FALSE(balancing_api_is_active());
 }
 
 /*! \} */
@@ -107,7 +100,7 @@ void test_balancing_api_stop_clears_discharge(void) {
 void test_prv_compute_mask_even_parity(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.80F, 3.70F, 3.80F, 3.70F, 3.80F, 3.70F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     TEST_ASSERT_EQUAL_UINT8(0b00010101U, prv_balancing_api_compute_mask(false));
 }
@@ -115,7 +108,7 @@ void test_prv_compute_mask_even_parity(void) {
 void test_prv_compute_mask_odd_parity(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.70F, 3.80F, 3.70F, 3.80F, 3.70F, 3.80F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     TEST_ASSERT_EQUAL_UINT8(0b00101010U, prv_balancing_api_compute_mask(true));
 }
@@ -123,7 +116,7 @@ void test_prv_compute_mask_odd_parity(void) {
 void test_prv_compute_mask_never_adjacent(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     const uint8_t even_mask = prv_balancing_api_compute_mask(false);
     const uint8_t odd_mask = prv_balancing_api_compute_mask(true);
@@ -137,7 +130,7 @@ void test_prv_compute_mask_never_adjacent(void) {
 void test_prv_compute_mask_threshold_boundary(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.70F + BALANCING_THRESHOLD_V, 3.70F, 3.70F, 3.70F, 3.70F, 3.70F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     TEST_ASSERT_EQUAL_UINT8(0U, prv_balancing_api_compute_mask(false));
 }
@@ -158,7 +151,7 @@ void test_balancing_api_run_inactive_noop(void) {
 void test_balancing_api_run_cadence_gate(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.70F, 3.70F, 3.70F, 3.70F, 3.70F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run(BALANCING_RUN_PERIOD_MS - 1U));
     TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
@@ -171,7 +164,7 @@ void test_balancing_api_run_cadence_gate(void) {
 void test_balancing_api_run_alternates_parity(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     (void)balancing_api_run(BALANCING_RUN_PERIOD_MS);
     TEST_ASSERT_EQUAL_UINT8(0b00000100U, bms_monitor_handler.requested_configuration.DCC);
@@ -183,7 +176,7 @@ void test_balancing_api_run_alternates_parity(void) {
 void test_balancing_api_run_completes_when_balanced(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.72F, 3.71F, 3.70F, 3.73F, 3.71F, 3.72F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     (void)balancing_api_run(BALANCING_RUN_PERIOD_MS);
 
@@ -194,7 +187,7 @@ void test_balancing_api_run_completes_when_balanced(void) {
 void test_balancing_api_run_parity_peek(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.70F, 3.70F, 3.70F, 3.70F, 3.70F };
     (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(voltage_api_get_min(), BALANCING_THRESHOLD_V);
+    (void)balancing_api_start(BALANCING_THRESHOLD_V);
 
     (void)balancing_api_run(BALANCING_RUN_PERIOD_MS);
 
@@ -217,7 +210,6 @@ int main(void) {
      *  \{
      */
     RUN_TEST(test_balancing_api_start_valid);
-    RUN_TEST(test_balancing_api_start_refuses_invalid_target);
     /*! \} */
 
     /*! \defgroup    stop Run stop tests.
