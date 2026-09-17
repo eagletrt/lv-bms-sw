@@ -30,6 +30,10 @@ extern "C" {
 
 /* USER CODE BEGIN Includes */
 
+#include <stdbool.h>
+
+#include "types.h"
+
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
@@ -39,6 +43,39 @@ extern "C" {
 void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+
+/*!
+ * \brief           Open or close the master output relay K1.
+ *
+ * \details         Closing it connects the pack to VOUT through the 20 A fuse, so
+ *                  it is only ever done once the pre-flight checks in the FSM have
+ *                  passed. MX_GPIO_Init() leaves it open, which is the safe state
+ *                  at reset.
+ *
+ * \param[in]       closed True to energise the coil and connect the output, false
+ *                  to release it.
+ */
+void gpio_set_master_relay(bool closed);
+
+/*!
+ * \brief           Tell whether the master relay coil is currently energised.
+ *
+ * \details         Reads the drive pin back, not the contacts. Use the
+ *                  FEEDBACK_OUTPUT_ENABLE_NEGATED and FEEDBACK_VOUT feedbacks to
+ *                  confirm the relay actually followed.
+ *
+ * \returns         bool True if the coil is being driven.
+ */
+bool gpio_is_master_relay_closed(void);
+
+/*!
+ * \brief           Sample the digital feedback pins and publish them to the
+ *                  feedback module.
+ *
+ * \details         Covers the feedbacks that are plain logic inputs; the analog
+ *                  ones are refreshed by adc_routine().
+ */
+void gpio_update_digital_feedbacks(void);
 
 /* USER CODE END Prototypes */
 
