@@ -38,6 +38,12 @@ extern "C" {
 
 /* USER CODE BEGIN Private defines */
 
+/*! Voltage reported to the feedback module for a digital pin read as high in V. */
+#define GPIO_FEEDBACK_LOGIC_HIGH_V (3.3F)
+
+/*! Voltage reported to the feedback module for a digital pin read as low in V. */
+#define GPIO_FEEDBACK_LOGIC_LOW_V (0.F)
+
 /* USER CODE END Private defines */
 
 void MX_GPIO_Init(void);

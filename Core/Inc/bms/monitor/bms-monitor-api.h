@@ -22,12 +22,11 @@
  *
  * \param[in]       send A pointer to the callback used to send data via SPI.
  * \param[in]       send_receive A pointer to the callback used to send and receive data via SPI.
- * \param[in]       ntc_read Callback that reads raw NTC ADC value for a given channel (can be NULL).
  *
  * \retval          BMS_MONITOR_RC_OK on success.
  * \retval          BMS_MONITOR_RC_NULL_POINTER if send or send_receive is NULL.
  */
-enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read);
+enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive);
 
 /*!
  * \brief           Write the configuration registers of the LTC.
@@ -85,21 +84,6 @@ enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_conversion(enum Ltc681
  * \retval          BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRegister reg);
-
-/*!
- * \brief           Read all NTC currents and store them via the current API.
- *
- * \retval          BMS_MONITOR_RC_OK on success.
- * \retval          BMS_MONITOR_RC_NULL_POINTER if the NTC read callback has not been set.
- */
-enum BmsMonitorReturnCode bms_monitor_api_read_currents(void);
-
-/*!
- * \brief           Read all NTC temperatures and store them via the temperature API.
- *
- * \retval          BMS_MONITOR_RC_OK on success.
- */
-enum BmsMonitorReturnCode bms_monitor_api_read_temperatures(void);
 
 /**
  * \brief           Read the cells voltages after the opern wire conversiont from the LTC.
@@ -211,17 +195,15 @@ volt bms_monitor_api_get_gpio_voltage(size_t index);
 
 #else /*! CONFIG_BMS_MONITOR_MODULE_ENABLE */
 
-#define bms_monitor_api_init(send, send_receive, ntc_read) (BMS_MONITOR_RC_OK)
-#define bsm_monitor_api_write_configuration() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_init(send, send_receive) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_write_configuration() (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_configuration() (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_start_volt_covertion() (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_start_open_wire_covertion(pull_up) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_start_volt_conversion() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_start_open_wire_conversion(pull_up) (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_voltages(reg) (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_open_wire_voltages(reg, operation) (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_set_discharge(cells) (BMS_MONITOR_OK)
-#define bms_monitor_api_set_discharge() (0U)
-#define bms_monitor_api_read_currents() (BMS_MONITOR_RC_OK)
-#define bms_monitor_api_read_temperatures() (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_set_discharge(cells) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_check_open_wire() (0U)
 #define bms_monitor_api_start_gpio_conversion() (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_gpios(out, size) (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_sample_gpios() (BMS_MONITOR_RC_OK)

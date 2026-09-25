@@ -25,10 +25,17 @@ extern struct BalancingHandler balancing_handler;
 extern struct BmsMonitorHandler bms_monitor_handler;
 extern uint8_t prv_balancing_api_compute_mask(bool odd_parity);
 
+static uint32_t test_tick = 0U;
+
+static uint32_t prv_test_get_tick(void) {
+    return test_tick;
+}
+
 void setUp(void) {
     memset(&bms_monitor_handler, 0, sizeof(bms_monitor_handler));
     voltage_api_init();
-    balancing_api_init();
+    test_tick = 0U;
+    balancing_api_init(prv_test_get_tick);
 }
 
 void tearDown(void) {
@@ -46,13 +53,21 @@ void test_balancing_api_init_resets_handler(void) {
     balancing_handler.is_active = true;
     balancing_handler.odd_phase = true;
 
-    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_init());
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_init(prv_test_get_tick));
 
     TEST_ASSERT_EQUAL_FLOAT(0.F, balancing_handler.target);
     TEST_ASSERT_EQUAL_FLOAT(0.F, balancing_handler.threshold);
     TEST_ASSERT_EQUAL_UINT32(0U, balancing_handler.last_run);
     TEST_ASSERT_FALSE(balancing_handler.is_active);
     TEST_ASSERT_FALSE(balancing_handler.odd_phase);
+    TEST_ASSERT_EQUAL_PTR(prv_test_get_tick, balancing_handler.get_tick);
+}
+
+void test_balancing_api_init_rejects_null_tick(void) {
+    const balancing_get_tick_callback previous = balancing_handler.get_tick;
+
+    TEST_ASSERT_EQUAL(BALANCING_RC_NULL_POINTER, balancing_api_init(NULL));
+    TEST_ASSERT_EQUAL_PTR(previous, balancing_handler.get_tick);
 }
 
 /*! \} */
@@ -204,6 +219,7 @@ int main(void) {
      *  \{
      */
     RUN_TEST(test_balancing_api_init_resets_handler);
+    RUN_TEST(test_balancing_api_init_rejects_null_tick);
     /*! \} */
 
     /*! \defgroup    start Run start tests.

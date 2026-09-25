@@ -24,7 +24,6 @@
 /* FFF mocks for SPI callbacks passed to init */
 FAKE_VALUE_FUNC(enum BmsMonitorReturnCode, send_fake, uint8_t *const, const size_t);
 FAKE_VALUE_FUNC(enum BmsMonitorReturnCode, send_receive_fake, uint8_t *const, uint8_t *, const size_t, const size_t);
-FAKE_VALUE_FUNC(enum BmsMonitorReturnCode, ntc_read_fake, size_t, raw_ampere *);
 
 extern struct BmsMonitorHandler bms_monitor_handler;
 extern bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells);
@@ -32,7 +31,6 @@ extern bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells);
 void setUp(void) {
     RESET_FAKE(send_fake);
     RESET_FAKE(send_receive_fake);
-    RESET_FAKE(ntc_read_fake);
     memset(&bms_monitor_handler, 0, sizeof(bms_monitor_handler));
     current_api_init();
     temperature_api_init();
@@ -79,32 +77,32 @@ void test_prv_is_cells_bitmask_valid_non_adjacent(void) {
  */
 
 void test_bms_monitor_api_init_null(void) {
-    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_init(NULL, NULL, NULL), "both NULL not detected");
-    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_init(send_fake, NULL, NULL), "send_receive NULL not detected");
-    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_init(NULL, send_receive_fake, NULL), "send NULL not detected");
+    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_init(NULL, NULL), "both NULL not detected");
+    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_init(send_fake, NULL), "send_receive NULL not detected");
+    TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_NULL_POINTER, bms_monitor_api_init(NULL, send_receive_fake), "send NULL not detected");
 }
 
 void test_bms_monitor_api_init_ok(void) {
-    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_init(send_fake, send_receive_fake, NULL));
+    TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_init(send_fake, send_receive_fake));
 }
 
 void test_bms_monitor_api_init_config(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL(1U, bms_monitor_handler.requested_configuration.REFON);
 }
 
 void test_bms_monitor_api_init_send(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL_PTR(send_fake, bms_monitor_handler.send);
 }
 
 void test_bms_monitor_api_init_send_receive(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL_PTR(send_receive_fake, bms_monitor_handler.send_receive);
 }
 
 void test_bms_monitor_api_init_ltc_handler(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL(DEFINES_LTC_COUNT, bms_monitor_handler.ltc_handler.count);
 }
 
@@ -116,13 +114,13 @@ void test_bms_monitor_api_init_ltc_handler(void) {
  */
 
 void test_bms_monitor_api_write_configuration_ok(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_write_configuration());
 }
 
 void test_bms_monitor_api_write_configuration_send_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_write_configuration());
 }
@@ -135,13 +133,13 @@ void test_bms_monitor_api_write_configuration_send_error(void) {
  */
 
 void test_bms_monitor_api_read_configuration_decode_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_DECODE_ERROR, bms_monitor_api_read_configuration());
 }
 
 void test_bms_monitor_api_read_configuration_send_receive_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_read_configuration());
 }
@@ -154,13 +152,13 @@ void test_bms_monitor_api_read_configuration_send_receive_error(void) {
  */
 
 void test_bms_monitor_api_start_volt_conversion_ok(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_start_volt_conversion());
 }
 
 void test_bms_monitor_api_start_volt_conversion_send_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_start_volt_conversion());
 }
@@ -173,13 +171,13 @@ void test_bms_monitor_api_start_volt_conversion_send_error(void) {
  */
 
 void test_bms_monitor_api_start_open_wire_conversion_ok(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE));
 }
 
 void test_bms_monitor_api_start_open_wire_conversion_send_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE));
 }
@@ -192,14 +190,14 @@ void test_bms_monitor_api_start_open_wire_conversion_send_error(void) {
  */
 
 void test_bms_monitor_api_read_voltages_decode_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_DECODE_ERROR,
                       bms_monitor_api_read_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A));
 }
 
 void test_bms_monitor_api_read_voltages_send_receive_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR, bms_monitor_api_read_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A));
 }
@@ -212,14 +210,14 @@ void test_bms_monitor_api_read_voltages_send_receive_error(void) {
  */
 
 void test_bms_monitor_api_read_open_wire_voltages_decode_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_DECODE_ERROR,
                       bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP));
 }
 
 void test_bms_monitor_api_read_open_wire_voltages_send_receive_error(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR,
                       bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP));
@@ -233,7 +231,7 @@ void test_bms_monitor_api_read_open_wire_voltages_send_receive_error(void) {
  */
 
 void test_bms_monitor_api_set_discharge_invalid_adjacent(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_INVALID_ARGUMENT, bms_monitor_api_set_discharge(0b00000011U), "cells 0,1 adjacent not rejected");
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_INVALID_ARGUMENT, bms_monitor_api_set_discharge(0b00000110U), "cells 1,2 adjacent not rejected");
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_INVALID_ARGUMENT, bms_monitor_api_set_discharge(0b00011000U), "cells 3,4 adjacent not rejected");
@@ -241,14 +239,14 @@ void test_bms_monitor_api_set_discharge_invalid_adjacent(void) {
 }
 
 void test_bms_monitor_api_set_discharge_invalid_high_bits(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_INVALID_ARGUMENT, bms_monitor_api_set_discharge(0b01000000U), "bit 6 not rejected");
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_INVALID_ARGUMENT, bms_monitor_api_set_discharge(0b10000000U), "bit 7 not rejected");
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_INVALID_ARGUMENT, bms_monitor_api_set_discharge(0b11000000U), "bits 6,7 not rejected");
 }
 
 void test_bms_monitor_api_set_discharge_valid(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_OK, bms_monitor_api_set_discharge(0b00000000U), "no cells rejected");
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_OK, bms_monitor_api_set_discharge(0b00000001U), "single cell 0 rejected");
     TEST_ASSERT_EQUAL_MESSAGE(BMS_MONITOR_RC_OK, bms_monitor_api_set_discharge(0b00000100U), "single cell 2 rejected");
@@ -258,7 +256,7 @@ void test_bms_monitor_api_set_discharge_valid(void) {
 }
 
 void test_bms_monitor_api_set_discharge_dcc(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     /*! Cells 0, 2 and 4 land on DCC1, DCC3 and DCC5: the register carries DCC0 in
         its bit 0, so the cell mask is shifted up by one. */
     bms_monitor_api_set_discharge(0b00010101U);
@@ -266,14 +264,14 @@ void test_bms_monitor_api_set_discharge_dcc(void) {
 }
 
 void test_bms_monitor_api_set_discharge_dcc_last_cell(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     /*! The last cell has to reach DCC6, the top bit of the discharge field. */
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_OK, bms_monitor_api_set_discharge(1U << (DEFINES_CELLS_SERIES_COUNT - 1U)));
     TEST_ASSERT_EQUAL(1U << DEFINES_CELLS_SERIES_COUNT, bms_monitor_handler.requested_configuration.DCC);
 }
 
 void test_bms_monitor_api_set_discharge_dcc_never_uses_dcc0(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     /*! DCC0 drives the unconnected S0 switch; no cell may ever map onto it. */
     for (uint8_t cell = 0U; cell < DEFINES_CELLS_SERIES_COUNT; ++cell) {
         bms_monitor_api_set_discharge((uint8_t)(1U << cell));
@@ -282,13 +280,13 @@ void test_bms_monitor_api_set_discharge_dcc_never_uses_dcc0(void) {
 }
 
 void test_bms_monitor_api_set_discharge_dcto_off(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     bms_monitor_api_set_discharge(0b00000000U);
     TEST_ASSERT_EQUAL(LTC6810_2_DCTO_OFF, bms_monitor_handler.requested_configuration.DCTO);
 }
 
 void test_bms_monitor_api_set_discharge_dcto_30s(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     bms_monitor_api_set_discharge(0b00000001U);
     TEST_ASSERT_EQUAL_MESSAGE(LTC6810_2_DCTO_30S, bms_monitor_handler.requested_configuration.DCTO, "DCTO not 30s with single cell");
     bms_monitor_api_set_discharge(0b00010101U);
@@ -303,14 +301,14 @@ void test_bms_monitor_api_set_discharge_dcto_30s(void) {
  */
 
 void test_bms_monitor_api_get_discharge(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     /*! Mirror of the set direction: DCC1, DCC3 and DCC5 read back as cells 0, 2 and 4. */
     bms_monitor_handler.actual_configuration.DCC = 0b00101010U;
     TEST_ASSERT_EQUAL(0b00010101U, bms_monitor_api_get_discharge());
 }
 
 void test_bms_monitor_api_get_discharge_round_trip(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     /*! What is requested is what the chip reports back, once it echoes it. */
     for (uint8_t cell = 0U; cell < DEFINES_CELLS_SERIES_COUNT; ++cell) {
         const uint8_t mask = (uint8_t)(1U << cell);
@@ -321,7 +319,7 @@ void test_bms_monitor_api_get_discharge_round_trip(void) {
 }
 
 void test_bms_monitor_api_get_discharge_zero(void) {
-    bms_monitor_api_init(send_fake, send_receive_fake, NULL);
+    bms_monitor_api_init(send_fake, send_receive_fake);
     bms_monitor_handler.actual_configuration.DCC = 0b00000000U;
     TEST_ASSERT_EQUAL(0b00000000U, bms_monitor_api_get_discharge());
 }

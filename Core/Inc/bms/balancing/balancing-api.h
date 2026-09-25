@@ -18,9 +18,12 @@
 /*!
  * \brief            Initialize the balancing module.
  *
+ * \param[in]        get_tick Board time base in ms, must not be NULL.
+ *
  * \retval           BALANCING_RC_OK on success.
+ * \retval           BALANCING_RC_NULL_POINTER if get_tick is NULL.
  */
-enum BalancingReturnCode balancing_api_init(void);
+enum BalancingReturnCode balancing_api_init(balancing_get_tick_callback get_tick);
 
 /*!
  * \brief            Start balancing.
@@ -70,20 +73,27 @@ enum BalancingReturnCode balancing_api_run(uint32_t tick);
 bool balancing_api_is_active(void);
 
 /*!
- * \brief            Handle te received balancing status message.
+ * \brief            Handle the received balancing status message.
+ *
+ * \details          Stamps last_set from the time base given to
+ *                   #balancing_api_init, so it must not be called before a
+ *                   successful init.
+ *
+ * \param[in]        active    True to start balancing, false to stop it.
+ * \param[in]        threshold The imbalance tolerated above target in V.
  *
  * \returns          BALANCING_RC_OK on success.
  */
-enum BalancingReturnCode balancing_api_set_state_handle(uint32_t tick, bool active, volt threshold);
+enum BalancingReturnCode balancing_api_set_state_handle(bool active, volt threshold);
 
 #else /*! CONFIG_BALANCING_MODULE_ENABLE */
 
-#define balancing_api_init() EAGLETRT_API_NOP()
+#define balancing_api_init(get_tick) EAGLETRT_API_NOP()
 #define balancing_api_start(threshold) (BALANCING_RC_OK)
 #define balancing_api_stop() (BALANCING_RC_OK)
 #define balancing_api_run(tick) (BALANCING_RC_OK)
 #define balancing_api_is_active() (false)
-#define balancing_api_set_state_handle(tick, active, threshold)
+#define balancing_api_set_state_handle(active, threshold) EAGLETRT_API_NOP()
 
 #endif /*! CONFIG_BALANCING_MODULE_ENABLE */
 

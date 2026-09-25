@@ -25,12 +25,6 @@
 
 #include "feedback-api.h"
 
-/*! Voltage reported to the feedback module for a digital pin read as high in V. */
-#define GPIO_FEEDBACK_LOGIC_HIGH_V (3.3F)
-
-/*! Voltage reported to the feedback module for a digital pin read as low in V. */
-#define GPIO_FEEDBACK_LOGIC_LOW_V (0.F)
-
 /*!
  * \brief           Translate a pin level into the analog level the feedback
  *                  module compares against its thresholds.

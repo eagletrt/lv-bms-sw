@@ -74,17 +74,6 @@ typedef enum BmsMonitorReturnCode (*bms_monitor_send_callback)(uint8_t *const da
 typedef enum BmsMonitorReturnCode (*bms_monitor_send_receive_callback)(uint8_t *const data, uint8_t *out, const size_t size, const size_t out_size);
 
 /*!
- * \brief            Callback used to read the raw NTC current for a given channel.
- *
- * \param[in]        channel The NTC channel index (0 to DEFINES_NTC_COUNT-1).
- * \param[out]       raw Pointer to store the raw ADC value.
- *
- * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if read failed.
- */
-typedef enum BmsMonitorReturnCode (*bms_monitor_ntc_read_callback)(size_t channel, raw_ampere *raw);
-
-/*!
  * \brief            BMS monitor handler structure.
  */
 struct BmsMonitorHandler {
@@ -95,7 +84,6 @@ struct BmsMonitorHandler {
     struct Ltc68102Cfgr requested_configuration;    /*!< The requested configuration register of the LTC */
     volt pup[2U][DEFINES_CELLS_SERIES_COUNT];       /*!< An array of voltages read with pull-up and pull-down for the open-wire check */
     volt gpio_voltages[DEFINES_LTC_GPIO_COUNT];     /*!< The last auxiliary (GPIO1..GPIO4) voltages read from the LTC in V */
-    bms_monitor_ntc_read_callback ntc_read;         /*!< Callback to read NTC current for a given channel */
 };
 
 #endif /*! BMS_MONITOR_H */

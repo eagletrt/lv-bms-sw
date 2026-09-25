@@ -32,9 +32,7 @@ enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 
-    if (bms_monitor_api_init(post_init_data->bms_monitor_send,
-                             post_init_data->bms_monitor_send_receive,
-                             post_init_data->bms_monitor_ntc_read) != BMS_MONITOR_RC_OK) {
+    if (bms_monitor_api_init(post_init_data->bms_monitor_send, post_init_data->bms_monitor_send_receive) != BMS_MONITOR_RC_OK) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 
@@ -54,7 +52,7 @@ enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 
-    if (balancing_api_init() != BALANCING_RC_OK) {
+    if (balancing_api_init(post_init_data->get_tick) != BALANCING_RC_OK) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;
     }
 

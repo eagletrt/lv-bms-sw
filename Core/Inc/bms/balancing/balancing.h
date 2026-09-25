@@ -29,15 +29,21 @@ enum BalancingReturnCode {
 };
 
 /*!
+ * \brief            Callback returning the current tick in ms.
+ */
+typedef uint32_t (*balancing_get_tick_callback)(void);
+
+/*!
  * \brief            Balancing module handler structure.
  */
 struct BalancingHandler {
-    volt target;       /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
-    volt threshold;    /*!< The imbalance tolerated above target in V */
-    uint32_t last_set; /*!< Tick of the last executed state set */
-    uint32_t last_run; /*!< Tick of the last executed run, for cadence gating */
-    bool is_active;    /*!< Indicates if balancing is active (true) or not (false) */
-    bool odd_phase;    /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
+    balancing_get_tick_callback get_tick; /*!< Board time base in ms, non-NULL after a successful init */
+    volt target;                          /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
+    volt threshold;                       /*!< The imbalance tolerated above target in V */
+    uint32_t last_set;                    /*!< Tick of the last executed state set */
+    uint32_t last_run;                    /*!< Tick of the last executed run, for cadence gating */
+    bool is_active;                       /*!< Indicates if balancing is active (true) or not (false) */
+    bool odd_phase;                       /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
 };
 
 #endif /*! BALANCING_H */

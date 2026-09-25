@@ -57,8 +57,14 @@ EAGLETRT_STATIC uint8_t prv_balancing_api_compute_mask(bool odd_parity) {
     return mask;
 }
 
-enum BalancingReturnCode balancing_api_init(void) {
+enum BalancingReturnCode balancing_api_init(balancing_get_tick_callback get_tick) {
+    if (get_tick == NULL) {
+        return BALANCING_RC_NULL_POINTER;
+    }
+
     memset(&balancing_handler, 0, sizeof(balancing_handler));
+    balancing_handler.get_tick = get_tick;
+
     return BALANCING_RC_OK;
 }
 
@@ -116,8 +122,8 @@ bool balancing_api_is_active(void) {
     return balancing_handler.is_active;
 }
 
-enum BalancingReturnCode balancing_api_set_state_handle(uint32_t tick, bool active, volt threshold) {
-    balancing_handler.last_set = tick;
+enum BalancingReturnCode balancing_api_set_state_handle(bool active, volt threshold) {
+    balancing_handler.last_set = balancing_handler.get_tick();
 
     if (active && !balancing_handler.is_active) {
         balancing_api_start(threshold);

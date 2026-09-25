@@ -388,7 +388,6 @@ int main(void) {
         },
         .bms_monitor_send = spi_bms_monitor_send,
         .bms_monitor_send_receive = spi_bms_monitor_send_receive,
-        .bms_monitor_ntc_read = nullptr,
         /*! do_init() needs a time base to run its pre-flight acquisition. */
         .get_tick = HAL_GetTick,
         /*! Board services the FSM cannot reach for itself. */

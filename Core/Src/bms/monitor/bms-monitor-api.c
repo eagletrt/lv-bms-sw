@@ -71,7 +71,7 @@ EAGLETRT_STATIC uint8_t prv_bms_monitor_api_dcc_to_cells(uint8_t dcc) {
     return (uint8_t)(dcc >> 1U);
 }
 
-enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive, bms_monitor_ntc_read_callback ntc_read) {
+enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, bms_monitor_send_receive_callback send_receive) {
     if (send == NULL || send_receive == NULL) {
         return BMS_MONITOR_RC_NULL_POINTER;
     }
@@ -81,7 +81,6 @@ enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, b
     /*! Set callbacks */
     bms_monitor_handler.send = send;
     bms_monitor_handler.send_receive = send_receive;
-    bms_monitor_handler.ntc_read = ntc_read;
     /*! Initalize the LTC driver */
     ltc6810_2_api_init(&bms_monitor_handler.ltc_handler, DEFINES_LTC_COUNT);
     bms_monitor_handler.requested_configuration.REFON = 1U;
@@ -209,44 +208,6 @@ enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRe
     for (size_t i = 0U; i < LTC6810_2_REG_CELL_COUNT; ++i) {
         voltage_api_update_voltage(cell_offset + i, BMS_MONITOR_API_RAW_VOLTAGE_TO_VOLT(voltages[i]));
     }
-
-    return BMS_MONITOR_RC_OK;
-}
-
-enum BmsMonitorReturnCode bms_monitor_api_read_currents(void) {
-    /*
-    raw_ampere raw_currents[DEFINES_NTC_COUNT] = { 0 };
-
-    if (bms_monitor_handler.ntc_read == NULL) {
-        return BMS_MONITOR_RC_NULL_POINTER;
-    }
-
-    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
-        enum BmsMonitorReturnCode code = bms_monitor_handler.ntc_read(i, &raw_currents[i]);
-        if (code != BMS_MONITOR_RC_OK) {
-            return code;
-        }
-    }
-
-    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
-        ampere current = BMS_MONITOR_API_RAW_CURRENT_TO_AMPERE(raw_currents[i]);
-        current_api_update_current(i, current);
-    }
-    */
-
-    return BMS_MONITOR_RC_OK;
-}
-
-enum BmsMonitorReturnCode bms_monitor_api_read_temperatures(void) {
-    /*
-    ampere currents[DEFINES_NTC_COUNT] = { 0.F };
-    current_api_dump_currents(currents, 0U, DEFINES_NTC_COUNT);
-
-    for (size_t i = 0U; i < DEFINES_NTC_COUNT; ++i) {
-        celsius temperature = prv_bms_monitor_api_compute_temperature(currents[i]);
-        temperature_api_update_temperature(i, temperature);
-    }
-    */
 
     return BMS_MONITOR_RC_OK;
 }

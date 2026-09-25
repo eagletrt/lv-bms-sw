@@ -65,23 +65,14 @@ constexpr uint8_t fsm_relay_close_confirmations = 3U;
 EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
 /*!
- * \brief Board services handed to the FSM at init.
+ * \brief Board services handed to the FSM at init, plus the relay supervision state.
  *
  * \details Nothing under Core/{Inc,Src}/bms may include the HAL, so the FSM
- *          reaches the ADC, the relay and the board measurements only through
- *          these. They are captured once in do_init() because the later states
+ *          reaches the ADC, the relay and the board measurements only through the
+ *          callbacks. They are captured once in do_init() because the later states
  *          receive a struct FsmData, not the init data.
  */
-EAGLETRT_STATIC fsm_set_master_relay_callback fsm_set_master_relay = NULL;
-EAGLETRT_STATIC fsm_read_board_measurements_callback fsm_read_board_measurements = NULL;
-
-/*! Kept out of the stack: prv_print_debug() already carries a good deal of it. */
-EAGLETRT_STATIC struct FsmBoardMeasurements fsm_board_measurements = { 0 };
-
-/*! State of the relay supervision run from do_idle(). */
-EAGLETRT_STATIC uint32_t fsm_relay_check_tick = 0U;
-EAGLETRT_STATIC uint8_t fsm_relay_good_streak = 0U;
-EAGLETRT_STATIC bool fsm_relay_closed = false;
+EAGLETRT_STATIC struct FsmRelayHandler fsm_relay = { 0 };
 
 /*!
  * \brief Open or close the master relay, tolerating a board that never supplied
@@ -90,8 +81,8 @@ EAGLETRT_STATIC bool fsm_relay_closed = false;
  * \param[in] closed True to connect the output.
  */
 EAGLETRT_STATIC void prv_fsm_drive_master_relay(bool closed) {
-    if (fsm_set_master_relay != NULL) {
-        fsm_set_master_relay(closed);
+    if (fsm_relay.set_master_relay != NULL) {
+        fsm_relay.set_master_relay(closed);
     }
 }
 
@@ -190,10 +181,10 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
  * \param[in] tick The current tick in ms.
  */
 EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
-    if ((tick - fsm_relay_check_tick) < fsm_relay_check_period) {
+    if ((tick - fsm_relay.check_tick) < fsm_relay_check_period) {
         return;
     }
-    fsm_relay_check_tick = tick;
+    fsm_relay.check_tick = tick;
 
     static enum FsmSafetyStatus last_status = FSM_SAFETY_OK;
     const enum FsmSafetyStatus status = prv_fsm_check_pack_safety();
@@ -204,22 +195,22 @@ EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
     }
 
     if (status != FSM_SAFETY_OK) {
-        fsm_relay_good_streak = 0U;
-        if (fsm_relay_closed) {
-            fsm_relay_closed = false;
+        fsm_relay.good_streak = 0U;
+        if (fsm_relay.closed) {
+            fsm_relay.closed = false;
             prv_fsm_drive_master_relay(false);
             logger_api_log(LOGGER_LEVEL_WARN, "[SAFE] relay opened");
         }
         return;
     }
 
-    if (fsm_relay_good_streak < fsm_relay_close_confirmations) {
-        ++fsm_relay_good_streak;
+    if (fsm_relay.good_streak < fsm_relay_close_confirmations) {
+        ++fsm_relay.good_streak;
         return;
     }
 
-    if (!fsm_relay_closed) {
-        fsm_relay_closed = true;
+    if (!fsm_relay.closed) {
+        fsm_relay.closed = true;
         prv_fsm_drive_master_relay(true);
         logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] relay closed");
     }
@@ -319,8 +310,8 @@ EAGLETRT_STATIC void prv_format_temperature_row(size_t first, size_t count, cons
 EAGLETRT_STATIC void prv_print_debug(void) {
     /*! Refresh the board snapshot; leave the previous one in place if the board
         never supplied a reader. */
-    if (fsm_read_board_measurements != NULL) {
-        fsm_read_board_measurements(&fsm_board_measurements);
+    if (fsm_relay.read_measurements != NULL) {
+        fsm_relay.read_measurements(&fsm_relay.board);
     }
 
     volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 0.F };
@@ -358,7 +349,7 @@ EAGLETRT_STATIC void prv_print_debug(void) {
     prv_format_temperature_row(FSM_ROW_CHANNEL_COUNT, FSM_ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
     logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11%s", row);
 
-    const struct FsmBoardMeasurements *board = &fsm_board_measurements;
+    const struct FsmBoardMeasurements *board = &fsm_relay.board;
 
     prv_format_milli_row(board->ntc_voltages, 0U, FSM_ROW_CHANNEL_COUNT, row, sizeof(row));
     logger_api_log(LOGGER_LEVEL_INFO, "NTCV0-5%s", row);
@@ -440,10 +431,10 @@ state_t do_init(state_data_t *data) {
     }
 
     /*! Capture the board services before any state reaches for them. */
-    fsm_set_master_relay = fsm_init_data->set_master_relay;
-    fsm_read_board_measurements = fsm_init_data->read_board_measurements;
+    fsm_relay.set_master_relay = fsm_init_data->set_master_relay;
+    fsm_relay.read_measurements = fsm_init_data->read_board_measurements;
 
-    if (fsm_set_master_relay == NULL) {
+    if (fsm_relay.set_master_relay == NULL) {
         /*! A board that cannot command its own relay is misbuilt; say so loudly
             rather than running on with an output that can never close. */
         logger_api_log(LOGGER_LEVEL_ERROR, "[FSM] no relay callback -> FATAL");
@@ -457,8 +448,8 @@ state_t do_init(state_data_t *data) {
     /*! Leave init with the output open. Idle brings it up once it has seen real
         measurements, and takes it back down if they go bad. */
     prv_fsm_drive_master_relay(false);
-    fsm_relay_closed = false;
-    fsm_relay_good_streak = 0U;
+    fsm_relay.closed = false;
+    fsm_relay.good_streak = 0U;
 
     switch (next_state) {
         case STATE_IDLE:
@@ -524,8 +515,8 @@ state_t do_fatal(state_data_t *data) {
     /*! Whatever route led here, the output must not stay live. Held low every
         cycle rather than only on entry, so a glitch on the pin is corrected. */
     prv_fsm_drive_master_relay(false);
-    fsm_relay_closed = false;
-    fsm_relay_good_streak = 0U;
+    fsm_relay.closed = false;
+    fsm_relay.good_streak = 0U;
 
     const uint32_t current_tick = fsm_idle_data->tick;
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {

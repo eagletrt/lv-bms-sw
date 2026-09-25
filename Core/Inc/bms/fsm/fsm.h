@@ -79,6 +79,18 @@ typedef void (*fsm_set_master_relay_callback)(bool closed);
  */
 typedef void (*fsm_read_board_measurements_callback)(struct FsmBoardMeasurements *out);
 
+/*!
+ * \brief            Master relay supervision handler structure.
+ */
+struct FsmRelayHandler {
+    fsm_set_master_relay_callback set_master_relay;         /*!< Opens or closes K1, NULL if the board supplied none */
+    fsm_read_board_measurements_callback read_measurements; /*!< Fills #board, NULL if the board supplied none */
+    struct FsmBoardMeasurements board;                      /*!< Kept out of the stack: prv_print_debug() already carries a good deal of it */
+    uint32_t check_tick;                                    /*!< Tick of the last supervision pass, for the period gate */
+    uint8_t good_streak;                                    /*!< Consecutive healthy checks, any fault resets it */
+    bool closed;                                            /*!< True while the relay output is connected */
+};
+
 // NOTHING SHALL BE CHANGED AFTER THIS LINE!
 
 // List of states
