@@ -104,6 +104,7 @@ enum FsmSafetyStatus {
     FSM_SAFETY_OK = 0,              /*!< Every enabled check passed */
     FSM_SAFETY_VOLTAGE_UNAVAILABLE, /*!< The voltage module could not be read */
     FSM_SAFETY_VOLTAGE_RANGE,       /*!< At least one cell is outside its limits */
+    FSM_SAFETY_CELL_DELTA,          /*!< The pack is too imbalanced to discharge */
     FSM_SAFETY_OPEN_WIRE,           /*!< The open-wire check flagged a cell */
     FSM_SAFETY_NTC_FAULT,           /*!< An NTC channel is open or shorted */
     FSM_SAFETY_TEMPERATURE_RANGE    /*!< The pack is outside its temperature limits */
@@ -120,6 +121,8 @@ EAGLETRT_STATIC const char *prv_fsm_safety_status_name(enum FsmSafetyStatus stat
             return "no voltage data";
         case FSM_SAFETY_VOLTAGE_RANGE:
             return "cell voltage";
+        case FSM_SAFETY_CELL_DELTA:
+            return "cell delta";
         case FSM_SAFETY_OPEN_WIRE:
             return "open wire";
         case FSM_SAFETY_NTC_FAULT:
@@ -152,6 +155,10 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
         if (voltages[i] < VOLTAGE_MIN_V || voltages[i] > VOLTAGE_MAX_V) {
             return FSM_SAFETY_VOLTAGE_RANGE;
         }
+    }
+
+    if ((voltage_api_get_max() - voltage_api_get_min()) > VOLTAGE_CELL_DELTA_MAX_V) {
+        return FSM_SAFETY_CELL_DELTA;
     }
 
     if (bms_monitor_api_check_open_wire() != 0U) {

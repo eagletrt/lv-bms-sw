@@ -15,8 +15,9 @@
 #include "defines.h"
 #include "types.h"
 
-#define VOLTAGE_MIN_V (2.5F) /*!< Minimum allowed cell voltage in V */
-#define VOLTAGE_MAX_V (4.2F) /*!< Maximum allowed cell voltage in V */
+#define VOLTAGE_MIN_V (2.5F)            /*!< Minimum allowed cell voltage in V */
+#define VOLTAGE_MAX_V (4.2F)            /*!< Maximum allowed cell voltage in V */
+#define VOLTAGE_CELL_DELTA_MAX_V (0.1F) /*!< Maximum allowed spread between the highest and lowest cell in V */
 
 /*!
  * \brief            Return codes for the voltage module functions.
