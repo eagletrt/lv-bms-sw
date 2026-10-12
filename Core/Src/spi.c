@@ -39,17 +39,17 @@ void MX_SPI1_Init(void) {
     hspi1.Instance = SPI1;
     hspi1.Init.Mode = SPI_MODE_MASTER;
     hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-    hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
+    hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
     hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
     hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-    hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
-    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+    hspi1.Init.NSS = SPI_NSS_SOFT;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
     hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
     hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
     hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
     hspi1.Init.CRCPolynomial = 7;
     hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-    hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+    hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
     if (HAL_SPI_Init(&hspi1) != HAL_OK) {
         Error_Handler();
     }
@@ -78,21 +78,12 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *spiHandle) {
         /* SPI1 clock enable */
         __HAL_RCC_SPI1_CLK_ENABLE();
 
-        __HAL_RCC_GPIOA_CLK_ENABLE();
         __HAL_RCC_GPIOB_CLK_ENABLE();
         /**SPI1 GPIO Configuration
-    PA15     ------> SPI1_NSS
     PB3     ------> SPI1_SCK
     PB4     ------> SPI1_MISO
     PB5     ------> SPI1_MOSI
     */
-        GPIO_InitStruct.Pin = GPIO_PIN_15;
-        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-        GPIO_InitStruct.Pull = GPIO_NOPULL;
-        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-        GPIO_InitStruct.Alternate = GPIO_AF0_SPI1;
-        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
         GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -101,6 +92,15 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *spiHandle) {
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
         /* USER CODE BEGIN SPI1_MspInit 1 */
+
+        /* LTC6810 CSB on PA15, driven manually (SPI uses software NSS). Idle high. */
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
+        GPIO_InitStruct.Pin = LTC_CS_Pin;
+        GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        HAL_GPIO_Init(LTC_CS_GPIO_Port, &GPIO_InitStruct);
 
         /* USER CODE END SPI1_MspInit 1 */
     }
@@ -116,13 +116,10 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
         __HAL_RCC_SPI1_CLK_DISABLE();
 
         /**SPI1 GPIO Configuration
-    PA15     ------> SPI1_NSS
     PB3     ------> SPI1_SCK
     PB4     ------> SPI1_MISO
     PB5     ------> SPI1_MOSI
     */
-        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_15);
-
         HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5);
 
         /* USER CODE BEGIN SPI1_MspDeInit 1 */
@@ -132,5 +129,83 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
 }
 
 /* USER CODE BEGIN 1 */
+
+enum BmsMonitorReturnCode spi_bms_monitor_send(uint8_t *const data, const size_t size) {
+    enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
+    uint16_t timeout = size * 5U;
+
+    // TODO: Non-blocking or set a decent enough timeout
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_RESET);
+    const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout);
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
+    switch (status) {
+        case HAL_TIMEOUT:
+        case HAL_ERROR:
+            code = BMS_MONITOR_RC_COMMUNICATION_ERROR;
+            break;
+        case HAL_BUSY:
+            code = BMS_MONITOR_RC_BUSY;
+            break;
+        case HAL_OK:
+            code = BMS_MONITOR_RC_OK;
+            break;
+        default:
+            code = BMS_MONITOR_RC_ERROR;
+            break;
+    }
+    return code;
+}
+
+enum BmsMonitorReturnCode spi_bms_monitor_send_receive(uint8_t *const data, uint8_t *out, const size_t size, const size_t out_size) {
+    enum BmsMonitorReturnCode code = BMS_MONITOR_RC_ERROR;
+    uint16_t timeout_tx = size * 5U;
+    uint16_t timeout_rx = out_size * 5U;
+
+    // TODO: Non-blocking or set a decent enough timeout
+    /* CS is held low across both the command (TX) and the data read (RX): the
+       LTC aborts the read if CSB is deasserted between the two phases. */
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_RESET);
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi1, data, size, timeout_tx);
+    switch (status) {
+        case HAL_TIMEOUT:
+        case HAL_ERROR:
+            code = BMS_MONITOR_RC_COMMUNICATION_ERROR;
+            break;
+        case HAL_BUSY:
+            code = BMS_MONITOR_RC_BUSY;
+            break;
+        case HAL_OK:
+            code = BMS_MONITOR_RC_OK;
+            break;
+        default:
+            code = BMS_MONITOR_RC_ERROR;
+            break;
+    }
+
+    if (code != BMS_MONITOR_RC_OK) {
+        HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
+        return code;
+    }
+
+    status = HAL_SPI_Receive(&hspi1, out, out_size, timeout_rx);
+    HAL_GPIO_WritePin(LTC_CS_GPIO_Port, LTC_CS_Pin, GPIO_PIN_SET);
+    switch (status) {
+        case HAL_TIMEOUT:
+        case HAL_ERROR:
+            code = BMS_MONITOR_RC_COMMUNICATION_ERROR;
+            break;
+        case HAL_BUSY:
+            code = BMS_MONITOR_RC_BUSY;
+            break;
+        case HAL_OK:
+            code = BMS_MONITOR_RC_OK;
+            break;
+        default:
+            code = BMS_MONITOR_RC_ERROR;
+            break;
+    }
+
+    return code;
+}
 
 /* USER CODE END 1 */

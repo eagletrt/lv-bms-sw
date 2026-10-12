@@ -22,6 +22,11 @@
 
 /* USER CODE BEGIN 0 */
 
+#include <stdio.h>
+#include <stdarg.h>
+
+#define USART_MAX_BUF_SIZE (10000U)
+
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -105,6 +110,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *uartHandle) {
         GPIO_InitStruct.Alternate = GPIO_AF1_USART1;
         HAL_GPIO_Init(USART_RX_GPIO_Port, &GPIO_InitStruct);
 
+        /* USART1 interrupt Init */
+        HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
+        HAL_NVIC_EnableIRQ(USART1_IRQn);
         /* USER CODE BEGIN USART1_MspInit 1 */
 
         /* USER CODE END USART1_MspInit 1 */
@@ -135,5 +143,24 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle) {
 }
 
 /* USER CODE BEGIN 1 */
+
+enum PalReturnCode usart_logger_transmit(const struct PalMessage *message) {
+    if (message == NULL) {
+        return PAL_RC_NULL_POINTER;
+    }
+
+    if (message->size == 0U) {
+        return PAL_RC_OK;
+    }
+
+    // Execute blocking transmission over the USART
+    HAL_StatusTypeDef status = HAL_UART_Transmit(&huart1, (uint8_t *)message->payload, (uint16_t)message->size, 100);
+
+    if (status != HAL_OK) {
+        return PAL_RC_IO_ERROR;
+    }
+
+    return PAL_RC_OK;
+}
 
 /* USER CODE END 1 */
