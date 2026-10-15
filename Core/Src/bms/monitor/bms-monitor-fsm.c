@@ -23,11 +23,12 @@ Functions and types have been generated with prefix "bms_monitor_fsm_"
 #include "logger-api.h"
 
 /*!
- * \brief Diagnostic helper: run a bms_monitor_api_* call and emit a WARN log
- *        line if it does not return BMS_MONITOR_RC_OK.
- * \details Added to surface the return codes that the generated state bodies
- *        would otherwise discard with a (void) cast. \p label identifies the
- *        FSM step so a failure can be traced back to the exact SPI operation.
+ * \brief            Diagnostic helper: run a bms_monitor_api_* call and emit a WARN log
+ *                   line if it does not return BMS_MONITOR_RC_OK.
+ *
+ * \details          Added to surface the return codes that the generated state bodies
+ *                   would otherwise discard with a (void) cast. \p label identifies the
+ *                   FSM step so a failure can be traced back to the exact SPI operation.
  */
 #define BMS_MON_STEP(call, label)                                                     \
     do {                                                                              \

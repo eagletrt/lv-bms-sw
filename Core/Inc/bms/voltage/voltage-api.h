@@ -88,22 +88,22 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
 /*!
  * \brief            Periodically send cell voltages over CAN.
  *
- * \param[in]        tick_ms The system tick in ms.
+ * \note             The application task scheduler supplies the CAN cycle timing.
  *
  * \retval           VOLTAGE_RC_OK on success.
  * \retval           VOLTAGE_RC_COMMUNICATION_ERROR if queuing the frame failed.
  */
-enum VoltageReturnCode voltage_api_periodically_send_cell_voltages(uint32_t tick_ms);
+enum VoltageReturnCode voltage_api_send_cell_voltages(void);
 
 /*!
  * \brief            Periodically send voltage info summary over CAN.
  *
- * \param[in]        tick_ms The system tick in ms.
+ * \note             The application task scheduler supplies the CAN cycle timing.
  *
  * \retval           VOLTAGE_RC_OK on success.
  * \retval           VOLTAGE_RC_COMMUNICATION_ERROR if queuing the frame failed.
  */
-enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_t tick_ms);
+enum VoltageReturnCode voltage_api_send_voltage_information(void);
 
 #else /*! CONFIG_VOLTAGE_MODULE_ENABLE */
 
@@ -114,8 +114,8 @@ enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_
 #define voltage_api_get_max() (0.F)
 #define voltage_api_get_average() (0.F)
 #define voltage_api_dump_voltages(out, start, size) (VOLTAGE_RC_OK)
-#define voltage_api_periodically_send_cell_voltages(tick_ms) (VOLTAGE_RC_OK)
-#define voltage_api_periodically_send_voltage_information(tick_ms) (VOLTAGE_RC_OK)
+#define voltage_api_send_cell_voltages() (VOLTAGE_RC_OK)
+#define voltage_api_send_voltage_information() (VOLTAGE_RC_OK)
 
 #endif /*! CONFIG_VOLTAGE_MODULE_ENABLE */
 

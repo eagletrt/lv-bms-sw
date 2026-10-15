@@ -80,9 +80,9 @@ typedef void transition_func_t(bms_monitor_fsm_state_data_t *data);
 
 /*** USER CODE BEGIN TYPES ***/
 /*!
- * \brief Type definition for the BMS monitor structure handler
+ * \brief            Type definition for the BMS monitor structure handler
  *
- * \attention This structure should not be used outside of this module
+ *                   \attention This structure should not be used outside of this module
  */
 struct BmsMonitorFsmHandler {
     bms_monitor_fsm_state_t fsm_state; /*!< The current state of the FSM */

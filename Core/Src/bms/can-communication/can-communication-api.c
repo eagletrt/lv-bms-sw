@@ -1,19 +1,20 @@
 /*!
- * \file can-communication-api.c
- * \date 2026-06-12
- * \authors Alessandro Bridi [ale.bridi15@gmail.com]
- * \authors Thomas Moretti [majorfrost173@gmail.com]
+ * \file            can-communication-api.c
+ * \date            2026-06-12
+ * \authors         Alessandro Bridi [ale.bridi15@gmail.com]
+ * \authors         Thomas Moretti [majorfrost173@gmail.com]
  *
- * \brief Implementation of the CAN-bus communication module.
+ * \brief           Implementation of the CAN-bus communication module.
  *
- * \details One file-static handler owns a PAL handler per network plus a
- *     shared arena. Frames travel through PAL as raw bytes of the
- *     CanCommunicationFrame struct itself, and PAL's built-in
- *     memcpy-deserialiser (selected by passing NULL for the deserialise
- *     callback at init) takes care of the copy in both directions..
+ * \details         One file-static handler owns a PAL handler per network plus a
+ *                  shared arena. Frames travel through PAL as raw bytes of the
+ *                  CanCommunicationFrame struct itself, and PAL's built-in
+ *                  memcpy-deserialiser (selected by passing NULL for the deserialise
+ *                  callback at init) takes care of the copy in both directions..
  */
 
 #include "can-communication-api.h"
+#include "eagletrt-api.h"
 #include "arena-allocator-api.h"
 #include "pal-api.h"
 #include "eagletrt.h"
@@ -21,25 +22,25 @@
 #include <string.h>
 
 /*!
- * \brief Internal module handler
- * \details Hidden from external linkage to enforce API-only access
+ * \brief            Internal module handler
+ * \details          Hidden from external linkage to enforce API-only access
  */
 EAGLETRT_STATIC struct CanCommunicationHandler handler;
 
 /*!
- * \brief Shared body of the per-network PAL send shims.
+ * \brief            Shared body of the per-network PAL send shims.
  *
- * \details PAL's pal_send_callback type has no user-data slot, so the
- *     module installs a one-per-network static shim that thunks into this
- *     helper with the right network ID.
+ * \details          PAL's pal_send_callback type has no user-data slot, so the
+ *                   module installs a one-per-network static shim that thunks into this
+ *                   helper with the right network ID.
  *
- * \param[in] network Network ID of the slot whose user send to dispatch to.
- * \param[in] message PAL message whose payload is a raw CanCommunicationFrame.
+ * \param[in]        network Network ID of the slot whose user send to dispatch to.
+ * \param[in]        message PAL message whose payload is a raw CanCommunicationFrame.
  *
- * \retval PAL_RC_OK on success.
- * \retval PAL_RC_NULL_POINTER if \p message or the user send callback is NULL.
- * \retval PAL_RC_INVALID_ARGUMENT if the message size does not match a frame.
- * \retval PAL_RC_IO_ERROR if the user send callback reported failure.
+ * \retval           PAL_RC_OK on success.
+ * \retval           PAL_RC_NULL_POINTER if \p message or the user send callback is NULL.
+ * \retval           PAL_RC_INVALID_ARGUMENT if the message size does not match a frame.
+ * \retval           PAL_RC_IO_ERROR if the user send callback reported failure.
  */
 EAGLETRT_STATIC enum PalReturnCode prv_pal_send_dispatch(enum CanCommunicationNetwork network, const struct PalMessage *message) {
     if (message == NULL) {
@@ -50,7 +51,7 @@ EAGLETRT_STATIC enum PalReturnCode prv_pal_send_dispatch(enum CanCommunicationNe
     }
 
     struct CanCommunicationFrame frame;
-    (void)memcpy(&frame, message->payload, sizeof(frame));
+    EAGLETRT_API_UNUSED(memcpy(&frame, message->payload, sizeof(frame)));
 
     const can_communication_send_callback user_send = handler.networks[network].send;
     if (user_send == NULL) {
@@ -63,27 +64,27 @@ EAGLETRT_STATIC enum PalReturnCode prv_pal_send_dispatch(enum CanCommunicationNe
 }
 
 /*!
- * \brief PAL send shim for the primary network.
+ * \brief            PAL send shim for the primary network.
  *
- * \param[in] message PAL message whose payload is a raw CanCommunicationFrame.
+ * \param[in]        message PAL message whose payload is a raw CanCommunicationFrame.
  *
- * \return Whatever prv_pal_send_dispatch returns.
+ *                   \return Whatever prv_pal_send_dispatch returns.
  */
 EAGLETRT_STATIC enum PalReturnCode prv_pal_send_primary(const struct PalMessage *message) {
     return prv_pal_send_dispatch(CAN_COMMUNICATION_NETWORK_PRIMARY, message);
 }
 
 /*!
- * \brief Initialise one network slot in the module's file-static handler.
+ * \brief            Initialise one network slot in the module's file-static handler.
  *
- * \param[in] network  Network ID to initialise.
- * \param[in] config   User-supplied wiring for this network.
- * \param[in] pal_send PAL send shim hard-wired to this network.
+ * \param[in]        network  Network ID to initialise.
+ * \param[in]        config   User-supplied wiring for this network.
+ * \param[in]        pal_send PAL send shim hard-wired to this network.
  *
- * \retval CAN_COMMUNICATION_RC_OK on success.
- * \retval CAN_COMMUNICATION_RC_NULL_POINTER if any required callback is NULL.
- * \retval CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
- * \retval CAN_COMMUNICATION_RC_ERROR if PAL fails to initialise.
+ * \retval           CAN_COMMUNICATION_RC_OK on success.
+ * \retval           CAN_COMMUNICATION_RC_NULL_POINTER if any required callback is NULL.
+ * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
+ * \retval           CAN_COMMUNICATION_RC_ERROR if PAL fails to initialise.
  */
 EAGLETRT_STATIC enum CanCommunicationReturnCode prv_can_communication_api_init_network(enum CanCommunicationNetwork network, const struct CanCommunicationNetworkConfig config, pal_send_callback pal_send) {
     if (config.send == NULL || config.on_receive == NULL) {
@@ -136,20 +137,20 @@ enum CanCommunicationReturnCode can_communication_api_init(const struct CanCommu
 }
 
 /*!
- * \brief Shared body of can_communications_api_add_to_tx_buffer and
- *     can_communications_api_add_to_rx_buffer.
+ * \brief            Shared body of can_communications_api_add_to_tx_buffer and
+ *                   can_communications_api_add_to_rx_buffer.
  *
- * \param[in] network Target network.
- * \param[in] frame   Frame to push.
- * \param[in] to_tx   true  → push to the TX queue (send path),
- *                    false → push to the RX queue (ISR path).
+ * \param[in]        network Target network.
+ * \param[in]        frame   Frame to push.
+ * \param[in]        to_tx   true  → push to the TX queue (send path),
+ *                   false → push to the RX queue (ISR path).
  *
- * \retval CAN_COMMUNICATION_RC_OK on success.
- * \retval CAN_COMMUNICATION_RC_NULL_POINTER if \p frame is NULL.
- * \retval CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
- * \retval CAN_COMMUNICATION_RC_INVALID_LENGTH if \p frame->length is too large.
- * \retval CAN_COMMUNICATION_RC_QUEUE_FULL if the target queue is saturated.
- * \retval CAN_COMMUNICATION_RC_ERROR on a PAL-internal failure.
+ * \retval           CAN_COMMUNICATION_RC_OK on success.
+ * \retval           CAN_COMMUNICATION_RC_NULL_POINTER if \p frame is NULL.
+ * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
+ * \retval           CAN_COMMUNICATION_RC_INVALID_LENGTH if \p frame->length is too large.
+ * \retval           CAN_COMMUNICATION_RC_QUEUE_FULL if the target queue is saturated.
+ * \retval           CAN_COMMUNICATION_RC_ERROR on a PAL-internal failure.
  */
 EAGLETRT_STATIC enum CanCommunicationReturnCode prv_enqueue(enum CanCommunicationNetwork network, const struct CanCommunicationFrame *frame, bool to_tx) {
     if (frame == NULL) {

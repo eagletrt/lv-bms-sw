@@ -1,8 +1,8 @@
 /*!
- * \file logger-api.c
- * \author Dorijan Di Zepp
- * \date 2026-07-01
- * \brief API execution handling for logging records.
+ * \file            logger-api.c
+ *                  \author Dorijan Di Zepp
+ * \date            2026-07-01
+ * \brief           API execution handling for logging records.
  */
 
 #include "logger-api.h"
@@ -14,8 +14,8 @@
 #define LOGGER_MAX_LINE_SIZE (64U)
 
 /*!
- * \brief Internal module handler.
- * \details Hidden from external linkage to enforce API-only access.
+ * \brief            Internal module handler.
+ * \details          Hidden from external linkage to enforce API-only access.
  */
 EAGLETRT_STATIC struct LoggerHandler logger_handler;
 

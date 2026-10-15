@@ -31,7 +31,7 @@ enum BmsMonitorReturnCode {
 };
 
 /*!
- * \brief             List of voltage registers.
+ * \brief            List of voltage registers.
  */
 enum BmsMonitorVoltageRegister {
     BMS_MONITOR_VOLTAGE_REGISTER_A = LTC6810_2_CVAR,
@@ -40,7 +40,7 @@ enum BmsMonitorVoltageRegister {
 };
 
 /*!
- * \brief             List of open wire procedure operations.
+ * \brief            List of open wire procedure operations.
  */
 enum BmsMonitorOpenWireOperation {
     BMS_MANAGER_OPEN_WIRE_OPERATION_PUD = LTC6810_2_PUP_INACTIVE,

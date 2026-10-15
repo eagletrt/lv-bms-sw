@@ -28,9 +28,9 @@
 EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
 
 /*!
- * \brief           Check if there are adjacent or invalid cells.
+ * \brief            Check if there are adjacent or invalid cells.
  *
- * \returns         bool True if valid, false otherwise.
+ * \returns          bool True if valid, false otherwise.
  */
 EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
     /*! Bits past the DEFINES_CELLS_SERIES_COUNT cells the pack actually has. */
@@ -40,32 +40,32 @@ EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
 }
 
 /*!
- * \brief           Turn a cell bitmask into the LTC discharge field.
+ * \brief            Turn a cell bitmask into the LTC discharge field.
  *
- * \details         The caller counts cells from bit 0, the LTC does not: its
- *                  discharge field carries DCC0 in bit 0 and DCC1..DCC6 in bits
- *                  1..6, and DCC1 is the one that discharges the first cell.
- *                  DCC0 belongs to the extra S0 switch, which this board leaves
- *                  unconnected, so setting bit 0 of the register does nothing at
- *                  all. Shifting here keeps that quirk inside the module that
- *                  owns the LTC driver, and confirmed on hardware: register
- *                  0x02 discharges cell 1, 0x04 cell 2, and so on to 0x40 for
- *                  cell 6.
+ * \details          The caller counts cells from bit 0, the LTC does not: its
+ *                   discharge field carries DCC0 in bit 0 and DCC1..DCC6 in bits
+ *                   1..6, and DCC1 is the one that discharges the first cell.
+ *                   DCC0 belongs to the extra S0 switch, which this board leaves
+ *                   unconnected, so setting bit 0 of the register does nothing at
+ *                   all. Shifting here keeps that quirk inside the module that
+ *                   owns the LTC driver, and confirmed on hardware: register
+ *                   0x02 discharges cell 1, 0x04 cell 2, and so on to 0x40 for
+ *                   cell 6.
  *
- * \param[in]       cells Bitmask of cells to discharge, bit 0 being the first cell.
+ * \param[in]        cells Bitmask of cells to discharge, bit 0 being the first cell.
  *
- * \returns         uint8_t The value for Ltc68102Cfgr::DCC.
+ * \returns          uint8_t The value for Ltc68102Cfgr::DCC.
  */
 EAGLETRT_STATIC uint8_t prv_bms_monitor_api_cells_to_dcc(uint8_t cells) {
     return (uint8_t)(cells << 1U);
 }
 
 /*!
- * \brief           Turn an LTC discharge field back into a cell bitmask.
+ * \brief            Turn an LTC discharge field back into a cell bitmask.
  *
- * \param[in]       dcc The value read back from Ltc68102Cfgr::DCC.
+ * \param[in]        dcc The value read back from Ltc68102Cfgr::DCC.
  *
- * \returns         uint8_t Bitmask of discharging cells, bit 0 being the first cell.
+ * \returns          uint8_t Bitmask of discharging cells, bit 0 being the first cell.
  */
 EAGLETRT_STATIC uint8_t prv_bms_monitor_api_dcc_to_cells(uint8_t dcc) {
     return (uint8_t)(dcc >> 1U);
@@ -304,13 +304,13 @@ enum BmsMonitorReturnCode bms_monitor_api_start_gpio_conversion(void) {
 }
 
 /*!
- * \brief           Read one auxiliary (GPIO) voltage register group from the LTC.
+ * \brief            Read one auxiliary (GPIO) voltage register group from the LTC.
  *
- * \param[in]       reg The auxiliary register group to read (AVAR or AVBR).
- * \param[out]      out Array receiving LTC6810_2_REG_AUX_COUNT raw values.
+ * \param[in]        reg The auxiliary register group to read (AVAR or AVBR).
+ * \param[out]       out Array receiving LTC6810_2_REG_AUX_COUNT raw values.
  *
- * \retval          BMS_MONITOR_RC_OK on success.
- * \retval          BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ * \retval           BMS_MONITOR_RC_OK on success.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
  */
 EAGLETRT_STATIC enum BmsMonitorReturnCode prv_bms_monitor_api_read_aux_register(enum Ltc68102Avxr reg, raw_volt *out) {
     uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };

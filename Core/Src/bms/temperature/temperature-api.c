@@ -170,13 +170,7 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
     return TEMPERATURE_RC_OK;
 }
 
-enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32_t tick_ms) {
-    /*! Gate to can_primary_cycle_time_lvactemperature (200 ms). */
-    if (tick_ms - temperature_handler.last_tick_ms < can_primary_cycle_time_lvactemperature) {
-        return TEMPERATURE_RC_OK;
-    }
-    temperature_handler.last_tick_ms = tick_ms;
-
+enum TemperatureReturnCode temperature_api_send_temperatures(void) {
     celsius temperatures[DEFINES_CELLS_NTC_COUNT];
     temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
 

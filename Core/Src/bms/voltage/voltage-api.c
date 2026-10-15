@@ -103,12 +103,7 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
     return VOLTAGE_RC_OK;
 }
 
-enum VoltageReturnCode voltage_api_periodically_send_cell_voltages(uint32_t tick_ms) {
-    if (tick_ms - voltage_handler.last_tick_cell_voltage_ms < can_primary_cycle_time_lvaccellvoltage) {
-        return VOLTAGE_RC_OK;
-    }
-    voltage_handler.last_tick_cell_voltage_ms = tick_ms;
-
+enum VoltageReturnCode voltage_api_send_cell_voltages(void) {
     volt cells[DEFINES_CELLS_SERIES_COUNT];
     voltage_api_dump_voltages(cells, 0U, DEFINES_CELLS_SERIES_COUNT);
 
@@ -135,12 +130,7 @@ enum VoltageReturnCode voltage_api_periodically_send_cell_voltages(uint32_t tick
     return VOLTAGE_RC_OK;
 }
 
-enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_t tick_ms) {
-    if (tick_ms - voltage_handler.last_tick_voltage_information_ms < can_primary_cycle_time_lvacvoltageinfo) {
-        return VOLTAGE_RC_OK;
-    }
-    voltage_handler.last_tick_voltage_information_ms = tick_ms;
-
+enum VoltageReturnCode voltage_api_send_voltage_information(void) {
     union CanPrimaryMessages message = {
         .lvacvoltageinfo = {
             .total = voltage_api_get_sum(),

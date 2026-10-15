@@ -36,49 +36,33 @@ The finite state machine has:
 #include "feedback-api.h"
 #include "defines.h"
 
-EAGLETRT_STATIC uint32_t last_tick = 0U;
-
-constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
-
 /*!
- * \brief How often the pack is re-checked against the relay conditions, in ms.
+ * \brief            Consecutive healthy checks required before the relay is closed.
  *
- * \details Close to one full monitor cycle, which is what refreshes the cell
- *          voltages and the open-wire result, so checking faster would only ever
- *          re-read the same data.
- */
-constexpr uint32_t fsm_relay_check_period = 50U;
-
-/*! Period of the serial snapshot in ms. */
-constexpr uint32_t fsm_debug_print_period = 500U;
-
-/*!
- * \brief Consecutive healthy checks required before the relay is closed.
- *
- * \details A fault opens the output on the very first bad check, but closing it
- *          again waits for the pack to look good several times running. The
- *          asymmetry is deliberate: K1 is a mechanical relay and chattering it on
- *          a marginal reading would wear the contacts.
+ * \details          A fault opens the output on the very first bad check, but closing it
+ *                   again waits for the pack to look good several times running. The
+ *                   asymmetry is deliberate: K1 is a mechanical relay and chattering it on
+ *                   a marginal reading would wear the contacts.
  */
 constexpr uint8_t fsm_relay_close_confirmations = 3U;
 
 EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
 /*!
- * \brief Board services handed to the FSM at init, plus the relay supervision state.
+ * \brief            Board services handed to the FSM at init, plus the relay supervision state.
  *
- * \details Nothing under Core/{Inc,Src}/bms may include the HAL, so the FSM
- *          reaches the ADC, the relay and the board measurements only through the
- *          callbacks. They are captured once in do_init() because the later states
- *          receive a struct FsmData, not the init data.
+ * \details          Nothing under Core/{Inc,Src}/bms may include the HAL, so the FSM
+ *                   reaches the ADC, the relay and the board measurements only through the
+ *                   callbacks. They are captured once in do_init() because the later states
+ *                   receive a struct FsmData, not the init data.
  */
 EAGLETRT_STATIC struct FsmRelayHandler fsm_relay = { 0 };
 
 /*!
- * \brief Open or close the master relay, tolerating a board that never supplied
- *        the callback.
+ * \brief            Open or close the master relay, tolerating a board that never supplied
+ *                   the callback.
  *
- * \param[in] closed True to connect the output.
+ * \param[in]        closed True to connect the output.
  */
 EAGLETRT_STATIC void prv_fsm_drive_master_relay(bool closed) {
     if (fsm_relay.set_master_relay != NULL) {
@@ -86,19 +70,8 @@ EAGLETRT_STATIC void prv_fsm_drive_master_relay(bool closed) {
     }
 }
 
-EAGLETRT_STATIC void prv_periodically_send(enum CanPrimaryLvacfsmStatus status, uint32_t tick) {
-    identity_api_periodically_send_state(status, tick);
-    identity_api_periodically_send_version(tick);
-    identity_api_periodically_send_libcan_version(tick);
-
-    voltage_api_periodically_send_cell_voltages(tick);
-    voltage_api_periodically_send_voltage_information(tick);
-
-    temperature_api_periodically_send_temperatures(tick);
-}
-
 /*!
- * \brief Reason the master relay may not be closed.
+ * \brief            Reason the master relay may not be closed.
  */
 enum FsmSafetyStatus {
     FSM_SAFETY_OK = 0,              /*!< Every enabled check passed */
@@ -111,7 +84,7 @@ enum FsmSafetyStatus {
 };
 
 /*!
- * \brief Human-readable form of a safety status, for the log.
+ * \brief            Human-readable form of a safety status, for the log.
  */
 EAGLETRT_STATIC const char *prv_fsm_safety_status_name(enum FsmSafetyStatus status) {
     switch (status) {
@@ -135,15 +108,15 @@ EAGLETRT_STATIC const char *prv_fsm_safety_status_name(enum FsmSafetyStatus stat
 }
 
 /*!
- * \brief Decide whether the pack is in a state that allows closing the master relay.
+ * \brief            Decide whether the pack is in a state that allows closing the master relay.
  *
- * \details Runs on every supervision tick, so it does not log: the caller logs
- *          only when the verdict changes, otherwise a standing fault would flood
- *          the serial link and, since the logger transmits blocking, stall the
- *          main loop.
+ * \details          Runs on every supervision tick, so it does not log: the caller logs
+ *                   only when the verdict changes, otherwise a standing fault would flood
+ *                   the serial link and, since the logger transmits blocking, stall the
+ *                   main loop.
  *
- * \returns enum FsmSafetyStatus FSM_SAFETY_OK when the relay may be closed,
- *          otherwise the first condition that failed.
+ * \returns          enum FsmSafetyStatus FSM_SAFETY_OK when the relay may be closed,
+ *                   otherwise the first condition that failed.
  */
 EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
     volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 0.F };
@@ -174,25 +147,15 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
 }
 
 /*!
- * \brief Supervise the master relay against the state of the pack.
+ * \brief            Supervise the master relay against the state of the pack.
  *
- * \details Called from idle at #fsm_relay_check_period. A fault opens the output
- *          straight away; closing it again needs #fsm_relay_close_confirmations
- *          consecutive healthy checks. Both the verdict and the relay position
- *          are logged only when they change.
- *
- *          Nothing special is needed at startup: until the monitor FSM has
- *          produced its first readings the cells all sit at 0 V, which fails the
- *          range check, so the relay simply stays open until real data arrives.
- *
- * \param[in] tick The current tick in ms.
+ * \details          Called from idle on its own 50 ms cycle. A fault opens the
+ *                   output straight away; closing it again needs
+ *                   #fsm_relay_close_confirmations healthy checks; the verdict is
+ *                   logged only when it changes. First reads are 0 V so the relay
+ *                   stays open until real data.
  */
-EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
-    if ((tick - fsm_relay.check_tick) < fsm_relay_check_period) {
-        return;
-    }
-    fsm_relay.check_tick = tick;
-
+void fsm_relay_supervise(void) {
     static enum FsmSafetyStatus last_status = FSM_SAFETY_OK;
     const enum FsmSafetyStatus status = prv_fsm_check_pack_safety();
 
@@ -200,7 +163,6 @@ EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
         last_status = status;
         logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] %s", prv_fsm_safety_status_name(status));
     }
-
     if (status != FSM_SAFETY_OK) {
         fsm_relay.good_streak = 0U;
         if (fsm_relay.closed) {
@@ -223,165 +185,8 @@ EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
     }
 }
 
-/*! Longest rendering of one temperature, "-24.0" plus its terminator. */
-#define FSM_TEMPERATURE_ROW_SIZE (48U)
-
-/*! Channels printed per NTC row, so the lines stay inside the logger budget. */
-#define FSM_ROW_CHANNEL_COUNT (6U)
-
-/*! Scale taking a base unit to its milli- form for the integer log fields. */
-#define FSM_MILLI_PER_UNIT (1000.F)
-
-/*!
- * \brief Render a value in its milli- unit, the form every integer field of the
- *        log uses.
- *
- * \param[in] value The value in its base unit.
- *
- * \returns int The value in milli-units, truncated.
- */
-EAGLETRT_STATIC int prv_milli(float value) {
-    return (int)(value * FSM_MILLI_PER_UNIT);
-}
-
-/*!
- * \brief Render a run of voltages as millivolt fields into one string.
- *
- * \param[in]  values The array to read from.
- * \param[in]  first  Index of the first value in the row.
- * \param[in]  count  Number of values in the row.
- * \param[out] out    Buffer receiving the row, leading space included.
- * \param[in]  size   Size of \p out.
- */
-EAGLETRT_STATIC void prv_format_milli_row(const volt *values, size_t first, size_t count, char *out, size_t size) {
-    size_t used = 0U;
-    out[0] = '\0';
-
-    for (size_t i = 0U; i < count; ++i) {
-        const int written = snprintf(out + used, size - used, " %d", prv_milli(values[first + i]));
-
-        if (written < 0 || (size_t)written >= (size - used)) {
-            break;
-        }
-        used += (size_t)written;
-    }
-}
-
-/*! Shown in place of a reading that does not exist. */
-#define FSM_NO_READING "--"
-
-/*!
- * \brief Render a row of NTC temperatures into one string.
- *
- * \details A channel flagged open or shorted is never converted, so its slot
- *          still holds the 0 °C it was initialised with, which would read as a
- *          real measurement near freezing. Those get a dash instead.
- *
- *          The whole row is built here rather than passed to the logger as
- *          floats because printf cannot pick between a number and a literal per
- *          field, and that choice is exactly what the dash needs.
- *
- * \param[in]  first        Index of the first channel in the row.
- * \param[in]  count        Number of channels in the row.
- * \param[in]  temperatures The dumped temperatures.
- * \param[out] out          Buffer receiving the rendered row, leading space included.
- * \param[in]  size         Size of \p out.
- */
-EAGLETRT_STATIC void prv_format_temperature_row(size_t first, size_t count, const celsius *temperatures, char *out, size_t size) {
-    size_t used = 0U;
-    out[0] = '\0';
-
-    for (size_t i = 0U; i < count; ++i) {
-        const size_t index = first + i;
-        const bool valid = temperature_api_get_channel_status(index) == TEMPERATURE_STATUS_OK;
-
-        const int written = valid ? snprintf(out + used, size - used, " %.1f", (double)temperatures[index])
-                                  : snprintf(out + used, size - used, " " FSM_NO_READING);
-
-        /*! Stop on truncation rather than letting used run past the buffer. */
-        if (written < 0 || (size_t)written >= (size - used)) {
-            break;
-        }
-        used += (size_t)written;
-    }
-}
-
-/*!
- * \brief Print a compact human-readable snapshot of the board over the serial
- *        logger: per-cell voltages (mV), every NTC of the multiplexer (deci-°C),
- *        the analog rails (mV), the feedback statuses and the open-wire result.
- *
- * \note  Voltages and currents are printed as integer mV and mA; temperatures
- *        carry a decimal because that is where the resolution matters.
- */
-EAGLETRT_STATIC void prv_print_debug(void) {
-    /*! Refresh the board snapshot; leave the previous one in place if the board
-        never supplied a reader. */
-    if (fsm_relay.read_measurements != NULL) {
-        fsm_relay.read_measurements(&fsm_relay.board);
-    }
-
-    volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 0.F };
-    (void)voltage_api_dump_voltages(voltages, 0U, DEFINES_CELLS_SERIES_COUNT);
-
-    celsius temperatures[DEFINES_CELLS_NTC_COUNT] = { 0.F };
-    (void)temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
-
-    const uint32_t open_wire = bms_monitor_api_check_open_wire();
-
-    logger_api_log(LOGGER_LEVEL_INFO, "===== BMS (V=mV, T=C, I=mA) =====");
-    char row[FSM_TEMPERATURE_ROW_SIZE];
-
-    prv_format_milli_row(voltages, 0U, DEFINES_CELLS_SERIES_COUNT, row, sizeof(row));
-    logger_api_log(LOGGER_LEVEL_INFO, "V%s", row);
-
-    /*! Every channel faulty means the aggregates were computed over nothing, so
-        they are no more real than the individual slots. */
-    constexpr uint32_t all_channels = (1UL << DEFINES_CELLS_NTC_COUNT) - 1UL;
-    const uint32_t ntc_faults = temperature_api_get_fault_bitmask();
-
-    if ((ntc_faults & all_channels) == all_channels) {
-        logger_api_log(LOGGER_LEVEL_INFO, "Tmin " FSM_NO_READING " Tmax " FSM_NO_READING " Tavg " FSM_NO_READING);
-    } else {
-        logger_api_log(LOGGER_LEVEL_INFO, "Tmin %.1f Tmax %.1f Tavg %.1f", (double)temperature_api_get_min(), (double)temperature_api_get_max(), (double)temperature_api_get_average());
-    }
-
-    /* Every cell NTC comes from the MCU multiplexer: index n is mux channel n.
-       The raw divider voltages are printed next to the temperatures because the
-       NTC pull-up R59 is still unset on the schematic, so the volt-to-celsius
-       curve cannot be trusted yet while the voltages can. */
-    prv_format_temperature_row(0U, FSM_ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
-    logger_api_log(LOGGER_LEVEL_INFO, "T_MUX0-5%s", row);
-
-    prv_format_temperature_row(FSM_ROW_CHANNEL_COUNT, FSM_ROW_CHANNEL_COUNT, temperatures, row, sizeof(row));
-    logger_api_log(LOGGER_LEVEL_INFO, "T_MUX6-11%s", row);
-
-    const struct FsmBoardMeasurements *board = &fsm_relay.board;
-
-    prv_format_milli_row(board->ntc_voltages, 0U, FSM_ROW_CHANNEL_COUNT, row, sizeof(row));
-    logger_api_log(LOGGER_LEVEL_INFO, "NTCV0-5%s", row);
-
-    prv_format_milli_row(board->ntc_voltages, FSM_ROW_CHANNEL_COUNT, FSM_ROW_CHANNEL_COUNT, row, sizeof(row));
-    logger_api_log(LOGGER_LEVEL_INFO, "NTCV6-11%s", row);
-
-    logger_api_log(LOGGER_LEVEL_INFO, "MCU %.1f mux %d%s VDDA %d", (double)board->mcu_temperature, (int)board->ntc_mux_channel, board->ntc_mux_held ? " HOLD" : "", prv_milli(board->vdda));
-    logger_api_log(LOGGER_LEVEL_INFO, "VIN %d UNF %d VSUP %d", prv_milli(board->vin), prv_milli(board->vin_unfused), prv_milli(board->vsup));
-    logger_api_log(LOGGER_LEVEL_INFO, "VOUT %d LVMS %d 5V %d", prv_milli(board->vout), prv_milli(board->lvms_out), prv_milli(board->mcu_5v));
-    logger_api_log(LOGGER_LEVEL_INFO, "V_CHRG %d I_CHRG %d", prv_milli(board->charger_voltage), prv_milli(board->charger_current));
-    /* Pack current as stored in the current module, i.e. what goes out on CAN. */
-    logger_api_log(LOGGER_LEVEL_INFO, "I_OUT %d", prv_milli(current_api_get_cells_output_current()));
-
-    /* The LTC auxiliary inputs carry the balancing/charger resistor NTCs, not
-       cell NTCs, so they stay out of the temperature module and are shown raw. */
-    logger_api_log(LOGGER_LEVEL_INFO, "TS_LTC %d %d %d %d", prv_milli(bms_monitor_api_get_gpio_voltage(0U)), prv_milli(bms_monitor_api_get_gpio_voltage(1U)), prv_milli(bms_monitor_api_get_gpio_voltage(2U)), prv_milli(bms_monitor_api_get_gpio_voltage(3U)));
-
-    /* NTC channels that are open or shorted, one bit each, same shape as the
-       cell open-wire mask. Those channels are left out of min/max/average. */
-    logger_api_log(LOGGER_LEVEL_INFO, "NTCflt 0x%lx BAL 0x%x", (unsigned long)ntc_faults, (unsigned)bms_monitor_api_get_discharge());
-
-    /* One digit per feedback, in enum Feedback order: 0 low, 1 error, 2 high. */
-    logger_api_log(LOGGER_LEVEL_INFO, "FB %d%d%d%d%d%d%d%d", (int)feedback_api_get_status(FEEDBACK_SUPPLY_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_SUPPLY_DELAY), (int)feedback_api_get_status(FEEDBACK_CHARGE_STATUS_NEGATED), (int)feedback_api_get_status(FEEDBACK_CHARGE_VIN_VALID_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_ENABLE_NEGATED), (int)feedback_api_get_status(FEEDBACK_OUTPUT_DELAY), (int)feedback_api_get_status(FEEDBACK_OUTPUT_FUSE), (int)feedback_api_get_status(FEEDBACK_VOUT));
-    logger_api_log(LOGGER_LEVEL_INFO, "OpenWire 0x%lx %s", (unsigned long)open_wire, (open_wire == 0U) ? "none" : "DETECTED");
+void fsm_monitor_step(void) {
+    bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, NULL);
 }
 
 // GLOBALS
@@ -474,23 +279,10 @@ state_t do_init(state_data_t *data) {
 state_t do_idle(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    struct FsmData *fsm_idle_data = (struct FsmData *)data;
-
-    const uint32_t current_tick = fsm_idle_data->tick;
-
-    can_communication_api_process_rx(CAN_COMMUNICATION_NETWORK_PRIMARY);
-
-    /* Step the monitor FSM (cell voltages + open-wire) at its cadence. */
-    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-        last_tick = current_tick;
-
-        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
-    }
+    EAGLETRT_API_UNUSED(data);
 
     /* Hold the output closed only while the pack keeps checking out. */
-    prv_fsm_supervise_master_relay(current_tick);
-
-    prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
+    can_communication_api_process_rx(CAN_COMMUNICATION_NETWORK_PRIMARY);
 
     can_communication_api_process_tx(CAN_COMMUNICATION_NETWORK_PRIMARY);
 
@@ -517,20 +309,13 @@ state_t do_idle(state_data_t *data) {
 state_t do_fatal(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    struct FsmData *fsm_idle_data = (struct FsmData *)data;
+    EAGLETRT_API_UNUSED(data);
 
     /*! Whatever route led here, the output must not stay live. Held low every
         cycle rather than only on entry, so a glitch on the pin is corrected. */
     prv_fsm_drive_master_relay(false);
     fsm_relay.closed = false;
     fsm_relay.good_streak = 0U;
-
-    const uint32_t current_tick = fsm_idle_data->tick;
-    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-        last_tick = current_tick;
-
-        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
-    }
 
     switch (next_state) {
         case NO_CHANGE:
@@ -549,15 +334,7 @@ state_t do_fatal(state_data_t *data) {
 state_t do_flash(state_data_t *data) {
     state_t next_state = STATE_IDLE;
     /* Your Code Here */
-    struct FsmData *fsm_idle_data = (struct FsmData *)data;
-
-    const uint32_t current_tick = fsm_idle_data->tick;
-
-    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-        last_tick = current_tick;
-
-        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
-    }
+    EAGLETRT_API_UNUSED(data);
 
     switch (next_state) {
         case STATE_IDLE:
@@ -575,24 +352,9 @@ state_t do_flash(state_data_t *data) {
 state_t do_balancing(state_data_t *data) {
     state_t next_state = NO_CHANGE;
     /* Your Code Here */
-    struct FsmData *fsm_idle_data = (struct FsmData *)data;
-
-    const uint32_t current_tick = fsm_idle_data->tick;
+    EAGLETRT_API_UNUSED(data);
 
     can_communication_api_process_rx(CAN_COMMUNICATION_NETWORK_PRIMARY);
-
-    if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {
-        last_tick = current_tick;
-
-        bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
-    }
-
-    (void)balancing_api_run(current_tick);
-
-    /* Hold the output closed only while the pack keeps checking out. */
-    prv_fsm_supervise_master_relay(current_tick);
-
-    prv_periodically_send(CAN_PRIMARY_LVACFSM_STATUS_IDLE, current_tick);
 
     can_communication_api_process_tx(CAN_COMMUNICATION_NETWORK_PRIMARY);
 
@@ -680,7 +442,7 @@ void idle_to_fatal(state_data_t *data) {
 void balancing_to_idle(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
-    (void)balancing_api_stop();
+    EAGLETRT_API_UNUSED(balancing_api_stop());
 }
 
 // This function is called in 1 transition:
@@ -688,7 +450,7 @@ void balancing_to_idle(state_data_t *data) {
 void balancing_to_fatal(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
-    (void)balancing_api_stop();
+    EAGLETRT_API_UNUSED(balancing_api_stop());
 }
 
 // This function is called in 1 transition:

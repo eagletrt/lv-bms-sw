@@ -1,8 +1,8 @@
 /*!
- * \file post.h
- * \author Thomas Moretti [majorfrost173@gmail.com]
- * \date 2026-06-18
- * \brief Module dedicated to running a power-on self-test (POST)
+ * \file            post.h
+ *                  \author Thomas Moretti [majorfrost173@gmail.com]
+ * \date            2026-06-18
+ * \brief           Module dedicated to running a power-on self-test (POST)
  */
 
 #ifndef POST_H
@@ -13,7 +13,7 @@
 #include "fsm.h"
 
 /*!
- * \brief Return codes for the POST module APIs
+ * \brief            Return codes for the POST module APIs
  */
 enum PostReturnCode {
     POST_RC_OK = 0,               /*!< POST executed succesfully */
@@ -22,7 +22,7 @@ enum PostReturnCode {
 };
 
 /*!
- * \brief Structure containing all the information needed at initialization time
+ * \brief            Structure containing all the information needed at initialization time
  */
 struct PostInitData {
     struct CanCommunicationNetworkConfig can_network_configurations[CAN_COMMUNICATION_NETWORK_COUNT];

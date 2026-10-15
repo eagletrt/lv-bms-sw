@@ -1,8 +1,8 @@
 /*!
- * \file post-api.c
- * \author Thomas Moretti [majorfrost173@gmail.com]
- * \date 2026-08-08
- * \brief Module dedicated to running a power-on self-test (POST)
+ * \file            post-api.c
+ * \author          Thomas Moretti [majorfrost173@gmail.com]
+ * \date            2026-08-08
+ * \brief           Module dedicated to running a power-on self-test (POST)
  */
 
 #include "post-api.h"

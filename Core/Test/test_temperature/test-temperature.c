@@ -221,69 +221,69 @@ void check_temperature_api_dump_temperatures_when_size_is_too_big(void) {
  * \{
  */
 
-void check_periodically_send_temperatures_returns_ok(void) {
+void check_send_temperatures_returns_ok(void) {
     const celsius temperatures[DEFINES_CELLS_NTC_COUNT] = {
         10.F, 20.F, 30.F, 40.F, 50.F, 60.F, 70.F, 80.F, 90.F, 100.F, 110.F, 120.F
     };
     memcpy(temperature_handler.temperatures, temperatures, sizeof(temperatures));
 
-    enum TemperatureReturnCode rc = temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
-    TEST_ASSERT_EQUAL_INT_MESSAGE(TEMPERATURE_RC_OK, rc, "Periodic send must return OK.");
+    enum TemperatureReturnCode rc = temperature_api_send_temperatures();
+    TEST_ASSERT_EQUAL_INT(TEMPERATURE_RC_OK, rc);
 }
 
-void check_periodically_send_temperatures_does_not_send_before_cycle(void) {
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature - 1);
+void check_send_temperatures_without_clock(void) {
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0U, test_captured_count, "No frame must be emitted before the cycle time has elapsed.");
+    TEST_ASSERT_EQUAL_UINT32(2U, test_captured_count);
 }
 
-void check_periodically_send_temperatures_sends_once_cycle_elapsed(void) {
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+void check_send_temperatures_sends_two_frames(void) {
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, test_captured_count, "Two frames (1 mux + info) must be emitted once the cycle time has elapsed.");
+    TEST_ASSERT_EQUAL_UINT32(2U, test_captured_count);
 }
 
-void check_periodically_send_temperatures_does_not_resend_within_same_cycle(void) {
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature + 1);
+void check_send_temperatures_on_every_call(void) {
+    temperature_api_send_temperatures();
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, test_captured_count, "A second call within the same cycle must not emit additional frames.");
+    TEST_ASSERT_EQUAL_UINT32(4U, test_captured_count);
 }
 
-void check_periodically_send_temperatures_first_frame_is_mux_group_0(void) {
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+void check_send_temperatures_first_frame_is_mux_group_0(void) {
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[0].id, "The first frame must be LvacTemperature.");
 }
 
-void check_periodically_send_temperatures_second_frame_is_mux_group_1(void) {
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+void check_send_temperatures_second_frame_is_mux_group_1(void) {
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature * 2U);
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[2].id, "The second call's frame must be LvacTemperature group 1.");
 }
 
-void check_periodically_send_temperatures_third_frame_is_info(void) {
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+void check_send_temperatures_second_frame_is_info(void) {
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATUREINFO, test_captured_frames[1].id, "The second frame must be LvacTemperatureInfo.");
 }
 
-void check_periodically_send_temperatures_encodes_mux_group_0(void) {
+void check_send_temperatures_encodes_mux_group_0(void) {
     const celsius temperatures[DEFINES_CELLS_NTC_COUNT] = {
         2.5F, 2.8F, 3.0F, 3.3F, 3.6F, 4.0F, 2.5F, 2.8F, 3.0F, 3.3F, 3.6F, 4.0F
     };
     memcpy(temperature_handler.temperatures, temperatures, sizeof(temperatures));
 
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -298,16 +298,16 @@ void check_periodically_send_temperatures_encodes_mux_group_0(void) {
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(4.0F, msg.lvactemperature.group_payload.mux_0.temperature6, "temperature6 must match NTC 5.");
 }
 
-void check_periodically_send_temperatures_encodes_mux_group_1(void) {
+void check_send_temperatures_encodes_mux_group_1(void) {
     const celsius temperatures[DEFINES_CELLS_NTC_COUNT] = {
         2.5F, 2.8F, 3.0F, 3.3F, 3.6F, 4.0F, 2.5F, 2.8F, 3.0F, 3.3F, 3.6F, 4.0F
     };
     memcpy(temperature_handler.temperatures, temperatures, sizeof(temperatures));
 
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature * 2U);
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -322,13 +322,13 @@ void check_periodically_send_temperatures_encodes_mux_group_1(void) {
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(4.0F, msg.lvactemperature.group_payload.mux_1.temperature12, "temperature12 must match NTC 11.");
 }
 
-void check_periodically_send_temperatures_encodes_info(void) {
+void check_send_temperatures_encodes_info(void) {
     const celsius temperatures[DEFINES_CELLS_NTC_COUNT] = {
         10.F, 20.F, 30.F, 40.F, 50.F, 60.F, 70.F, 80.F, 90.F, 100.F, 110.F, 120.F
     };
     memcpy(temperature_handler.temperatures, temperatures, sizeof(temperatures));
 
-    temperature_api_periodically_send_temperatures(can_primary_cycle_time_lvactemperature);
+    temperature_api_send_temperatures();
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -419,16 +419,16 @@ int main(void) {
      * \{
      */
 
-    RUN_TEST(check_periodically_send_temperatures_returns_ok);
-    RUN_TEST(check_periodically_send_temperatures_does_not_send_before_cycle);
-    RUN_TEST(check_periodically_send_temperatures_sends_once_cycle_elapsed);
-    RUN_TEST(check_periodically_send_temperatures_does_not_resend_within_same_cycle);
-    RUN_TEST(check_periodically_send_temperatures_first_frame_is_mux_group_0);
-    RUN_TEST(check_periodically_send_temperatures_second_frame_is_mux_group_1);
-    RUN_TEST(check_periodically_send_temperatures_third_frame_is_info);
-    RUN_TEST(check_periodically_send_temperatures_encodes_mux_group_0);
-    RUN_TEST(check_periodically_send_temperatures_encodes_mux_group_1);
-    RUN_TEST(check_periodically_send_temperatures_encodes_info);
+    RUN_TEST(check_send_temperatures_returns_ok);
+    RUN_TEST(check_send_temperatures_without_clock);
+    RUN_TEST(check_send_temperatures_sends_two_frames);
+    RUN_TEST(check_send_temperatures_on_every_call);
+    RUN_TEST(check_send_temperatures_first_frame_is_mux_group_0);
+    RUN_TEST(check_send_temperatures_second_frame_is_mux_group_1);
+    RUN_TEST(check_send_temperatures_second_frame_is_info);
+    RUN_TEST(check_send_temperatures_encodes_mux_group_0);
+    RUN_TEST(check_send_temperatures_encodes_mux_group_1);
+    RUN_TEST(check_send_temperatures_encodes_info);
 
     /*! \} */
 
