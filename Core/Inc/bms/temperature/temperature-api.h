@@ -142,10 +142,11 @@ celsius temperature_api_volt_to_celsius(volt value);
  *
  * \note             The application task scheduler supplies the CAN cycle timing.
  *
- * \retval           TEMPERATURE_RC_OK on success.
- * \retval           TEMPERATURE_RC_COMMUNICATION_ERROR if queuing a frame failed.
+ * \param[in]        task_id The ID of the task that is being executed.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
  */
-enum TemperatureReturnCode temperature_api_send_temperatures(void);
+void temperature_api_send_temperatures(uint8_t task_id);
 
 #else /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 
@@ -160,7 +161,7 @@ enum TemperatureReturnCode temperature_api_send_temperatures(void);
 #define temperature_api_get_average() (0.F)
 #define temperature_api_dump_temperatures(out, start, size) (TEMPERATURE_RC_OK)
 #define temperature_api_volt_to_celsius(value) (0.F)
-#define temperature_api_send_temperatures() (TEMPERATURE_RC_OK)
+#define temperature_api_send_temperatures(task_id) (EAGLETRT_API_NOP())
 
 #endif /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 

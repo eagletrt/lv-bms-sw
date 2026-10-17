@@ -96,12 +96,6 @@ void test_identity_api_init_returns_ok(void) {
  * \{
  */
 
-void test_send_state_returns_ok(void) {
-    enum IdentityReturnCode rc = identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_IDLE);
-
-    TEST_ASSERT_EQUAL_MESSAGE(IDENTITY_RC_OK, rc, "Sending the state must report success.");
-}
-
 void test_send_state_queues_exactly_one_frame(void) {
     identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_FLASH);
     prv_flush_primary();
@@ -132,12 +126,6 @@ void test_send_state_encodes_status(void) {
  * \defgroup identity_api_periodically_send_state Tests for identity_api_periodically_send_state
  * \{
  */
-
-void test_send_state_success(void) {
-    enum IdentityReturnCode rc = identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_IDLE);
-
-    TEST_ASSERT_EQUAL(IDENTITY_RC_OK, rc);
-}
 
 void test_send_state_without_clock(void) {
     identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_FLASH);
@@ -170,35 +158,35 @@ void test_send_state_on_every_call(void) {
  */
 
 void test_send_version_without_clock(void) {
-    identity_api_send_version();
+    identity_api_send_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(2U, test_captured_count);
 }
 
 void test_send_version_emits_two_frames(void) {
-    identity_api_send_version();
+    identity_api_send_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, test_captured_count, "A version report must emit both the version and version-info frames.");
 }
 
 void test_send_version_first_frame_is_lvacversion(void) {
-    identity_api_send_version();
+    identity_api_send_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACVERSION, test_captured_frames[0].id, "The first version frame must be the LVACVERSION frame.");
 }
 
 void test_send_version_second_frame_is_lvacversioninfo(void) {
-    identity_api_send_version();
+    identity_api_send_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACVERSIONINFO, test_captured_frames[1].id, "The second version frame must be the LVACVERSIONINFO frame.");
 }
 
 void test_send_version_encodes_firmware_version(void) {
-    identity_api_send_version();
+    identity_api_send_version(0U);
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -216,35 +204,35 @@ void test_send_version_encodes_firmware_version(void) {
  */
 
 void test_send_libcan_version_without_clock(void) {
-    identity_api_send_libcan_version();
+    identity_api_send_libcan_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(2U, test_captured_count);
 }
 
 void test_send_libcan_version_emits_two_frames(void) {
-    identity_api_send_libcan_version();
+    identity_api_send_libcan_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, test_captured_count, "A libcan version report must emit both the version and version-info frames.");
 }
 
 void test_send_libcan_version_first_frame_is_lvaclibcanversion(void) {
-    identity_api_send_libcan_version();
+    identity_api_send_libcan_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACLIBCANVERSION, test_captured_frames[0].id, "The first libcan frame must be the LVACLIBCANVERSION frame.");
 }
 
 void test_send_libcan_version_second_frame_is_lvaclibcanversioninfo(void) {
-    identity_api_send_libcan_version();
+    identity_api_send_libcan_version(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACLIBCANVERSIONINFO, test_captured_frames[1].id, "The second libcan frame must be the LVACLIBCANVERSIONINFO frame.");
 }
 
 void test_send_libcan_version_encodes_libcan_version(void) {
-    identity_api_send_libcan_version();
+    identity_api_send_libcan_version(0U);
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -270,7 +258,6 @@ int main(void) {
      * \addtogroup identity_api_send_state
      * \{
      */
-    RUN_TEST(test_send_state_returns_ok);
     RUN_TEST(test_send_state_queues_exactly_one_frame);
     RUN_TEST(test_send_state_targets_lvacfsm_frame_id);
     RUN_TEST(test_send_state_encodes_status);
@@ -280,7 +267,6 @@ int main(void) {
      * \addtogroup identity_api_periodically_send_state
      * \{
      */
-    RUN_TEST(test_send_state_success);
     RUN_TEST(test_send_state_without_clock);
     RUN_TEST(test_send_state_sends_one_frame);
     RUN_TEST(test_send_state_on_every_call);

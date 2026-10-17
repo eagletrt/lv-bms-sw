@@ -230,38 +230,30 @@ void check_voltage_api_dump_voltages_when_size_is_too_big(void) {
  * \{
  */
 
-void check_send_cell_voltages_returns_ok(void) {
-    const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.1F, 3.2F, 3.3F, 3.4F, 3.5F, 3.6F };
-    memcpy(voltage_handler.voltages, voltages, sizeof(voltages));
-
-    enum VoltageReturnCode rc = voltage_api_send_cell_voltages();
-    TEST_ASSERT_EQUAL_INT(VOLTAGE_RC_OK, rc);
-}
-
 void check_send_cell_voltages_without_clock(void) {
-    voltage_api_send_cell_voltages();
+    voltage_api_send_cell_voltages(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(1U, test_captured_count);
 }
 
 void check_send_cell_voltages_sends_one_frame(void) {
-    voltage_api_send_cell_voltages();
+    voltage_api_send_cell_voltages(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(1U, test_captured_count);
 }
 
 void check_send_cell_voltages_on_every_call(void) {
-    voltage_api_send_cell_voltages();
-    voltage_api_send_cell_voltages();
+    voltage_api_send_cell_voltages(0U);
+    voltage_api_send_cell_voltages(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(2U, test_captured_count);
 }
 
 void check_send_cell_voltages_frame_id(void) {
-    voltage_api_send_cell_voltages();
+    voltage_api_send_cell_voltages(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACCELLVOLTAGE, test_captured_frames[0].id, "The frame must be LvacCellVoltage.");
@@ -271,7 +263,7 @@ void check_send_cell_voltages_encodes_payload(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.1F, 3.2F, 3.3F, 3.4F, 3.5F, 3.6F };
     memcpy(voltage_handler.voltages, voltages, sizeof(voltages));
 
-    voltage_api_send_cell_voltages();
+    voltage_api_send_cell_voltages(0U);
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -292,38 +284,30 @@ void check_send_cell_voltages_encodes_payload(void) {
  * \{
  */
 
-void check_send_voltage_information_returns_ok(void) {
-    const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.1F, 3.2F, 3.3F, 3.4F, 3.5F, 3.6F };
-    memcpy(voltage_handler.voltages, voltages, sizeof(voltages));
-
-    enum VoltageReturnCode rc = voltage_api_send_voltage_information();
-    TEST_ASSERT_EQUAL_INT(VOLTAGE_RC_OK, rc);
-}
-
 void check_send_voltage_information_without_clock(void) {
-    voltage_api_send_voltage_information();
+    voltage_api_send_voltage_information(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(1U, test_captured_count);
 }
 
 void check_send_voltage_information_sends_one_frame(void) {
-    voltage_api_send_voltage_information();
+    voltage_api_send_voltage_information(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(1U, test_captured_count);
 }
 
 void check_send_voltage_information_on_every_call(void) {
-    voltage_api_send_voltage_information();
-    voltage_api_send_voltage_information();
+    voltage_api_send_voltage_information(0U);
+    voltage_api_send_voltage_information(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32(2U, test_captured_count);
 }
 
 void check_send_voltage_information_frame_id(void) {
-    voltage_api_send_voltage_information();
+    voltage_api_send_voltage_information(0U);
     prv_flush_primary();
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACVOLTAGEINFO, test_captured_frames[0].id, "The frame must be LvacVoltageInfo.");
@@ -333,7 +317,7 @@ void check_send_voltage_information_encodes_payload(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.1F, 3.2F, 3.3F, 3.4F, 3.5F, 3.6F };
     memcpy(voltage_handler.voltages, voltages, sizeof(voltages));
 
-    voltage_api_send_voltage_information();
+    voltage_api_send_voltage_information(0U);
     prv_flush_primary();
 
     union CanPrimaryMessages msg = { 0 };
@@ -434,7 +418,6 @@ int main(void) {
      * \{
      */
 
-    RUN_TEST(check_send_cell_voltages_returns_ok);
     RUN_TEST(check_send_cell_voltages_without_clock);
     RUN_TEST(check_send_cell_voltages_sends_one_frame);
     RUN_TEST(check_send_cell_voltages_on_every_call);
@@ -448,7 +431,6 @@ int main(void) {
      * \{
      */
 
-    RUN_TEST(check_send_voltage_information_returns_ok);
     RUN_TEST(check_send_voltage_information_without_clock);
     RUN_TEST(check_send_voltage_information_sends_one_frame);
     RUN_TEST(check_send_voltage_information_on_every_call);

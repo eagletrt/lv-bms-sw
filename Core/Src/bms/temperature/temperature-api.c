@@ -170,7 +170,9 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
     return TEMPERATURE_RC_OK;
 }
 
-enum TemperatureReturnCode temperature_api_send_temperatures(void) {
+void temperature_api_send_temperatures(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     celsius temperatures[DEFINES_CELLS_NTC_COUNT];
     temperature_api_dump_temperatures(temperatures, 0U, DEFINES_CELLS_NTC_COUNT);
 
@@ -219,8 +221,6 @@ enum TemperatureReturnCode temperature_api_send_temperatures(void) {
     if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-
-    return TEMPERATURE_RC_OK;
 }
 
 #endif /*! CONFIG_TEMPERATURE_MODULE_ENABLE */

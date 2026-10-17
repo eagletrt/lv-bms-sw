@@ -90,20 +90,18 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
  *
  * \note             The application task scheduler supplies the CAN cycle timing.
  *
- * \retval           VOLTAGE_RC_OK on success.
- * \retval           VOLTAGE_RC_COMMUNICATION_ERROR if queuing the frame failed.
+ * \param[in]        task_id The ID of the task that is being executed.
  */
-enum VoltageReturnCode voltage_api_send_cell_voltages(void);
+void voltage_api_send_cell_voltages(uint8_t task_id);
 
 /*!
  * \brief            Periodically send voltage info summary over CAN.
  *
  * \note             The application task scheduler supplies the CAN cycle timing.
  *
- * \retval           VOLTAGE_RC_OK on success.
- * \retval           VOLTAGE_RC_COMMUNICATION_ERROR if queuing the frame failed.
+ * \param[in]        task_id The ID of the task that is being executed.
  */
-enum VoltageReturnCode voltage_api_send_voltage_information(void);
+void voltage_api_send_voltage_information(uint8_t task_id);
 
 #else /*! CONFIG_VOLTAGE_MODULE_ENABLE */
 
@@ -114,8 +112,8 @@ enum VoltageReturnCode voltage_api_send_voltage_information(void);
 #define voltage_api_get_max() (0.F)
 #define voltage_api_get_average() (0.F)
 #define voltage_api_dump_voltages(out, start, size) (VOLTAGE_RC_OK)
-#define voltage_api_send_cell_voltages() (VOLTAGE_RC_OK)
-#define voltage_api_send_voltage_information() (VOLTAGE_RC_OK)
+#define voltage_api_send_cell_voltages(task_id) (EAGLETRT_API_NOP())
+#define voltage_api_send_voltage_information(task_id) (EAGLETRT_API_NOP())
 
 #endif /*! CONFIG_VOLTAGE_MODULE_ENABLE */
 

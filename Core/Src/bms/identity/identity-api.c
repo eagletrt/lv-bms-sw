@@ -33,17 +33,18 @@ enum IdentityReturnCode identity_api_init(void) {
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-enum IdentityReturnCode identity_api_send_state(enum CanPrimaryLvacfsmStatus status) {
+void identity_api_send_state(enum CanPrimaryLvacfsmStatus status) {
     union CanPrimaryMessages message = { .lvacfsm = { .status = status } };
     struct CanCommunicationFrame frame = { .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACFSM };
     if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
         frame.length = can_primary_byte_size_lvacfsm;
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-    return IDENTITY_RC_OK;
 }
 
-enum IdentityReturnCode identity_api_send_version(void) {
+void identity_api_send_version(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     union CanPrimaryMessages message;
     message.lvacversion = (struct CanPrimaryLvacversion){
         .major = IDENTITY_VERSION_MAJOR,
@@ -74,10 +75,11 @@ enum IdentityReturnCode identity_api_send_version(void) {
         frame.length = can_primary_byte_size_lvacversioninfo;
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-    return IDENTITY_RC_OK;
 }
 
-enum IdentityReturnCode identity_api_send_libcan_version(void) {
+void identity_api_send_libcan_version(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     union CanPrimaryMessages message;
     message.lvaclibcanversion = (struct CanPrimaryLvaclibcanversion){
         .major = can_version_major,
@@ -108,5 +110,4 @@ enum IdentityReturnCode identity_api_send_libcan_version(void) {
         frame.length = can_primary_byte_size_lvaclibcanversioninfo;
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-    return IDENTITY_RC_OK;
 }

@@ -103,7 +103,9 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
     return VOLTAGE_RC_OK;
 }
 
-enum VoltageReturnCode voltage_api_send_cell_voltages(void) {
+void voltage_api_send_cell_voltages(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     volt cells[DEFINES_CELLS_SERIES_COUNT];
     voltage_api_dump_voltages(cells, 0U, DEFINES_CELLS_SERIES_COUNT);
 
@@ -126,11 +128,11 @@ enum VoltageReturnCode voltage_api_send_cell_voltages(void) {
     if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-
-    return VOLTAGE_RC_OK;
 }
 
-enum VoltageReturnCode voltage_api_send_voltage_information(void) {
+void voltage_api_send_voltage_information(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     union CanPrimaryMessages message = {
         .lvacvoltageinfo = {
             .total = voltage_api_get_sum(),
@@ -148,8 +150,6 @@ enum VoltageReturnCode voltage_api_send_voltage_information(void) {
     if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-
-    return VOLTAGE_RC_OK;
 }
 
 #endif /*! CONFIG_VOLTAGE_MODULE_ENABLE */

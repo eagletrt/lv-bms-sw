@@ -134,7 +134,9 @@ bool gpio_is_master_relay_closed(void) {
     return HAL_GPIO_ReadPin(OUTPUT_EN_GPIO_Port, OUTPUT_EN_Pin) == GPIO_PIN_SET;
 }
 
-void gpio_update_digital_feedbacks(void) {
+void gpio_update_digital_feedbacks(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_SUPPLY_ENABLE_NEGATED, prv_gpio_read_feedback(SUPPLY_EN_FB_MCU_GPIO_Port, SUPPLY_EN_FB_MCU_Pin)));
     EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_OUTPUT_DELAY, prv_gpio_read_feedback(OUTPUT_DELAY_FB_GPIO_Port, OUTPUT_DELAY_FB_Pin)));
     EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_CHARGE_STATUS_NEGATED, prv_gpio_read_feedback(CHRG_STATUS_FB_GPIO_Port, CHRG_STATUS_FB_Pin)));

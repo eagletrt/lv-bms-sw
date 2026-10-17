@@ -74,8 +74,10 @@ bool gpio_is_master_relay_closed(void);
  *                   feedback module.
  *
  * \details          Only plain logic inputs; the analog feedbacks refresh in adc_routine().
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
  */
-void gpio_update_digital_feedbacks(void);
+void gpio_update_digital_feedbacks(uint8_t task_id);
 
 /* USER CODE END Prototypes */
 

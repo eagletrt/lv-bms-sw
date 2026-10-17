@@ -46,7 +46,7 @@
 #include "current-api.h"
 #include "tasks-api.h"
 #include "timebase-api.h"
-#include "application.h"
+#include "application-api.h"
 
 /* USER CODE END Includes */
 
@@ -237,14 +237,16 @@ EAGLETRT_STATIC void prv_main_balancing_routine(void) {
     }
 }
 
-EAGLETRT_STATIC void prv_main_heartbeat(void) {
+EAGLETRT_STATIC void prv_main_heartbeat(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    /* LED1 mirrors the health of the board: off while the FSM runs
-       normally, steady on once it has fallen into the fatal state. */
     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, current_state == STATE_FATAL ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
-EAGLETRT_STATIC void prv_main_discharge_step(void) {
+EAGLETRT_STATIC void prv_main_discharge_step(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     if (discharge_test_active && !balancing_api_is_active()) {
         discharge_test_cell = (uint8_t)((discharge_test_cell + 1U) % DEFINES_CELLS_SERIES_COUNT);
         EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge((uint8_t)(1U << discharge_test_cell)));
@@ -421,13 +423,13 @@ int main(void) {
     };
 
     current_state = run_state(STATE_INIT, &post_init_data);
-    application_services = (struct ApplicationServices){
-        .state = &current_state,
-        .failed = &main_scheduler_failed,
-        .feedback = gpio_update_digital_feedbacks,
-        .heartbeat = prv_main_heartbeat,
-        .discharge = prv_main_discharge_step
-    };
+    if (application_api_init(&current_state,
+                             &main_scheduler_failed,
+                             gpio_update_digital_feedbacks,
+                             prv_main_heartbeat,
+                             prv_main_discharge_step) != APPLICATION_RC_OK) {
+        main_scheduler_failed = true;
+    }
     if (tasks_api_init(&main_tasks, application_task_list, APPLICATION_TASK_COUNT, prv_main_timebase_get_tick) != TASKS_RC_OK ||
         !adc_init_tasks(prv_main_timebase_get_tick)) {
         main_scheduler_failed = true;
