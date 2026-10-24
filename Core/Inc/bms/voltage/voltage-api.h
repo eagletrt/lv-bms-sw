@@ -28,7 +28,7 @@ enum VoltageReturnCode voltage_api_init(void);
  * \param[in]        voltage The new voltage in V.
  *
  * \retval           VOLTAGE_RC_OK on success.
- * \retval           VOLTAGE_RC_OUT_OF_BOUNDS if index is greater than the total number of voltages.
+ * \retval           VOLTAGE_RC_OUT_OF_BOUNDS if index is out of range.
  */
 enum VoltageReturnCode voltage_api_update_voltage(size_t index, volt voltage);
 
@@ -41,7 +41,7 @@ enum VoltageReturnCode voltage_api_update_voltage(size_t index, volt voltage);
  *
  * \retval           VOLTAGE_RC_OK on success.
  * \retval           VOLTAGE_RC_NULL_POINTER if voltages is NULL.
- * \retval           VOLTAGE_RC_OUT_OF_BOUNDS if index is greater than the total number of voltages or if the size is too big.
+ * \retval           VOLTAGE_RC_OUT_OF_BOUNDS if index is out of range or if the size is too big.
  */
 enum VoltageReturnCode voltage_api_update_voltages(size_t index, const volt *voltages, size_t size);
 
@@ -68,6 +68,7 @@ volt voltage_api_get_average(void);
 
 /*!
  * \brief            Get the sum of the cells voltages.
+ *
  * \returns          volt The cells voltages sum.
  */
 volt voltage_api_get_sum(void);
@@ -76,9 +77,9 @@ volt voltage_api_get_sum(void);
  * \brief            Copy a list of adjacent voltages.
  *
  * \param[out]       out A pointer to the array where the voltages are copied into.
- * \param[in]        strart The index of the first index to copy.
+ * \param[in]        start The index of the first voltage to copy.
  * \param[in]        size The number of voltages that should be copied.
-
+ *
  * \retval           VOLTAGE_RC_OK on success.
  * \retval           VOLTAGE_RC_NULL_POINTER if out is NULL.
  * \retval           VOLTAGE_RC_OUT_OF_BOUNDS if index is greater than the total number of voltages or if the size is too big.
@@ -111,6 +112,7 @@ void voltage_api_send_voltage_information(uint8_t task_id);
 #define voltage_api_get_min() (0.F)
 #define voltage_api_get_max() (0.F)
 #define voltage_api_get_average() (0.F)
+#define voltage_api_get_sum() (0.F)
 #define voltage_api_dump_voltages(out, start, size) (VOLTAGE_RC_OK)
 #define voltage_api_send_cell_voltages(task_id) (EAGLETRT_API_NOP())
 #define voltage_api_send_voltage_information(task_id) (EAGLETRT_API_NOP())

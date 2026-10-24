@@ -12,11 +12,11 @@
 #include "tasks.h"
 #include "timebase.h"
 
-#define APPLICATION_MONITOR_PERIOD_MS (2U)      /*!< Step period of the BMS monitor FSM. */
-#define APPLICATION_RELAY_PERIOD_MS (50U)       /*!< Supervision period of the master relay. */
-#define APPLICATION_HEARTBEAT_PERIOD_MS (500U)  /*!< Toggling period of the heartbeat LED. */
-#define APPLICATION_FEEDBACK_PERIOD_MS (10U)    /*!< Sampling period of the digital feedbacks. */
-#define APPLICATION_DISCHARGE_PERIOD_MS (5000U) /*!< Dwell on each cell during the discharge sweep. */
+#define APPLICATION_MONITOR_PERIOD_MS (2U)       /*!< Step period of the BMS monitor FSM */
+#define APPLICATION_RELAY_PERIOD_MS (50U)        /*!< Supervision period of the master relay */
+#define APPLICATION_HEARTBEAT_PERIOD_MS (500U)   /*!< Toggling period of the heartbeat LED */
+#define APPLICATION_FEEDBACK_PERIOD_MS (10U)     /*!< Sampling period of the digital feedbacks */
+#define APPLICATION_DISCHARGE_PERIOD_MS (5000U)  /*!< Dwell on each cell during the discharge sweep */
 
 /*!
  * \brief            Return codes for the application module functions.

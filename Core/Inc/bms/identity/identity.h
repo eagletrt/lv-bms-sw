@@ -1,7 +1,8 @@
 /*!
  * \file            identity.h
- *                  \author Thomas Moretti [majorfrost173@gmail.com]
+ * \authors         Thomas Moretti [majorfrost173@gmail.com]
  * \date            2026-08-07
+ *
  * \brief           Type definitions for the module dedicated to providing information about the LV BMS firmware and its dependencies.
  */
 
@@ -18,11 +19,11 @@
 #define IDENTITY_VERSION_INFO_DIRTY (0U)
 
 /*!
- * \brief            Return codes for the identity module functions
+ * \brief            Return codes for the identity module functions.
  */
 enum IdentityReturnCode {
-    IDENTITY_RC_OK,
-    IDENTITY_RC_ERROR
+    IDENTITY_RC_OK,   /*!< Function executed successfully */
+    IDENTITY_RC_ERROR /*!< A generic error */
 };
 
 /*!

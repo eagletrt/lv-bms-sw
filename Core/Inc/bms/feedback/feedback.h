@@ -80,4 +80,4 @@ struct FeedbackHandler {
     volt analog[FEEDBACK_COUNT]; /*!< An array of raw voltages of the feedbacks. */
 };
 
-#endif /*! FEEDBACK */
+#endif /*! FEEDBACK_H */

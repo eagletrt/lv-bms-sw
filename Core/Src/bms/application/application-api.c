@@ -37,6 +37,11 @@ EAGLETRT_STATIC bool prv_application_is_running(void) {
     return *application_services.state == STATE_IDLE || *application_services.state == STATE_BALANCING;
 }
 
+/*!
+ * \brief            Step the BMS monitor FSM.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_monitor_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
@@ -45,6 +50,11 @@ EAGLETRT_STATIC void prv_application_monitor_task(uint8_t task_id) {
     }
 }
 
+/*!
+ * \brief            Supervise the master relay.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_relay_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
@@ -53,24 +63,44 @@ EAGLETRT_STATIC void prv_application_relay_task(uint8_t task_id) {
     }
 }
 
+/*!
+ * \brief            Sample the digital feedbacks.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_feedback_task(uint8_t task_id) {
     if (prv_application_is_ready() && application_services.feedback != NULL) {
         application_services.feedback(task_id);
     }
 }
 
+/*!
+ * \brief            Toggle the heartbeat LED.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_heartbeat_task(uint8_t task_id) {
     if (prv_application_is_ready() && application_services.heartbeat != NULL) {
         application_services.heartbeat(task_id);
     }
 }
 
+/*!
+ * \brief            Step the discharge sweep.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_discharge_task(uint8_t task_id) {
     if (prv_application_is_ready() && application_services.discharge != NULL) {
         application_services.discharge(task_id);
     }
 }
 
+/*!
+ * \brief            Send the current FSM state over CAN.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_state_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
@@ -79,30 +109,55 @@ EAGLETRT_STATIC void prv_application_state_task(uint8_t task_id) {
     }
 }
 
+/*!
+ * \brief            Send the firmware version over CAN.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_version_task(uint8_t task_id) {
     if (prv_application_is_running()) {
         identity_api_send_version(task_id);
     }
 }
 
+/*!
+ * \brief            Send the libcan version over CAN.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_libcan_version_task(uint8_t task_id) {
     if (prv_application_is_running()) {
         identity_api_send_libcan_version(task_id);
     }
 }
 
+/*!
+ * \brief            Send the cell voltages over CAN.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_cell_voltages_task(uint8_t task_id) {
     if (prv_application_is_running()) {
         voltage_api_send_cell_voltages(task_id);
     }
 }
 
+/*!
+ * \brief            Send the voltage information over CAN.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_voltage_information_task(uint8_t task_id) {
     if (prv_application_is_running()) {
         voltage_api_send_voltage_information(task_id);
     }
 }
 
+/*!
+ * \brief            Send the temperatures over CAN.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_application_temperatures_task(uint8_t task_id) {
     if (prv_application_is_running()) {
         temperature_api_send_temperatures(task_id);

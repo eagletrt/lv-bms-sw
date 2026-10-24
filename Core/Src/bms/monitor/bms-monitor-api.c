@@ -1,5 +1,5 @@
 /*!
- * \file            bms_monitor_api.c
+ * \file            bms-monitor-api.c
  * \date            2026-07-19
  * \authors         Mirko Lana [mirko.lana@eagletrt.it]
  *
@@ -28,9 +28,9 @@
 EAGLETRT_STATIC struct BmsMonitorHandler bms_monitor_handler;
 
 /*!
- * \brief            Check if there are adjacent or invalid cells.
+ * \brief            Check if a cell bitmask selects adjacent or non-existent cells.
  *
- * \returns          bool True if valid, false otherwise.
+ * \returns          bool True if the bitmask is invalid, false otherwise.
  */
 EAGLETRT_STATIC bool prv_bms_monitor_api_is_cells_bitmask_valid(uint8_t cells) {
     /*! Bits past the DEFINES_CELLS_SERIES_COUNT cells the pack actually has. */
@@ -78,10 +78,10 @@ enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, b
 
     memset(&bms_monitor_handler, 0, sizeof(bms_monitor_handler));
 
-    /*! Set callbacks */
+    /* Set callbacks */
     bms_monitor_handler.send = send;
     bms_monitor_handler.send_receive = send_receive;
-    /*! Initalize the LTC driver */
+    /* Initialize the LTC driver */
     ltc6810_2_api_init(&bms_monitor_handler.ltc_handler, DEFINES_LTC_COUNT);
     bms_monitor_handler.requested_configuration.REFON = 1U;
 
@@ -310,7 +310,9 @@ enum BmsMonitorReturnCode bms_monitor_api_start_gpio_conversion(void) {
  * \param[out]       out Array receiving LTC6810_2_REG_AUX_COUNT raw values.
  *
  * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if the command could not be encoded.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if the data could not be decoded.
+ * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR on a transmission failure.
  */
 EAGLETRT_STATIC enum BmsMonitorReturnCode prv_bms_monitor_api_read_aux_register(enum Ltc68102Avxr reg, raw_volt *out) {
     uint8_t command[LTC6810_2_WRITE_BUFFER_SIZE(DEFINES_LTC_COUNT)] = { 0 };
@@ -346,7 +348,7 @@ enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size) {
         return BMS_MONITOR_RC_INVALID_ARGUMENT;
     }
 
-    /*! Aux group A holds GPIO1..GPIO3, aux group B holds GPIO4 in its first slot
+    /* Aux group A holds GPIO1..GPIO3, aux group B holds GPIO4 in its first slot
         (per the LTC6810 auxiliary register map). */
     raw_volt aux_a[LTC6810_2_REG_AUX_COUNT] = { 0 };
     raw_volt aux_b[LTC6810_2_REG_AUX_COUNT] = { 0 };

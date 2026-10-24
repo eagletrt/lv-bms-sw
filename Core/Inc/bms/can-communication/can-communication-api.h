@@ -6,7 +6,7 @@
  *
  * \brief           Public API for the LV BMS CAN-bus communication module.
  *
- * \details         The module owns one PAL handler per network. All wiring goes like this
+ * \details         The module owns one PAL handler per network. All wiring goes like this:
  *                  Lifecycle (per network):
  *                  1. can_communications_api_init(network, &config);
  *                  2. From the FDCAN RX ISR, build a CanCommunicationFrame from the
@@ -28,14 +28,11 @@
 /*!
  * \brief            Initialize the CAN-communication module.
  *
- * \param[in]        configs  Per-network wiring (send + on_receive required, cs
- *                   callbacks optional). One for each network, in order.
+ * \param[in]        configs  Per-network wiring (send + on_receive required, cs callbacks optional). One for each network, in order.
  *
  * \retval           CAN_COMMUNICATION_RC_OK on success.
- * \retval           CAN_COMMUNICATION_RC_NULL_POINTER if \p config is NULL or any
- *                   of its required callbacks (send, on_receive) is NULL.
- * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of
- *                   range or already initialized.
+ * \retval           CAN_COMMUNICATION_RC_NULL_POINTER if \p configs is NULL or any of its required callbacks (send, on_receive) is NULL.
+ * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range or already initialized.
  * \retval           CAN_COMMUNICATION_RC_ERROR if PAL or the arena fail to set up.
  */
 enum CanCommunicationReturnCode can_communication_api_init(const struct CanCommunicationNetworkConfig configs[CAN_COMMUNICATION_NETWORK_COUNT]);
@@ -49,10 +46,7 @@ enum CanCommunicationReturnCode can_communication_api_init(const struct CanCommu
  * \retval           CAN_COMMUNICATION_RC_OK on success.
  * \retval           CAN_COMMUNICATION_RC_NULL_POINTER if \p frame is NULL.
  * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
- * \retval           CAN_COMMUNICATION_RC_INVALID_LENGTH if \p frame->length exceeds
- *                   CAN_COMMUNICATIONS_FRAME_DATA_SIZE.
- * \retval           CAN_COMMUNICATION_RC_NOT_INITIALIZED if \p network has not been
- *                   initialized yet.
+ * \retval           CAN_COMMUNICATION_RC_INVALID_LENGTH if \p frame->length exceeds CAN_COMMUNICATION_FRAME_DATA_SIZE.
  * \retval           CAN_COMMUNICATION_RC_QUEUE_FULL if the TX queue is saturated.
  * \retval           CAN_COMMUNICATION_RC_ERROR on a PAL-internal failure.
  */
@@ -67,10 +61,7 @@ enum CanCommunicationReturnCode can_communication_api_add_to_tx_buffer(enum CanC
  * \retval           CAN_COMMUNICATION_RC_OK on success.
  * \retval           CAN_COMMUNICATION_RC_NULL_POINTER if \p frame is NULL.
  * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
- * \retval           CAN_COMMUNICATION_RC_INVALID_LENGTH if \p frame->length exceeds
- *                   CAN_COMMUNICATIONS_FRAME_DATA_SIZE.
- * \retval           CAN_COMMUNICATION_RC_NOT_INITIALIZED if \p network has not been
- *                   initialized yet.
+ * \retval           CAN_COMMUNICATION_RC_INVALID_LENGTH if \p frame->length exceeds CAN_COMMUNICATION_FRAME_DATA_SIZE.
  * \retval           CAN_COMMUNICATION_RC_QUEUE_FULL if the RX queue is saturated.
  * \retval           CAN_COMMUNICATION_RC_ERROR on a PAL-internal failure.
  */
@@ -81,30 +72,21 @@ enum CanCommunicationReturnCode can_communication_api_add_to_rx_buffer(enum CanC
  *
  * \param[in]        network The CAN bus whose TX queue to drain.
  *
- * \retval           CAN_COMMUNICATION_RC_OK if every frame was sent (or there were
- *                   none to begin with).
+ * \retval           CAN_COMMUNICATION_RC_OK if every frame was sent (or there were none to begin with).
  * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
- * \retval           CAN_COMMUNICATION_RC_NOT_INITIALIZED if \p network has not been
- *                   initialized yet.
- * \retval           CAN_COMMUNICATION_RC_TRANSMISSION_ERROR if at least one send
- *                   callback reported failure.
+ * \retval           CAN_COMMUNICATION_RC_TRANSMISSION_ERROR if at least one send callback reported failure.
  * \retval           CAN_COMMUNICATION_RC_ERROR on a PAL-internal failure.
  */
 enum CanCommunicationReturnCode can_communication_api_process_tx(enum CanCommunicationNetwork network);
 
 /*!
- * \brief            Drain the entire RX queue, dispatching each frame via the user
- *                   on_receive callback.
+ * \brief            Drain the entire RX queue, dispatching each frame via the user on_receive callback.
  *
  * \param[in]        network The CAN bus whose RX queue to drain.
  *
- * \retval           CAN_COMMUNICATION_RC_OK if every frame was dispatched (or there
- *                   were none to begin with).
+ * \retval           CAN_COMMUNICATION_RC_OK if every frame was dispatched (or there were none to begin with).
  * \retval           CAN_COMMUNICATION_RC_INVALID_NETWORK if \p network is out of range.
- * \retval           CAN_COMMUNICATION_RC_NOT_INITIALIZED if \p network has not been
- *                   initialized yet.
- * \retval           CAN_COMMUNICATION_RC_RECEIVE_HANDLER_ERROR if at least one
- *                   on_receive callback reported failure.
+ * \retval           CAN_COMMUNICATION_RC_RECEIVE_HANDLER_ERROR if at least one on_receive callback reported failure.
  * \retval           CAN_COMMUNICATION_RC_ERROR on a PAL-internal failure.
  */
 enum CanCommunicationReturnCode can_communication_api_process_rx(enum CanCommunicationNetwork network);

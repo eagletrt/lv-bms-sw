@@ -24,7 +24,7 @@
 
 EAGLETRT_STATIC struct TemperatureHandler temperature_handler; /*!< Private temperature handler instance. */
 
-/*! NTC voltage-to-temperature polynomial fit (valid over [MIN, MAX] volts). */
+/* NTC voltage-to-temperature polynomial fit (valid over [MIN, MAX] volts). */
 constexpr volt temperature_ntc_min_limit_v = 0.0F;
 constexpr volt temperature_ntc_max_limit_v = 3.0F;
 #define TEMPERATURE_NTC_COEFF_0 (148.305319086073000)
@@ -204,7 +204,7 @@ void temperature_api_send_temperatures(uint8_t task_id) {
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
 
-    /*! Send LvacTemperatureInfo summary frame (min, max, average). */
+    /* Send LvacTemperatureInfo summary frame (min, max, average). */
     message = (union CanPrimaryMessages){
         .lvactemperatureinfo = {
             .min = temperature_api_get_min(),

@@ -242,12 +242,12 @@ state_t do_init(state_data_t *data) {
         logger_api_log(LOGGER_LEVEL_INFO, "[FSM] POST ok");
     }
 
-    /*! Capture the board services before any state reaches for them. */
+    /* Capture the board services before any state reaches for them. */
     fsm_relay.set_master_relay = fsm_init_data->set_master_relay;
     fsm_relay.read_measurements = fsm_init_data->read_board_measurements;
 
     if (fsm_relay.set_master_relay == NULL) {
-        /*! A board that cannot command its own relay is misbuilt; say so loudly
+        /* A board that cannot command its own relay is misbuilt; say so loudly
             rather than running on with an output that can never close. */
         logger_api_log(LOGGER_LEVEL_ERROR, "[FSM] no relay callback -> FATAL");
         next_state = STATE_FATAL;
@@ -257,7 +257,7 @@ state_t do_init(state_data_t *data) {
     bms_monitor_fsm_state = bms_monitor_fsm_run_state(BMS_MONITOR_FSM_STATE_INIT, nullptr);
     logger_api_log(LOGGER_LEVEL_INFO, "[FSM] monitor fsm primed, state=%d", (int)bms_monitor_fsm_state);
 
-    /*! Leave init with the output open. Idle brings it up once it has seen real
+    /* Leave init with the output open. Idle brings it up once it has seen real
         measurements, and takes it back down if they go bad. */
     prv_fsm_drive_master_relay(false);
     fsm_relay.closed = false;
@@ -311,7 +311,7 @@ state_t do_fatal(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
 
-    /*! Whatever route led here, the output must not stay live. Held low every
+    /* Whatever route led here, the output must not stay live. Held low every
         cycle rather than only on entry, so a glitch on the pin is corrected. */
     prv_fsm_drive_master_relay(false);
     fsm_relay.closed = false;

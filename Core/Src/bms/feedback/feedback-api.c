@@ -15,7 +15,7 @@
 
 #ifdef CONFIG_FEEDBACK_MODULE_ENABLE
 
-EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< The feedback handler instsance */
+EAGLETRT_STATIC struct FeedbackHandler feedback_handler; /*!< The feedback handler instance */
 
 /*!
  * \brief            Check if an analog value is in a valid feedback status.

@@ -29,8 +29,8 @@ enum FeedbackReturnCode feedback_api_init(void);
  * \param[in]        feedback The feedback to set.
  * \param[in]        analog The feedback analog value in V.
  *
- * \retval           FEEDBACK_RC_OUT_OF_BOUNDS if feedback is invalid (e.g. FEEDBACK_COUNT).
  * \retval           FEEDBACK_RC_OK on success.
+ * \retval           FEEDBACK_RC_OUT_OF_BOUNDS if feedback is invalid (e.g. FEEDBACK_COUNT).
  */
 enum FeedbackReturnCode feedback_api_set_analog(enum Feedback feedback, volt analog);
 

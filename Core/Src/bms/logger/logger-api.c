@@ -1,7 +1,8 @@
 /*!
  * \file            logger-api.c
- *                  \author Dorijan Di Zepp
+ * \authors         Dorijan Di Zepp
  * \date            2026-07-01
+ *
  * \brief           API execution handling for logging records.
  */
 

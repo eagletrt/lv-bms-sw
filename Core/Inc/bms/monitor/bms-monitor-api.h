@@ -1,5 +1,5 @@
 /*!
- * \file            bms_monitor_api.h
+ * \file            bms-monitor-api.h
  * \date            2026-07-19
  * \authors         Mirko Lana [mirko.lana@eagletrt.it]
  *
@@ -32,10 +32,10 @@ enum BmsMonitorReturnCode bms_monitor_api_init(bms_monitor_send_callback send, b
  * \brief            Write the configuration registers of the LTC.
  *
  * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
- * \retval           BMS_MONITOR_RC_DEOCDE_ERROR if there was an error while decoding the data.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if there was an error while encoding the command.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if there was an error while decoding the data.
  * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
- * \retval           BMS_MONITOR_RC_BBUSY the monitor or the peripheral is busy.
+ * \retval           BMS_MONITOR_RC_BUSY if the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_write_configuration(void);
 
@@ -43,59 +43,59 @@ enum BmsMonitorReturnCode bms_monitor_api_write_configuration(void);
  * \brief            Read the configuration registers of the LTC.
  *
  * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
- * \retval           BMS_MONITOR_RC_DEOCDE_ERROR if there was an error while decoding the data.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if there was an error while encoding the command.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if there was an error while decoding the data.
  * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
- * \retval           BMS_MONITOR_RC_BBUSY the monitor or the peripheral is busy.
+ * \retval           BMS_MONITOR_RC_BUSY if the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_read_configuration(void);
 
 /*!
- * \brief            Start the cell voltage ADC convertion.
+ * \brief            Start the cell voltage ADC conversion.
  *
  * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if there was an error while encoding the command.
  * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
- * \retval           BMS_MONITOR_BUSY the monitor or the peripheral is busy.
+ * \retval           BMS_MONITOR_RC_BUSY if the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_start_volt_conversion(void);
 
 /*!
- * \brief            Start the open wire ADC convertion.
+ * \brief            Start the open wire ADC conversion.
  *
  * \param[in]        pull_up Pull-up/pull-down option to select.
  *
  * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if there was an error while encoding the command.
  * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
  * \retval           BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_start_open_wire_conversion(enum Ltc68102Pup pull_up);
 
-/**
- * \brief           Read the cells voltages from the BMS monitor.
+/*!
+ * \brief            Read the cells voltages from the BMS monitor.
  *
- * \param[in]       reg The register to read from.
+ * \param[in]        reg The register to read from.
  *
- * \retval          BMS_MONITOR_RC_OK on success.
- * \retval          BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
- * \retval          BMS_MONITOR_RC_DEOCDE_ERROR if there was an error while decoding the data.
- * \retval          BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
- * \retval          BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
+ * \retval           BMS_MONITOR_RC_OK on success.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if there was an error while encoding the command.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if there was an error while decoding the data.
+ * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
+ * \retval           BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_read_voltages(enum BmsMonitorVoltageRegister reg);
 
-/**
- * \brief           Read the cells voltages after the opern wire conversiont from the LTC.
+/*!
+ * \brief            Read the cell voltages after the open-wire conversion from the LTC.
  *
- * \param[in]       reg The register to read from.
- * \param[in]       operation The type of operation completed before the the readings.
+ * \param[in]        reg The register to read from.
+ * \param[in]        operation The type of operation completed before the readings.
  *
- * \retval          BMS_MONITOR_RC_OK on success.
- * \retval          BMS_MONITOR_RC_ENOCDE_ERROR if there was an error while encoding the command.
- * \retval          BMS_MONITOR_RC_DEOCDE_ERROR if there was an error while decoding the data.
- * \retval          BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
- * \retval          BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
+ * \retval           BMS_MONITOR_RC_OK on success.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if there was an error while encoding the command.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if there was an error while decoding the data.
+ * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR if there is an error during the transmission of the data.
+ * \retval           BMS_MONITOR_RC_BUSY the monitor or the peripheral is busy.
  */
 enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonitorVoltageRegister reg, enum BmsMonitorOpenWireOperation operation);
 
@@ -112,9 +112,8 @@ enum BmsMonitorReturnCode bms_monitor_api_read_open_wire_voltages(enum BmsMonito
  *
  * \param[in]        cells The bitmask of cells to discharge.
  *
- * \retval           BMS_MONITOR_RC_INVALID_ARGUMENT if two or more adjacent cells
- *                   are selected, or a bit past the last cell is set.
  * \retval           BMS_MONITOR_RC_OK on success.
+ * \retval           BMS_MONITOR_RC_INVALID_ARGUMENT if two or more adjacent cells are selected, or a bit past the last cell is set.
  */
 enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells);
 
@@ -130,7 +129,7 @@ enum BmsMonitorReturnCode bms_monitor_api_set_discharge(uint8_t cells);
 uint16_t bms_monitor_api_get_discharge(void);
 
 /*!
- * \brief            Check for open wires
+ * \brief            Check for open wires.
  *
  * \details          To check for open wire the delta between the converted voltages values
  *                   is calculated for all the cells excluded the first, then the open wire
@@ -139,7 +138,7 @@ uint16_t bms_monitor_api_get_discharge(void);
  *                   - The last pull-down voltage value is 0.0000 (same as above)
  *                   - At least one delta voltage value is below the -400 mV threshold
  *
- * \returns          bit_flag32 A bitmask where the n-th bit represents the n-th cell that has an open wire
+ * \returns          uint32_t A bitmask where the n-th bit represents the n-th cell that has an open wire
  */
 uint32_t bms_monitor_api_check_open_wire(void);
 
@@ -165,7 +164,9 @@ enum BmsMonitorReturnCode bms_monitor_api_start_gpio_conversion(void);
  * \retval           BMS_MONITOR_RC_OK on success.
  * \retval           BMS_MONITOR_RC_NULL_POINTER if \p out is NULL.
  * \retval           BMS_MONITOR_RC_INVALID_ARGUMENT if \p size is too small.
- * \retval           BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if the command could not be encoded.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if the data could not be decoded.
+ * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR on a transmission failure.
  */
 enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size);
 
@@ -180,7 +181,9 @@ enum BmsMonitorReturnCode bms_monitor_api_read_gpios(volt *out, size_t size);
  *                   temperature module any more.
  *
  * \retval           BMS_MONITOR_RC_OK on success.
- * \retval           BMS_MONITOR_RC_ENCODE_ERROR / _DECODE_ERROR / _COMMUNICATION_ERROR on failure.
+ * \retval           BMS_MONITOR_RC_ENCODE_ERROR if the command could not be encoded.
+ * \retval           BMS_MONITOR_RC_DECODE_ERROR if the data could not be decoded.
+ * \retval           BMS_MONITOR_RC_COMMUNICATION_ERROR on a transmission failure.
  */
 enum BmsMonitorReturnCode bms_monitor_api_sample_gpios(void);
 
@@ -203,6 +206,7 @@ volt bms_monitor_api_get_gpio_voltage(size_t index);
 #define bms_monitor_api_read_voltages(reg) (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_open_wire_voltages(reg, operation) (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_set_discharge(cells) (BMS_MONITOR_RC_OK)
+#define bms_monitor_api_get_discharge() (0U)
 #define bms_monitor_api_check_open_wire() (0U)
 #define bms_monitor_api_start_gpio_conversion() (BMS_MONITOR_RC_OK)
 #define bms_monitor_api_read_gpios(out, size) (BMS_MONITOR_RC_OK)

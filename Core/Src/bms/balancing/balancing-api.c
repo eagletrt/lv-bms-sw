@@ -23,14 +23,23 @@
 #ifdef CONFIG_BALANCING_MODULE_ENABLE
 
 EAGLETRT_STATIC struct BalancingHandler balancing_handler; /*!< Private balancing handler instance. */
+
+/*!
+ * \brief            Identifiers of the internal balancing tasks.
+ */
 enum BalancingTaskId {
-    BALANCING_TASK_TIMEOUT, /*!< Timeout from the tick of the last executed state set. */
-    BALANCING_TASK_REFRESH, /*!< Periodic cadence gating of the executed runs. */
-    BALANCING_TASK_COUNT
+    BALANCING_TASK_TIMEOUT, /*!< Timeout from the tick of the last executed state set */
+    BALANCING_TASK_REFRESH, /*!< Periodic cadence gating of the executed runs */
+    BALANCING_TASK_COUNT /*!< Number of balancing tasks */
 };
 
 EAGLETRT_STATIC void prv_balancing_api_refresh(uint8_t task_id);
 
+/*!
+ * \brief            Stop balancing when the state-update timeout expires.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_balancing_api_timeout(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
     if (balancing_api_stop() == BALANCING_RC_OK) {
@@ -136,6 +145,11 @@ enum BalancingReturnCode balancing_api_stop(void) {
     return BALANCING_RC_OK;
 }
 
+/*!
+ * \brief            Recompute the discharge mask and push it to the monitor.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
 EAGLETRT_STATIC void prv_balancing_api_refresh(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
     if (!balancing_handler.is_active) {

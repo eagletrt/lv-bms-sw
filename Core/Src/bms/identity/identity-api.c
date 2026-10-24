@@ -1,7 +1,8 @@
 /*!
  * \file            identity-api.c
- *                  \author Thomas Moretti [majorfrost173@gmail.com]
+ * \authors         Thomas Moretti [majorfrost173@gmail.com]
  * \date            2026-08-07
+ *
  * \brief           Implementation of the APIs of the module dedicated to providing information about the LV BMS firmware and its dependencies.
  */
 
@@ -15,8 +16,9 @@
 #include "can-primary-api.h"
 
 /*!
- * \brief            Internal module handler
- * \details          Hidden from external linkage to enforce API-only access
+ * \brief            Internal module handler.
+ *
+ * \details          Hidden from external linkage to enforce API-only access.
  */
 EAGLETRT_STATIC struct IdentityHandler identity_handler;
 

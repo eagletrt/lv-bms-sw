@@ -1,7 +1,8 @@
 /*!
  * \file            logger.h
- *                  \author Dorijan Di Zepp
+ * \authors         Dorijan Di Zepp
  * \date            2026-06-14
+ *
  * \brief           Data types and structures for the system logger module.
  */
 
@@ -44,4 +45,4 @@ struct LoggerHandler {
     bool logger_state;              /*!< Active execution flag: true to process logs, false to mute logging output. */
 };
 
-#endif
+#endif /*! LOGGER_H */

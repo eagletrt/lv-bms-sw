@@ -34,8 +34,6 @@
  */
 #define CAN_COMMUNICATION_FRAME_DATA_SIZE (8U)
 
-// TODO: adjust capactities to fit libcan later
-
 /*!
  * \brief            Depth of the per-network reception queue.
  */
@@ -50,15 +48,15 @@
  * \brief            Return codes for CAN-communications operations.
  */
 enum CanCommunicationReturnCode {
-    CAN_COMMUNICATION_RC_OK,                    /*!< Operation completed successfully. */
-    CAN_COMMUNICATION_RC_NULL_POINTER,          /*!< A required pointer argument was NULL. */
-    CAN_COMMUNICATION_RC_INVALID_NETWORK,       /*!< Network ID is out of range or already initialized. */
-    CAN_COMMUNICATION_RC_INVALID_LENGTH,        /*!< Frame length is larger than CAN_COMMUNICATIONS_FRAME_DATA_SIZE. */
-    CAN_COMMUNICATION_RC_QUEUE_FULL,            /*!< Target queue has no room. */
-    CAN_COMMUNICATION_RC_QUEUE_EMPTY,           /*!< Source queue is empty. */
-    CAN_COMMUNICATION_RC_TRANSMISSION_ERROR,    /*!< The user-supplied send callback reported failure. */
-    CAN_COMMUNICATION_RC_RECEIVE_HANDLER_ERROR, /*!< The user-supplied receive callback reported failure. */
-    CAN_COMMUNICATION_RC_ERROR,                 /*!< Generic failure (PAL/arena/internal). */
+    CAN_COMMUNICATION_RC_OK,                    /*!< Operation completed successfully */
+    CAN_COMMUNICATION_RC_NULL_POINTER,          /*!< A required pointer argument was NULL */
+    CAN_COMMUNICATION_RC_INVALID_NETWORK,       /*!< Network ID is out of range or already initialized */
+    CAN_COMMUNICATION_RC_INVALID_LENGTH,        /*!< Frame length is larger than CAN_COMMUNICATION_FRAME_DATA_SIZE */
+    CAN_COMMUNICATION_RC_QUEUE_FULL,            /*!< Target queue has no room */
+    CAN_COMMUNICATION_RC_QUEUE_EMPTY,           /*!< Source queue is empty */
+    CAN_COMMUNICATION_RC_TRANSMISSION_ERROR,    /*!< The user-supplied send callback reported failure */
+    CAN_COMMUNICATION_RC_RECEIVE_HANDLER_ERROR, /*!< The user-supplied receive callback reported failure */
+    CAN_COMMUNICATION_RC_ERROR,                 /*!< Generic failure (PAL/arena/internal) */
 };
 
 /*!
@@ -82,17 +80,17 @@ enum CanCommunicationNetwork {
  */
 struct [[gnu::packed]] CanCommunicationFrame {
     uint32_t id;                                     /*!< CAN identifier (standard or extended) */
-    uint8_t length;                                  /*!< Valid bytes in \c data, 0..CAN_COMMUNICATIONS_FRAME_DATA_SIZE */
+    uint8_t length;                                  /*!< Valid bytes in \c data, 0..CAN_COMMUNICATION_FRAME_DATA_SIZE */
     uint8_t data[CAN_COMMUNICATION_FRAME_DATA_SIZE]; /*!< Raw payload bytes */
 };
 
 /*!
- * \brief            Callback invoked when the module needs to put a frame on the raw_frame.
+ * \brief            Callback invoked when the module needs to put a frame on the raw bus.
  *
  * \details          Registered through can_communications_api_init. Wraps the
  *                   vendor HAL call (typically HAL_FDCAN_AddMessageToTxFifoQ on the
  *                   STM32H7). The module guarantees \c frame is non-NULL and that
- *                   \c frame->length is within CAN_COMMUNICATIONS_FRAME_DATA_SIZE.
+ *                   \c frame->length is within CAN_COMMUNICATION_FRAME_DATA_SIZE.
  *
  * \param[in]        frame The frame to transmit.
  *
@@ -121,7 +119,7 @@ typedef enum CanCommunicationReturnCode (*can_communication_send_callback)(const
  *                   \endcode
  *
  *                   Returning anything other than CAN_COMMUNICATION_RC_OK does not stop
- *                   the drain, the rest of the queue is still processe,,  but the
+ *                   the drain, the rest of the queue is still processed, but the
  *                   final return code of process_rx will surface the error.
  *
  * \param[in]        frame The frame just popped off the RX queue.

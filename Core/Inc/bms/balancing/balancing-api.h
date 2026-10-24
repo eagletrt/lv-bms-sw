@@ -36,6 +36,7 @@ enum BalancingReturnCode balancing_api_init(balancing_get_tick_callback get_tick
  * \param[in]        threshold The imbalance tolerated above \p target in V.
  *
  * \retval           BALANCING_RC_OK on success.
+ * \retval           BALANCING_RC_SCHEDULER_ERROR if the task scheduler failed.
  */
 enum BalancingReturnCode balancing_api_start(volt threshold);
 
@@ -43,6 +44,7 @@ enum BalancingReturnCode balancing_api_start(volt threshold);
  * \brief            Stop balancing and release every discharge FET.
  *
  * \retval           BALANCING_RC_OK on success.
+ * \retval           BALANCING_RC_SCHEDULER_ERROR if the task scheduler failed.
  */
 enum BalancingReturnCode balancing_api_stop(void);
 
@@ -61,7 +63,8 @@ enum BalancingReturnCode balancing_api_stop(void);
  * \note             The module reads the time base supplied to balancing_api_init().
  *
  * \retval           BALANCING_RC_OK on success.
- * \retval           BALANCING_RC_STATE_TIMEOUT if last status update was >= 3s
+ * \retval           BALANCING_RC_STATE_TIMEOUT if the last status update was more than 3 s ago.
+ * \retval           BALANCING_RC_SCHEDULER_ERROR if the task scheduler failed.
  */
 enum BalancingReturnCode balancing_api_run(void);
 
@@ -82,7 +85,8 @@ bool balancing_api_is_active(void);
  * \param[in]        active    True to start balancing, false to stop it.
  * \param[in]        threshold The imbalance tolerated above target in V.
  *
- * \returns          BALANCING_RC_OK on success.
+ * \retval           BALANCING_RC_OK on success.
+ * \retval           BALANCING_RC_SCHEDULER_ERROR if the task scheduler failed.
  */
 enum BalancingReturnCode balancing_api_set_state_handle(bool active, volt threshold);
 

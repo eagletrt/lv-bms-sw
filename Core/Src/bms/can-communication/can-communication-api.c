@@ -10,7 +10,7 @@
  *                  shared arena. Frames travel through PAL as raw bytes of the
  *                  CanCommunicationFrame struct itself, and PAL's built-in
  *                  memcpy-deserialiser (selected by passing NULL for the deserialise
- *                  callback at init) takes care of the copy in both directions..
+ *                  callback at init) takes care of the copy in both directions.
  */
 
 #include "can-communication-api.h"
@@ -22,8 +22,9 @@
 #include <string.h>
 
 /*!
- * \brief            Internal module handler
- * \details          Hidden from external linkage to enforce API-only access
+ * \brief            Internal module handler.
+ *
+ * \details          Hidden from external linkage to enforce API-only access.
  */
 EAGLETRT_STATIC struct CanCommunicationHandler handler;
 
@@ -68,7 +69,7 @@ EAGLETRT_STATIC enum PalReturnCode prv_pal_send_dispatch(enum CanCommunicationNe
  *
  * \param[in]        message PAL message whose payload is a raw CanCommunicationFrame.
  *
- *                   \return Whatever prv_pal_send_dispatch returns.
+ * \returns          Whatever prv_pal_send_dispatch returns.
  */
 EAGLETRT_STATIC enum PalReturnCode prv_pal_send_primary(const struct PalMessage *message) {
     return prv_pal_send_dispatch(CAN_COMMUNICATION_NETWORK_PRIMARY, message);

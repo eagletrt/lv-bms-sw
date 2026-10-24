@@ -23,11 +23,11 @@
  * \brief            Return codes for the balancing module functions.
  */
 enum BalancingReturnCode {
-    BALANCING_RC_OK,            /*!< Function executed successfully */
-    BALANCING_RC_NULL_POINTER,  /*!< Unexpected NULL pointer */
-    BALANCING_RC_OUT_OF_BOUNDS, /*!< A value is outside the allowed cell voltage range */
-    BALANCING_RC_STATE_TIMEOUT, /*!< State wasn't updated for a period of time >= 3s */
-    BALANCING_RC_SCHEDULER_ERROR
+    BALANCING_RC_OK,             /*!< Function executed successfully */
+    BALANCING_RC_NULL_POINTER,   /*!< Unexpected NULL pointer */
+    BALANCING_RC_OUT_OF_BOUNDS,  /*!< A value is outside the allowed cell voltage range */
+    BALANCING_RC_STATE_TIMEOUT,  /*!< State wasn't updated for a period of time >= 3s */
+    BALANCING_RC_SCHEDULER_ERROR /*!< The task scheduler failed an operation */
 };
 
 /*!
@@ -39,12 +39,12 @@ typedef uint32_t (*balancing_get_tick_callback)(void);
  * \brief            Balancing module handler structure.
  */
 struct BalancingHandler {
-    struct TasksHandler tasks; /*!< Board time base in ms, non-NULL after a successful init */
-    enum BalancingReturnCode result;
-    volt target;                          /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
-    volt threshold;                       /*!< The imbalance tolerated above target in V */
-    bool is_active;                       /*!< Indicates if balancing is active (true) or not (false) */
-    bool odd_phase;                       /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
+    struct TasksHandler tasks;             /*!< Task scheduler driving the refresh and timeout tasks */
+    enum BalancingReturnCode result;       /*!< Result of the last balancing run */
+    volt target;                           /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
+    volt threshold;                        /*!< The imbalance tolerated above target in V */
+    bool is_active;                        /*!< Indicates if balancing is active (true) or not (false) */
+    bool odd_phase;                        /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
 };
 
 #endif /*! BALANCING_H */
