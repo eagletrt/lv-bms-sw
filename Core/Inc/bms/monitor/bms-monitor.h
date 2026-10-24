@@ -43,8 +43,8 @@ enum BmsMonitorVoltageRegister {
  * \brief            List of open wire procedure operations.
  */
 enum BmsMonitorOpenWireOperation {
-    BMS_MANAGER_OPEN_WIRE_OPERATION_PUD = LTC6810_2_PUP_INACTIVE,
-    BMS_MANAGER_OPEN_WIRE_OPERATION_PUP = LTC6810_2_PUP_ACTIVE
+    BMS_MONITOR_OPEN_WIRE_OPERATION_PUD = LTC6810_2_PUP_INACTIVE,
+    BMS_MONITOR_OPEN_WIRE_OPERATION_PUP = LTC6810_2_PUP_ACTIVE
 };
 
 /*!
