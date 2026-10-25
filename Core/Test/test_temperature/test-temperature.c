@@ -250,7 +250,7 @@ void check_send_temperatures_first_frame_is_mux_group_0(void) {
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[0].id, "The first frame must be LvacTemperature.");
 }
 
-void check_send_temperatures_second_frame_is_mux_group_1(void) {
+void check_send_temperatures_second_call_is_mux_group_1(void) {
     temperature_api_send_temperatures(0U);
     prv_flush_primary();
 
@@ -285,7 +285,6 @@ void check_send_temperatures_encodes_mux_group_0(void) {
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.0F, msg.lvactemperature.group_payload.mux_0.temperature3, "temperature3 must match NTC 2.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.3F, msg.lvactemperature.group_payload.mux_0.temperature4, "temperature4 must match NTC 3.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.6F, msg.lvactemperature.group_payload.mux_0.temperature5, "temperature5 must match NTC 4.");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(4.0F, msg.lvactemperature.group_payload.mux_0.temperature6, "temperature6 must match NTC 5.");
 }
 
 void check_send_temperatures_encodes_mux_group_1(void) {
@@ -304,12 +303,30 @@ void check_send_temperatures_encodes_mux_group_1(void) {
     EAGLETRT_API_UNUSED(can_primary_api_deserialize_from_id(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[2].data, &msg));
 
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(1U, msg.lvactemperature.group, "Mux group must be 1 for the second call.");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(4.0F, msg.lvactemperature.group_payload.mux_1.temperature6, "temperature6 must match NTC 5.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(2.5F, msg.lvactemperature.group_payload.mux_1.temperature7, "temperature7 must match NTC 6.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(2.8F, msg.lvactemperature.group_payload.mux_1.temperature8, "temperature8 must match NTC 7.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.0F, msg.lvactemperature.group_payload.mux_1.temperature9, "temperature9 must match NTC 8.");
     TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.3F, msg.lvactemperature.group_payload.mux_1.temperature10, "temperature10 must match NTC 9.");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.6F, msg.lvactemperature.group_payload.mux_1.temperature11, "temperature11 must match NTC 10.");
-    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(4.0F, msg.lvactemperature.group_payload.mux_1.temperature12, "temperature12 must match NTC 11.");
+}
+
+void check_send_temperatures_encodes_mux_group_2(void) {
+    const celsius temperatures[DEFINES_CELLS_NTC_COUNT] = {
+        2.5F, 2.8F, 3.0F, 3.3F, 3.6F, 4.0F, 2.5F, 2.8F, 3.0F, 3.3F, 3.6F, 4.0F
+    };
+    memcpy(temperature_handler.temperatures, temperatures, sizeof(temperatures));
+
+    temperature_handler.current_group = 2U;
+
+    temperature_api_send_temperatures(0U);
+    prv_flush_primary();
+
+    union CanPrimaryMessages msg = { 0 };
+    EAGLETRT_API_UNUSED(can_primary_api_deserialize_from_id(CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE, test_captured_frames[0].data, &msg));
+
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(2U, msg.lvactemperature.group, "Mux group must be 2 for this frame.");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(3.6F, msg.lvactemperature.group_payload.mux_2.temperature11, "temperature11 must match NTC 10.");
+    TEST_ASSERT_EQUAL_FLOAT_MESSAGE(4.0F, msg.lvactemperature.group_payload.mux_2.temperature12, "temperature12 must match NTC 11.");
 }
 
 void check_send_temperatures_encodes_info(void) {
@@ -413,10 +430,11 @@ int main(void) {
     RUN_TEST(check_send_temperatures_sends_two_frames);
     RUN_TEST(check_send_temperatures_on_every_call);
     RUN_TEST(check_send_temperatures_first_frame_is_mux_group_0);
-    RUN_TEST(check_send_temperatures_second_frame_is_mux_group_1);
+    RUN_TEST(check_send_temperatures_second_call_is_mux_group_1);
     RUN_TEST(check_send_temperatures_second_frame_is_info);
     RUN_TEST(check_send_temperatures_encodes_mux_group_0);
     RUN_TEST(check_send_temperatures_encodes_mux_group_1);
+    RUN_TEST(check_send_temperatures_encodes_mux_group_2);
     RUN_TEST(check_send_temperatures_encodes_info);
 
     /*! \} */
