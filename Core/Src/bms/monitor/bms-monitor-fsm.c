@@ -23,11 +23,12 @@ Functions and types have been generated with prefix "bms_monitor_fsm_"
 #include "logger-api.h"
 
 /*!
- * \brief Diagnostic helper: run a bms_monitor_api_* call and emit a WARN log
- *        line if it does not return BMS_MONITOR_RC_OK.
- * \details Added to surface the return codes that the generated state bodies
- *        would otherwise discard with a (void) cast. \p label identifies the
- *        FSM step so a failure can be traced back to the exact SPI operation.
+ * \brief            Diagnostic helper: run a bms_monitor_api_* call and emit a WARN log
+ *                   line if it does not return BMS_MONITOR_RC_OK.
+ *
+ * \details          Added to surface the return codes that the generated state bodies
+ *                   would otherwise discard with a (void) cast. \p label identifies the
+ *                   FSM step so a failure can be traced back to the exact SPI operation.
  */
 #define BMS_MON_STEP(call, label)                                                     \
     do {                                                                              \
@@ -457,7 +458,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_read_open_wire_pup_a(bms_monitor_fsm_
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP), "read_ow_pup_a");
+    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MONITOR_OPEN_WIRE_OPERATION_PUP), "read_ow_pup_a");
 
     /*** USER CODE END DO_READ_OPEN_WIRE_PUP_A ***/
 
@@ -480,7 +481,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_read_open_wire_pup_b(bms_monitor_fsm_
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP), "read_ow_pup_b");
+    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B, BMS_MONITOR_OPEN_WIRE_OPERATION_PUP), "read_ow_pup_b");
 
     /*** USER CODE END DO_READ_OPEN_WIRE_PUP_B ***/
 
@@ -526,7 +527,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_open_wire_pud_write_configuration(bms
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE), "ow_pud_conv_first");
+    BMS_MON_STEP(bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE), "ow_pud_conv_second");
 
     /*** USER CODE END DO_OPEN_WIRE_PUD_WRITE_CONFIGURATION ***/
 
@@ -595,7 +596,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_read_open_wire_pud_a(bms_monitor_fsm_
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUD), "read_ow_pud_a");
+    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MONITOR_OPEN_WIRE_OPERATION_PUD), "read_ow_pud_a");
 
     /*** USER CODE END DO_READ_OPEN_WIRE_PUD_A ***/
 
@@ -618,7 +619,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_read_open_wire_pud_b(bms_monitor_fsm_
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B, BMS_MANAGER_OPEN_WIRE_OPERATION_PUD), "read_ow_pud_b");
+    BMS_MON_STEP(bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_B, BMS_MONITOR_OPEN_WIRE_OPERATION_PUD), "read_ow_pud_b");
 
     /*** USER CODE END DO_READ_OPEN_WIRE_PUD_B ***/
 

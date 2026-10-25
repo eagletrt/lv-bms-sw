@@ -103,11 +103,8 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
     return VOLTAGE_RC_OK;
 }
 
-enum VoltageReturnCode voltage_api_periodically_send_cell_voltages(uint32_t tick_ms) {
-    if (tick_ms - voltage_handler.last_tick_cell_voltage_ms < can_primary_cycle_time_lvaccellvoltage) {
-        return VOLTAGE_RC_OK;
-    }
-    voltage_handler.last_tick_cell_voltage_ms = tick_ms;
+void voltage_api_send_cell_voltages(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
 
     volt cells[DEFINES_CELLS_SERIES_COUNT];
     voltage_api_dump_voltages(cells, 0U, DEFINES_CELLS_SERIES_COUNT);
@@ -131,15 +128,10 @@ enum VoltageReturnCode voltage_api_periodically_send_cell_voltages(uint32_t tick
     if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-
-    return VOLTAGE_RC_OK;
 }
 
-enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_t tick_ms) {
-    if (tick_ms - voltage_handler.last_tick_voltage_information_ms < can_primary_cycle_time_lvacvoltageinfo) {
-        return VOLTAGE_RC_OK;
-    }
-    voltage_handler.last_tick_voltage_information_ms = tick_ms;
+void voltage_api_send_voltage_information(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
 
     union CanPrimaryMessages message = {
         .lvacvoltageinfo = {
@@ -158,8 +150,6 @@ enum VoltageReturnCode voltage_api_periodically_send_voltage_information(uint32_
     if (can_primary_api_serialize_from_id(frame.id, &message, frame.data) != -1) {
         EAGLETRT_API_UNUSED(can_communication_api_add_to_tx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &frame));
     }
-
-    return VOLTAGE_RC_OK;
 }
 
 #endif /*! CONFIG_VOLTAGE_MODULE_ENABLE */

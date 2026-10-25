@@ -30,7 +30,7 @@ enum TemperatureReturnCode temperature_api_init(void);
  * \param[in]        temperature The new temperature in °C.
  *
  * \retval           TEMPERATURE_RC_OK on success.
- * \retval           TEMPERATURE_RC_OUT_OF_BOUNDS if index is greater than the total number of temperatures.
+ * \retval           TEMPERATURE_RC_OUT_OF_BOUNDS if index is out of range.
  */
 enum TemperatureReturnCode temperature_api_update_temperature(size_t index, celsius temperature);
 
@@ -43,7 +43,7 @@ enum TemperatureReturnCode temperature_api_update_temperature(size_t index, cels
  *
  * \retval           TEMPERATURE_RC_OK on success.
  * \retval           TEMPERATURE_RC_NULL_POINTER if temperatures is NULL.
- * \retval           TEMPERATURE_RC_OUT_OF_BOUNDS if index is greater than the total number of temperatures or if the size is too big.
+ * \retval           TEMPERATURE_RC_OUT_OF_BOUNDS if index is out of range or if the size is too big.
  */
 enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, const celsius *temperatures, size_t size);
 
@@ -51,9 +51,9 @@ enum TemperatureReturnCode temperature_api_update_temperatures(size_t index, con
  * \brief            Flag the health of a single NTC channel.
  *
  * \details          Set by whatever samples the NTC, since only that layer knows
- *                  the pull-up rail the reading has to be compared against.
- *                  Channels that are not #TEMPERATURE_STATUS_OK are excluded from
- *                  the min, max and average of the pack.
+ *                   the pull-up rail the reading has to be compared against.
+ *                   Channels that are not #TEMPERATURE_STATUS_OK are excluded from
+ *                   the min, max and average of the pack.
  *
  * \param[in]        index The index of the channel.
  * \param[in]        status The health to record.
@@ -76,7 +76,7 @@ enum TemperatureStatus temperature_api_get_channel_status(size_t index);
  * \brief            Get every faulty NTC channel as a bitmask.
  *
  * \details          Bit n is set when channel n is not #TEMPERATURE_STATUS_OK,
- *                  the same shape as bms_monitor_api_check_open_wire().
+ *                   the same shape as bms_monitor_api_check_open_wire().
  *
  * \returns          uint32_t The bitmask of faulty channels, 0 if all are healthy.
  */
@@ -86,23 +86,23 @@ uint32_t temperature_api_get_fault_bitmask(void);
  * \brief            Get the minimum cell temperature.
  *
  * \note             Channels flagged open or shorted are skipped. Returns 0 °C if
- *                  no channel is healthy.
+ *                   no channel is healthy.
  *
- * \returns           celsius The minimum temperature in °C.
+ * \returns          The minimum temperature in °C.
  */
 celsius temperature_api_get_min(void);
 
 /*!
- *
  * \brief            Get the maximum cell temperature.
- * \returns          celsius The maximum temperature in °C.
+ *
+ * \returns          The maximum temperature in °C.
  */
 celsius temperature_api_get_max(void);
 
 /*!
- *
  * \brief            Get the average cell temperature.
- * \returns          celsius The average temperature in °C.
+ *
+ * \returns          The average temperature in °C.
  */
 celsius temperature_api_get_average(void);
 
@@ -110,12 +110,12 @@ celsius temperature_api_get_average(void);
  * \brief            Copy a list of adjacent temperatures.
  *
  * \param[out]       out A pointer to the array where the temperatures are copied into.
- * \param[in]        strart The index of the first index to copy.
+ * \param[in]        start The index of the first index to copy.
  * \param[in]        size The number of temperatures that should be copied.
  *
  * \retval           TEMPERATURE_RC_OK on success.
  * \retval           TEMPERATURE_RC_NULL_POINTER if out is NULL.
- * \retval           TEMPERATURE_RC_OUT_OF_BOUNDS if index is greater than the total number of temperatures or if the size is too big.
+ * \retval           TEMPERATURE_RC_OUT_OF_BOUNDS if index is out of range or if the size is too big.
  */
 enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_t start, size_t size);
 
@@ -136,16 +136,15 @@ celsius temperature_api_volt_to_celsius(volt value);
  * \brief            Periodically send temperatures over CAN.
  *
  * \details          Sends one multiplexed LvacTemperature frame per call,
- *                  alternating group 0 (NTCs 1-6) and group 1 (NTCs 7-12)
- *                  each 200 ms tick, plus one LvacTemperatureInfo summary
- *                  frame (min, max, average) every tick.
+ *                   alternating group 0 (NTCs 1-6) and group 1 (NTCs 7-12)
+ *                   each 200 ms task execution, plus one LvacTemperatureInfo summary
+ *                   frame (min, max, average) every execution.
  *
- * \param[in]        tick_ms The system tick in ms.
+ * \note             The application task scheduler supplies the CAN cycle timing.
  *
- * \retval           TEMPERATURE_RC_OK on success.
- * \retval           TEMPERATURE_RC_COMMUNICATION_ERROR if queuing a frame failed.
+ * \param[in]        task_id The ID of the task that is being executed.
  */
-enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32_t tick_ms);
+void temperature_api_send_temperatures(uint8_t task_id);
 
 #else /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 
@@ -160,7 +159,7 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
 #define temperature_api_get_average() (0.F)
 #define temperature_api_dump_temperatures(out, start, size) (TEMPERATURE_RC_OK)
 #define temperature_api_volt_to_celsius(value) (0.F)
-#define temperature_api_periodically_send_temperatures(tick) (TEMPERATURE_RC_OK)
+#define temperature_api_send_temperatures(task_id) (EAGLETRT_API_NOP())
 
 #endif /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 

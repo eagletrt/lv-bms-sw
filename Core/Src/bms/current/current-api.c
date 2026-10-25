@@ -1,9 +1,9 @@
 /*!
- * \file            current-api.h
+ * \file            current-api.c
  * \date            2026-04-28
  * \authors         Mirko Lana [mirko.lana@eagletrt.it]
  *
- * \brief           Current module data structures.
+ * \brief           Current module APIs.
  */
 
 #include "current.h"

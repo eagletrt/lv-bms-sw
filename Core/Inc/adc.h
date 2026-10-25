@@ -34,6 +34,7 @@ extern "C" {
 #include <stddef.h>
 
 #include "types.h"
+#include "tasks.h"
 
 /* USER CODE END Includes */
 
@@ -42,16 +43,16 @@ extern ADC_HandleTypeDef hadc1;
 /* USER CODE BEGIN Private defines */
 
 /*!
- * \brief           Index of every conversion inside the ADC1 DMA buffer.
+ * \brief            Index of every conversion inside the ADC1 DMA buffer.
  *
- * \details         ADC1 runs with the sequencer in "not fully configurable"
- *                  mode (\c ADC_SCAN_SEQ_FIXED), which converts the enabled
- *                  channels in ascending channel-number order, no matter in
- *                  which order they were configured. This enum therefore has to
- *                  stay sorted by ADC channel number, and its length has to
- *                  match exactly the number of channels enabled in
- *                  MX_ADC1_Init(), otherwise the DMA transfer and the buffer go
- *                  out of sync.
+ * \details          ADC1 runs with the sequencer in "not fully configurable"
+ *                   mode (\c ADC_SCAN_SEQ_FIXED), which converts the enabled
+ *                   channels in ascending channel-number order, no matter in
+ *                   which order they were configured. This enum therefore has to
+ *                   stay sorted by ADC channel number, and its length has to
+ *                   match exactly the number of channels enabled in
+ *                   MX_ADC1_Init(), otherwise the DMA transfer and the buffer go
+ *                   out of sync.
  */
 enum AdcRead {
     ADC_READ_MCU_5V_SENSE,      /*!< CH0  - PA0  - 5 V rail sense */
@@ -84,87 +85,86 @@ void MX_ADC1_Init(void);
 /* USER CODE BEGIN Prototypes */
 
 /*!
- * \brief           Start a single ADC scan of every enabled channel via DMA.
+ * \brief            Start a single ADC scan of every enabled channel via DMA.
  *
- * \details         Prefer adc_routine(), which drives the scan and the NTC
- *                  multiplexer together; this is exposed for the initial kick
- *                  and for tests.
+ * \details          Initial kick and tests only; the app uses adc_routine(), which drives scan and multiplexer together.
  */
 void adc_start_read(void);
 
-/*!
- * \brief           Run the ADC/multiplexer state machine.
- *
- * \details         Has to be called periodically from the main loop. It
- *                  processes a completed scan (updating the temperature and
- *                  feedback modules), steps the NTC multiplexer to the next
- *                  channel, waits #ADC_MUX_SETTLE_MS for it to settle and starts
- *                  the next scan. A scan stuck for more than
- *                  #ADC_SCAN_TIMEOUT_MS is aborted and restarted so a lost DMA
- *                  completion cannot stall the acquisition for good.
- *
- * \param[in]       tick The current tick in ms.
- */
-void adc_routine(uint32_t tick);
+bool adc_init_tasks(task_tick_callback get_tick);
 
 /*!
- * \brief           Get the last converted voltages, indexed by enum AdcRead.
+ * \brief            Run the ADC/multiplexer state machine.
  *
- * \returns         A pointer to the internal array of #ADC_READ_COUNT voltages in V.
+ * \details          Driven periodically. It processes a completed scan
+ *                   (temperature and feedback modules), steps the NTC
+ *                   multiplexer to the next channel, waits #ADC_MUX_SETTLE_MS
+ *                   and starts the next scan. A scan stuck longer than
+ *                   #ADC_SCAN_TIMEOUT_MS is aborted and restarted, so a lost DMA
+ *                   completion cannot stall the acquisition.
+ *
+ * \returns          bool False if the task scheduler or DMA recovery failed.
+ */
+bool adc_routine(void);
+
+/*!
+ * \brief            Get the last converted voltages, indexed by enum AdcRead.
+ *
+ * \returns          A pointer to the internal array of #ADC_READ_COUNT voltages in V.
  */
 volatile float *get_adc_voltages(void);
 
 /*!
- * \brief           Get a single converted voltage measured at the MCU pin.
+ * \brief            Get a single converted voltage measured at the MCU pin.
  *
- * \param[in]       read The conversion to read.
+ * \param[in]        read The conversion to read.
  *
- * \returns         volt The voltage in V, 0 V if \p read is out of bounds.
+ * \returns          volt The voltage in V, 0 V if \p read is out of bounds.
  */
 volt adc_get_voltage(enum AdcRead read);
 
 /*!
- * \brief           Get the multiplexer channel currently selected, i.e. the one
- *                  the next scan will sample.
+ * \brief            Get the multiplexer channel currently selected, i.e. the one
+ *                   the next scan will sample.
  *
- * \returns         size_t The multiplexer channel index.
+ * \returns          size_t The multiplexer channel index.
  */
 size_t adc_get_current_ntc_channel(void);
 
 /*!
- * \brief           Get the analog supply voltage measured through VREFINT.
+ * \brief            Get the analog supply voltage measured through VREFINT.
  *
- * \details         The raw counts are scaled with this value instead of a fixed
- *                  3.3 V so that a supply that is off nominal does not skew every
- *                  reading, the NTC ones in particular.
+ * \details          The raw counts are scaled with this value instead of a fixed
+ *                   3.3 V so that a supply that is off nominal does not skew every
+ *                   reading, the NTC ones in particular.
  *
- * \returns         volt VDDA in V.
+ * \returns          volt VDDA in V.
  */
 volt adc_get_vdda(void);
 
 /*!
- * \brief           Get the MCU junction temperature from the internal sensor.
+ * \brief            Get the MCU junction temperature from the internal sensor.
  *
- * \returns         celsius The die temperature in °C.
+ * \returns          celsius The die temperature in °C.
  */
 celsius adc_get_mcu_temperature(void);
 
 /*!
- * \defgroup        adc_sense Scaled readings of the analog sense front-ends.
+ * \defgroup         adc_sense Scaled readings of the analog sense front-ends.
  *
- * \details         Each getter undoes the 10 k / 18 k or 10 k / 1k3 attenuation of
- *                  its sense line (\c DEFINES_SENSE_*_GAIN in defines.h) so it
- *                  returns the voltage present on the rail itself, not the one
- *                  measured on the MCU pin.
+ * \details          Each getter undoes the 10 k / 18 k or 10 k / 1k3 attenuation of
+ *                   its sense line (\c DEFINES_SENSE_*_GAIN in defines.h) so it
+ *                   returns the voltage present on the rail itself, not the one
+ *                   measured on the MCU pin.
  *
- * \note            The two current getters go one step further and also undo the
- *                  transfer function of the Hall sensor behind each line, see the
- *                  \c sense_current and \c sense_i_out groups in defines.h. The
- *                  *_sense_voltage getters expose the sensor output itself, which
- *                  is what you want when checking the zero-current offset on the
- *                  bench.
+ * \note             The two current getters go one step further and also undo the
+ *                   transfer function of the Hall sensor behind each line, see the
+ *                   \c sense_current and \c sense_i_out groups in defines.h. The
+ *                   *_sense_voltage getters expose the sensor output itself, which
+ *                   is what you want when checking the zero-current offset on the
+ *                   bench.
  *
- * \{
+ *                   \{
  */
 
 volt adc_get_vin(void);                  /*!< Fused input voltage in V. */
@@ -182,42 +182,42 @@ ampere adc_get_output_current(void);     /*!< Pack output current in A, positive
 /*! \} */
 
 /*!
- * \defgroup        adc_mux Manual control of the NTC multiplexer.
+ * \defgroup         adc_mux Manual control of the NTC multiplexer.
  *
- * \details         adc_routine() normally walks every populated channel on its
- *                  own. For bench work it is useful to freeze it on one channel
- *                  and watch a single NTC; that is what a hold does. It only
- *                  stops the stepping, the scans keep running, so the held
- *                  channel keeps being refreshed.
+ * \details          adc_routine() normally walks every populated channel on its
+ *                   own. For bench work it is useful to freeze it on one channel
+ *                   and watch a single NTC; that is what a hold does. It only
+ *                   stops the stepping, the scans keep running, so the held
+ *                   channel keeps being refreshed.
  *
- * \{
+ *                   \{
  */
 
 /*!
- * \brief           Pin the multiplexer to one channel and stop the automatic stepping.
+ * \brief            Pin the multiplexer to one channel and stop the automatic stepping.
  *
- * \param[in]       channel The channel to hold, ignored if >= DEFINES_NTC_MUX_CHANNEL_COUNT.
+ * \param[in]        channel The channel to hold, ignored if >= DEFINES_NTC_MUX_CHANNEL_COUNT.
  */
 void adc_set_mux_hold(size_t channel);
 
 /*!
- * \brief           Resume walking every populated multiplexer channel.
+ * \brief            Resume walking every populated multiplexer channel.
  */
 void adc_clear_mux_hold(void);
 
 /*!
- * \brief           Tell whether the multiplexer is currently held on one channel.
+ * \brief            Tell whether the multiplexer is currently held on one channel.
  *
- * \returns         bool True if held, false if cycling.
+ * \returns          bool True if held, false if cycling.
  */
 bool adc_is_mux_held(void);
 
 /*!
- * \brief           Get the last NTC voltage measured on a multiplexer channel.
+ * \brief            Get the last NTC voltage measured on a multiplexer channel.
  *
- * \param[in]       mux_channel The channel index.
+ * \param[in]        mux_channel The channel index.
  *
- * \returns         float The NTC divider voltage in V, 0 V if the channel is out of bounds.
+ * \returns          float The NTC divider voltage in V, 0 V if the channel is out of bounds.
  */
 float adc_get_ntc_voltage(size_t mux_channel);
 

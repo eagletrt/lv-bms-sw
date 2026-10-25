@@ -20,19 +20,20 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "gpio.h"
+#include "eagletrt-api.h"
 
 /* USER CODE BEGIN 0 */
 
 #include "feedback-api.h"
 
 /*!
- * \brief           Translate a pin level into the analog level the feedback
- *                  module compares against its thresholds.
+ * \brief            Translate a pin level into the analog level the feedback
+ *                   module compares against its thresholds.
  *
- * \param[in]       port The GPIO port of the feedback pin.
- * \param[in]       pin The GPIO pin of the feedback.
+ * \param[in]        port The GPIO port of the feedback pin.
+ * \param[in]        pin The GPIO pin of the feedback.
  *
- * \returns         volt GPIO_FEEDBACK_LOGIC_HIGH_V or GPIO_FEEDBACK_LOGIC_LOW_V.
+ * \returns          volt GPIO_FEEDBACK_LOGIC_HIGH_V or GPIO_FEEDBACK_LOGIC_LOW_V.
  */
 static volt prv_gpio_read_feedback(GPIO_TypeDef *port, uint16_t pin) {
     return (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) ? GPIO_FEEDBACK_LOGIC_HIGH_V : GPIO_FEEDBACK_LOGIC_LOW_V;
@@ -133,14 +134,16 @@ bool gpio_is_master_relay_closed(void) {
     return HAL_GPIO_ReadPin(OUTPUT_EN_GPIO_Port, OUTPUT_EN_Pin) == GPIO_PIN_SET;
 }
 
-void gpio_update_digital_feedbacks(void) {
-    (void)feedback_api_set_analog(FEEDBACK_SUPPLY_ENABLE_NEGATED, prv_gpio_read_feedback(SUPPLY_EN_FB_MCU_GPIO_Port, SUPPLY_EN_FB_MCU_Pin));
-    (void)feedback_api_set_analog(FEEDBACK_OUTPUT_DELAY, prv_gpio_read_feedback(OUTPUT_DELAY_FB_GPIO_Port, OUTPUT_DELAY_FB_Pin));
-    (void)feedback_api_set_analog(FEEDBACK_CHARGE_STATUS_NEGATED, prv_gpio_read_feedback(CHRG_STATUS_FB_GPIO_Port, CHRG_STATUS_FB_Pin));
-    (void)feedback_api_set_analog(FEEDBACK_CHARGE_VIN_VALID_NEGATED, prv_gpio_read_feedback(CHRG_VIN_VALID_FB_GPIO_Port, CHRG_VIN_VALID_FB_Pin));
+void gpio_update_digital_feedbacks(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_SUPPLY_ENABLE_NEGATED, prv_gpio_read_feedback(SUPPLY_EN_FB_MCU_GPIO_Port, SUPPLY_EN_FB_MCU_Pin)));
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_OUTPUT_DELAY, prv_gpio_read_feedback(OUTPUT_DELAY_FB_GPIO_Port, OUTPUT_DELAY_FB_Pin)));
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_CHARGE_STATUS_NEGATED, prv_gpio_read_feedback(CHRG_STATUS_FB_GPIO_Port, CHRG_STATUS_FB_Pin)));
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_CHARGE_VIN_VALID_NEGATED, prv_gpio_read_feedback(CHRG_VIN_VALID_FB_GPIO_Port, CHRG_VIN_VALID_FB_Pin)));
     /*! SUPPLY_DELAY_FB is configured as an output by the .ioc; reading it back
         still returns the level actually present on the pin (IDR). */
-    (void)feedback_api_set_analog(FEEDBACK_SUPPLY_DELAY, prv_gpio_read_feedback(SUPPLY_DELAY_FB_GPIO_Port, SUPPLY_DELAY_FB_Pin));
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_SUPPLY_DELAY, prv_gpio_read_feedback(SUPPLY_DELAY_FB_GPIO_Port, SUPPLY_DELAY_FB_Pin)));
 }
 
 /* USER CODE END 2 */

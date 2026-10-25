@@ -51,37 +51,33 @@ void MX_GPIO_Init(void);
 /* USER CODE BEGIN Prototypes */
 
 /*!
- * \brief           Open or close the master output relay K1.
+ * \brief            Open or close the master output relay K1.
  *
- * \details         Closing it connects the pack to VOUT through the 20 A fuse, so
- *                  it is only ever done once the pre-flight checks in the FSM have
- *                  passed. MX_GPIO_Init() leaves it open, which is the safe state
- *                  at reset.
+ * \details          Energising connects the pack to VOUT through the 20 A fuse; only after pre-flight, MX_GPIO_Init leaves it open (safe reset state).
  *
- * \param[in]       closed True to energise the coil and connect the output, false
- *                  to release it.
+ * \param[in]        closed True to energise the coil and connect the output, false
+ *                   to release it.
  */
 void gpio_set_master_relay(bool closed);
 
 /*!
- * \brief           Tell whether the master relay coil is currently energised.
+ * \brief            Tell whether the master relay coil is currently energised.
  *
- * \details         Reads the drive pin back, not the contacts. Use the
- *                  FEEDBACK_OUTPUT_ENABLE_NEGATED and FEEDBACK_VOUT feedbacks to
- *                  confirm the relay actually followed.
+ * \details          Reads the drive pin, not the contacts; confirm follow-through on the negated EN and VOUT feedbacks.
  *
- * \returns         bool True if the coil is being driven.
+ * \returns          bool True if the coil is being driven.
  */
 bool gpio_is_master_relay_closed(void);
 
 /*!
- * \brief           Sample the digital feedback pins and publish them to the
- *                  feedback module.
+ * \brief            Sample the digital feedback pins and publish them to the
+ *                   feedback module.
  *
- * \details         Covers the feedbacks that are plain logic inputs; the analog
- *                  ones are refreshed by adc_routine().
+ * \details          Only plain logic inputs; the analog feedbacks refresh in adc_routine().
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
  */
-void gpio_update_digital_feedbacks(void);
+void gpio_update_digital_feedbacks(uint8_t task_id);
 
 /* USER CODE END Prototypes */
 

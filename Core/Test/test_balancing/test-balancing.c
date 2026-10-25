@@ -7,6 +7,7 @@
  */
 
 #include "unity.h"
+#include "eagletrt-api.h"
 
 #include <string.h>
 
@@ -39,6 +40,8 @@ void setUp(void) {
 }
 
 void tearDown(void) {
+    arena_allocator_api_free(&balancing_handler.tasks.arena_handler);
+    memset(&balancing_handler, 0, sizeof(balancing_handler));
 }
 
 /*!
@@ -49,7 +52,6 @@ void tearDown(void) {
 void test_balancing_api_init_resets_handler(void) {
     balancing_handler.target = 4.2F;
     balancing_handler.threshold = 1.F;
-    balancing_handler.last_run = 42U;
     balancing_handler.is_active = true;
     balancing_handler.odd_phase = true;
 
@@ -57,17 +59,16 @@ void test_balancing_api_init_resets_handler(void) {
 
     TEST_ASSERT_EQUAL_FLOAT(0.F, balancing_handler.target);
     TEST_ASSERT_EQUAL_FLOAT(0.F, balancing_handler.threshold);
-    TEST_ASSERT_EQUAL_UINT32(0U, balancing_handler.last_run);
     TEST_ASSERT_FALSE(balancing_handler.is_active);
     TEST_ASSERT_FALSE(balancing_handler.odd_phase);
-    TEST_ASSERT_EQUAL_PTR(prv_test_get_tick, balancing_handler.get_tick);
+    TEST_ASSERT_EQUAL_PTR(prv_test_get_tick, balancing_handler.tasks.get_tick);
 }
 
 void test_balancing_api_init_rejects_null_tick(void) {
-    const balancing_get_tick_callback previous = balancing_handler.get_tick;
+    const balancing_get_tick_callback previous = balancing_handler.tasks.get_tick;
 
     TEST_ASSERT_EQUAL(BALANCING_RC_NULL_POINTER, balancing_api_init(NULL));
-    TEST_ASSERT_EQUAL_PTR(previous, balancing_handler.get_tick);
+    TEST_ASSERT_EQUAL_PTR(previous, balancing_handler.tasks.get_tick);
 }
 
 /*! \} */
@@ -79,7 +80,7 @@ void test_balancing_api_init_rejects_null_tick(void) {
 
 void test_balancing_api_start_valid(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.80F, 3.75F, 3.70F, 3.85F, 3.72F, 3.79F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
 
     TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(BALANCING_THRESHOLD_V));
 
@@ -97,7 +98,7 @@ void test_balancing_api_start_valid(void) {
  */
 
 void test_balancing_api_stop_clears_discharge(void) {
-    (void)bms_monitor_api_set_discharge(0b00010101U);
+    EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(0b00010101U));
 
     TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_stop());
 
@@ -114,24 +115,24 @@ void test_balancing_api_stop_clears_discharge(void) {
 
 void test_prv_compute_mask_even_parity(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.80F, 3.70F, 3.80F, 3.70F, 3.80F, 3.70F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
     TEST_ASSERT_EQUAL_UINT8(0b00010101U, prv_balancing_api_compute_mask(false));
 }
 
 void test_prv_compute_mask_odd_parity(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.70F, 3.80F, 3.70F, 3.80F, 3.70F, 3.80F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
     TEST_ASSERT_EQUAL_UINT8(0b00101010U, prv_balancing_api_compute_mask(true));
 }
 
 void test_prv_compute_mask_never_adjacent(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
     const uint8_t even_mask = prv_balancing_api_compute_mask(false);
     const uint8_t odd_mask = prv_balancing_api_compute_mask(true);
@@ -144,8 +145,8 @@ void test_prv_compute_mask_never_adjacent(void) {
 
 void test_prv_compute_mask_threshold_boundary(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.70F + BALANCING_THRESHOLD_V, 3.70F, 3.70F, 3.70F, 3.70F, 3.70F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
     TEST_ASSERT_EQUAL_UINT8(0U, prv_balancing_api_compute_mask(false));
 }
@@ -158,42 +159,46 @@ void test_prv_compute_mask_threshold_boundary(void) {
  */
 
 void test_balancing_api_run_inactive_noop(void) {
-    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run(10000U));
-    TEST_ASSERT_EQUAL_UINT32(0U, balancing_handler.last_run);
+    test_tick = 10000U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
     TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
 }
 
 void test_balancing_api_run_cadence_gate(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.70F, 3.70F, 3.70F, 3.70F, 3.70F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
-    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run(BALANCING_RUN_PERIOD_MS - 1U));
+    test_tick = BALANCING_RUN_PERIOD_MS - 1U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
     TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
 
-    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run(BALANCING_RUN_PERIOD_MS));
-    TEST_ASSERT_EQUAL_UINT32(BALANCING_RUN_PERIOD_MS, balancing_handler.last_run);
+    test_tick = BALANCING_RUN_PERIOD_MS;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
     TEST_ASSERT_EQUAL_UINT8(0b00000010U, bms_monitor_handler.requested_configuration.DCC);
 }
 
 void test_balancing_api_run_alternates_parity(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
-    (void)balancing_api_run(BALANCING_RUN_PERIOD_MS);
+    test_tick = BALANCING_RUN_PERIOD_MS;
+    EAGLETRT_API_UNUSED(balancing_api_run());
     TEST_ASSERT_EQUAL_UINT8(0b00000100U, bms_monitor_handler.requested_configuration.DCC);
 
-    (void)balancing_api_run(2U * BALANCING_RUN_PERIOD_MS);
+    test_tick = 2U * BALANCING_RUN_PERIOD_MS;
+    EAGLETRT_API_UNUSED(balancing_api_run());
     TEST_ASSERT_EQUAL_UINT8(0b00000010U, bms_monitor_handler.requested_configuration.DCC);
 }
 
 void test_balancing_api_run_completes_when_balanced(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.72F, 3.71F, 3.70F, 3.73F, 3.71F, 3.72F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
-    (void)balancing_api_run(BALANCING_RUN_PERIOD_MS);
+    test_tick = BALANCING_RUN_PERIOD_MS;
+    EAGLETRT_API_UNUSED(balancing_api_run());
 
     TEST_ASSERT_FALSE(balancing_api_is_active());
     TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
@@ -201,16 +206,81 @@ void test_balancing_api_run_completes_when_balanced(void) {
 
 void test_balancing_api_run_parity_peek(void) {
     const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.70F, 3.70F, 3.70F, 3.70F, 3.70F };
-    (void)voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
-    (void)balancing_api_start(BALANCING_THRESHOLD_V);
+    EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
+    EAGLETRT_API_UNUSED(balancing_api_start(BALANCING_THRESHOLD_V));
 
-    (void)balancing_api_run(BALANCING_RUN_PERIOD_MS);
+    test_tick = BALANCING_RUN_PERIOD_MS;
+    EAGLETRT_API_UNUSED(balancing_api_run());
 
     TEST_ASSERT_TRUE(balancing_api_is_active());
     TEST_ASSERT_EQUAL_UINT8(0b00000010U, bms_monitor_handler.requested_configuration.DCC);
 }
 
 /*! \} */
+
+void test_balancing_timeout_stops_discharge(void) {
+    const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
+    voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(BALANCING_THRESHOLD_V));
+    test_tick = BALANCING_RUN_PERIOD_MS;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    TEST_ASSERT_NOT_EQUAL(0U, bms_monitor_handler.requested_configuration.DCC);
+    test_tick = BALANCING_STATE_TIMEOUT_MS - 1U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    TEST_ASSERT_TRUE(balancing_api_is_active());
+    ++test_tick;
+    TEST_ASSERT_EQUAL(BALANCING_RC_STATE_TIMEOUT, balancing_api_run());
+    TEST_ASSERT_FALSE(balancing_api_is_active());
+    TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
+}
+
+void test_balancing_command_restarts_timeout_without_refreshing_cadence(void) {
+    const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
+    voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_set_state_handle(true, BALANCING_THRESHOLD_V));
+    test_tick = 1500U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_set_state_handle(true, BALANCING_THRESHOLD_V));
+    test_tick = BALANCING_STATE_TIMEOUT_MS;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    TEST_ASSERT_TRUE(balancing_api_is_active());
+    test_tick = 1500U + BALANCING_STATE_TIMEOUT_MS;
+    TEST_ASSERT_EQUAL(BALANCING_RC_STATE_TIMEOUT, balancing_api_run());
+    TEST_ASSERT_FALSE(balancing_api_is_active());
+}
+
+void test_balancing_start_uses_current_time(void) {
+    const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
+    voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
+    test_tick = 10000U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(BALANCING_THRESHOLD_V));
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    TEST_ASSERT_TRUE(balancing_api_is_active());
+    TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
+    test_tick += BALANCING_RUN_PERIOD_MS;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    TEST_ASSERT_NOT_EQUAL(0U, bms_monitor_handler.requested_configuration.DCC);
+}
+
+void test_balancing_stop_cancels_tasks(void) {
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(BALANCING_THRESHOLD_V));
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_stop());
+    test_tick = 10000U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    TEST_ASSERT_FALSE(balancing_api_is_active());
+    TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
+}
+
+void test_balancing_clock_discontinuity_clears_discharge(void) {
+    const volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 3.90F, 3.90F, 3.70F, 3.70F, 3.70F, 3.70F };
+    voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT);
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_start(BALANCING_THRESHOLD_V));
+    test_tick = BALANCING_RUN_PERIOD_MS;
+    TEST_ASSERT_EQUAL(BALANCING_RC_OK, balancing_api_run());
+    test_tick = 0U;
+    TEST_ASSERT_EQUAL(BALANCING_RC_SCHEDULER_ERROR, balancing_api_run());
+    TEST_ASSERT_FALSE(balancing_api_is_active());
+    TEST_ASSERT_EQUAL_UINT8(0U, bms_monitor_handler.requested_configuration.DCC);
+}
 
 int main(void) {
     UNITY_BEGIN();
@@ -251,6 +321,11 @@ int main(void) {
     RUN_TEST(test_balancing_api_run_alternates_parity);
     RUN_TEST(test_balancing_api_run_completes_when_balanced);
     RUN_TEST(test_balancing_api_run_parity_peek);
+    RUN_TEST(test_balancing_timeout_stops_discharge);
+    RUN_TEST(test_balancing_command_restarts_timeout_without_refreshing_cadence);
+    RUN_TEST(test_balancing_start_uses_current_time);
+    RUN_TEST(test_balancing_stop_cancels_tasks);
+    RUN_TEST(test_balancing_clock_discontinuity_clears_discharge);
     /*! \} */
 
     return UNITY_END();

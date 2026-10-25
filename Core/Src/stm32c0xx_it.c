@@ -22,6 +22,8 @@
 #include "stm32c0xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "application.h"
+#include "timebase-api.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -125,6 +127,8 @@ void SysTick_Handler(void) {
     /* USER CODE END SysTick_IRQn 0 */
     HAL_IncTick();
     /* USER CODE BEGIN SysTick_IRQn 1 */
+
+    EAGLETRT_API_UNUSED(timebase_inc_tick(&application_timebase));
 
     /* USER CODE END SysTick_IRQn 1 */
 }

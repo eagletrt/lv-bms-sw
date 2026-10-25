@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "tasks.h"
 
 #define BALANCING_THRESHOLD_V (0.05F)      /*!< Imbalance tolerated above the minimum cell voltage in V */
 #define BALANCING_RUN_PERIOD_MS (1000U)    /*!< Discharge mask refresh period in ms, well under the LTC 30 s discharge timeout */
@@ -22,10 +23,11 @@
  * \brief            Return codes for the balancing module functions.
  */
 enum BalancingReturnCode {
-    BALANCING_RC_OK,            /*!< Function executed successfully */
-    BALANCING_RC_NULL_POINTER,  /*!< Unexpected NULL pointer */
-    BALANCING_RC_OUT_OF_BOUNDS, /*!< A value is outside the allowed cell voltage range */
-    BALANCING_RC_STATE_TIMEOUT  /*!< State wasn't updated for a period of time >= 3s */
+    BALANCING_RC_OK,             /*!< Function executed successfully */
+    BALANCING_RC_NULL_POINTER,   /*!< Unexpected NULL pointer */
+    BALANCING_RC_OUT_OF_BOUNDS,  /*!< A value is outside the allowed cell voltage range */
+    BALANCING_RC_STATE_TIMEOUT,  /*!< State wasn't updated for a period of time >= 3s */
+    BALANCING_RC_SCHEDULER_ERROR /*!< The task scheduler failed an operation */
 };
 
 /*!
@@ -37,13 +39,12 @@ typedef uint32_t (*balancing_get_tick_callback)(void);
  * \brief            Balancing module handler structure.
  */
 struct BalancingHandler {
-    balancing_get_tick_callback get_tick; /*!< Board time base in ms, non-NULL after a successful init */
-    volt target;                          /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
-    volt threshold;                       /*!< The imbalance tolerated above target in V */
-    uint32_t last_set;                    /*!< Tick of the last executed state set */
-    uint32_t last_run;                    /*!< Tick of the last executed run, for cadence gating */
-    bool is_active;                       /*!< Indicates if balancing is active (true) or not (false) */
-    bool odd_phase;                       /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
+    struct TasksHandler tasks;             /*!< Task scheduler driving the refresh and timeout tasks */
+    enum BalancingReturnCode result;       /*!< Result of the last balancing run */
+    volt target;                           /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
+    volt threshold;                        /*!< The imbalance tolerated above target in V */
+    bool is_active;                        /*!< Indicates if balancing is active (true) or not (false) */
+    bool odd_phase;                        /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
 };
 
 #endif /*! BALANCING_H */

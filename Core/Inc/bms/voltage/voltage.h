@@ -34,8 +34,6 @@ enum VoltageReturnCode {
  */
 struct VoltageHandler {
     volt voltages[DEFINES_CELLS_SERIES_COUNT]; /*!< An array of voltages in V */
-    uint32_t last_tick_cell_voltage_ms;        /*!< Last tick for LvacCellVoltage */
-    uint32_t last_tick_voltage_information_ms; /*!< Last tick for LvacVoltageInfo */
 };
 
 #endif /*! VOLTAGE_H */
