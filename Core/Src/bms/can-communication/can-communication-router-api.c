@@ -11,6 +11,7 @@
 #include "balancing-api.h"
 #include "can-primary-api.h"
 #include "can-primary.h"
+#include "bootloader-api.h"
 
 EAGLETRT_STATIC void prv_dispatch_rx(uint32_t frame_id, union CanPrimaryMessages message) {
     switch (frame_id) {
@@ -19,9 +20,18 @@ EAGLETRT_STATIC void prv_dispatch_rx(uint32_t frame_id, union CanPrimaryMessages
                 (bool)message.raspberrylvacbalancingset.start,
                 (volt)message.raspberrylvacbalancingset.threshold);
             break;
-
-        default:
+        case CAN_PRIMARY_MESSAGE_FRAME_ID_LVACFLASHINGRX: {
+            bootloader_api_reboot();
             break;
+        }
+        default: {
+            if (frame_id >= BOOTLOADER_CAN_FLASH_ID_MIN && frame_id <= BOOTLOADER_CAN_FLASH_ID_MAX) {
+                bootloader_api_set_flashing(true);
+                bootloader_api_watchdog_pet();
+            }
+
+            break;
+        }
     }
 }
 

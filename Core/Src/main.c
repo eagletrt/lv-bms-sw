@@ -44,6 +44,7 @@
 #include "voltage-api.h"
 #include "defines.h"
 #include "current-api.h"
+#include "watchdogs-api.h"
 
 /* USER CODE END Includes */
 
@@ -78,6 +79,7 @@
 
 /* USER CODE BEGIN PV */
 
+struct WatchdogHandler watchdog_handler;
 state_t current_state = STATE_INIT;
 
 /* USER CODE END PV */
@@ -93,6 +95,16 @@ EAGLETRT_STATIC struct PalHandler logger_pal_handler;
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static void VectorBase_Config(void) {
+    /* The constant array with vectors of the vector table is declared externally in the
+   * c-startup code.
+   */
+    extern const unsigned long g_pfnVectors[];
+
+    /* Remap the vector table to where the vector table is located for this program. */
+    SCB->VTOR = (unsigned long)&g_pfnVectors[0];
+}
 
 /*!
  * \brief Initializes the low-level memory allocation and logging framework.
@@ -344,7 +356,7 @@ EAGLETRT_STATIC void prv_print_info() {
 int main(void) {
 
     /* USER CODE BEGIN 1 */
-
+    VectorBase_Config(); // bootloader code
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
@@ -377,6 +389,10 @@ int main(void) {
 
     HAL_FDCAN_Start(&hfdcan1);
 
+    if (watchdogs_api_init_pool(&watchdog_handler, HAL_GetTick) != WATCHDOG_RC_OK) {
+        Error_Handler();
+    }
+
     struct PostInitData post_init_data = {
         .can_network_configurations = {
             [CAN_COMMUNICATION_NETWORK_PRIMARY] = {
@@ -392,7 +408,9 @@ int main(void) {
         .get_tick = HAL_GetTick,
         /*! Board services the FSM cannot reach for itself. */
         .set_master_relay = gpio_set_master_relay,
-        .read_board_measurements = prv_main_read_board_measurements
+        .read_board_measurements = prv_main_read_board_measurements,
+        .watchdog_handler = &watchdog_handler,
+        .reboot = HAL_NVIC_SystemReset
     };
 
     struct FsmData fsm_data = {
