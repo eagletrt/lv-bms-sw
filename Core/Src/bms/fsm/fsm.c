@@ -35,6 +35,7 @@ The finite state machine has:
 #include "temperature-api.h"
 #include "feedback-api.h"
 #include "defines.h"
+#include "bootloader-api.h"
 
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
@@ -498,6 +499,10 @@ state_t do_idle(state_data_t *data) {
         next_state = STATE_BALANCING;
     }
 
+    if (bootloader_api_is_flashing()) {
+        next_state = STATE_FLASH;
+    }
+
     switch (next_state) {
         case NO_CHANGE:
         case STATE_FLASH:
@@ -557,6 +562,10 @@ state_t do_flash(state_data_t *data) {
         last_tick = current_tick;
 
         bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, nullptr);
+    }
+
+    if (bootloader_api_is_timedout()) {
+        next_state = STATE_IDLE;
     }
 
     switch (next_state) {
@@ -652,6 +661,8 @@ void flash_to_idle(state_data_t *data) {
 void flash_to_fatal(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
+
+    bootloader_api_set_flashing(false);
 }
 
 // This function is called in 1 transition:
@@ -659,6 +670,8 @@ void flash_to_fatal(state_data_t *data) {
 void idle_to_flash(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
+
+    bootloader_api_watchdog_restart();
 }
 
 // This function is called in 1 transition:

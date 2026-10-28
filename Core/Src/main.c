@@ -44,6 +44,7 @@
 #include "voltage-api.h"
 #include "defines.h"
 #include "current-api.h"
+#include "watchdogs-api.h"
 
 /* USER CODE END Includes */
 
@@ -78,6 +79,7 @@
 
 /* USER CODE BEGIN PV */
 
+struct WatchdogHandler watchdog_handler;
 state_t current_state = STATE_INIT;
 
 /* USER CODE END PV */
@@ -387,6 +389,10 @@ int main(void) {
 
     HAL_FDCAN_Start(&hfdcan1);
 
+    if (watchdogs_api_init_pool(&watchdog_handler, HAL_GetTick) != WATCHDOG_RC_OK) {
+        Error_Handler();
+    }
+
     struct PostInitData post_init_data = {
         .can_network_configurations = {
             [CAN_COMMUNICATION_NETWORK_PRIMARY] = {
@@ -402,7 +408,9 @@ int main(void) {
         .get_tick = HAL_GetTick,
         /*! Board services the FSM cannot reach for itself. */
         .set_master_relay = gpio_set_master_relay,
-        .read_board_measurements = prv_main_read_board_measurements
+        .read_board_measurements = prv_main_read_board_measurements,
+        .watchdog_handler = &watchdog_handler,
+        .reboot = HAL_NVIC_SystemReset
     };
 
     struct FsmData fsm_data = {

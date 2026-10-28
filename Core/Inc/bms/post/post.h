@@ -11,6 +11,7 @@
 #include "can-communication.h"
 #include "bms-monitor.h"
 #include "fsm.h"
+#include "bootloader.h"
 
 /*!
  * \brief Return codes for the POST module APIs
@@ -33,6 +34,8 @@ struct PostInitData {
         under Core/{Inc,Src}/bms may depend on the HAL. */
     fsm_set_master_relay_callback set_master_relay;
     fsm_read_board_measurements_callback read_board_measurements;
+    struct WatchdogHandler *watchdog_handler;
+    reboot_callback reboot;
 };
 
 #endif // POST_H
