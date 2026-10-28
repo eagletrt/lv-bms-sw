@@ -654,6 +654,8 @@ void init_to_fatal(state_data_t *data) {
 void flash_to_idle(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
+
+    bootloader_api_set_flashing(false);
 }
 
 // This function is called in 1 transition:
@@ -661,8 +663,6 @@ void flash_to_idle(state_data_t *data) {
 void flash_to_fatal(state_data_t *data) {
     /* Your Code Here */
     EAGLETRT_API_UNUSED(data);
-
-    bootloader_api_set_flashing(false);
 }
 
 // This function is called in 1 transition:
