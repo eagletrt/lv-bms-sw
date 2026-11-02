@@ -9,15 +9,12 @@
 #ifndef BALANCING_H
 #define BALANCING_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include "types.h"
 #include "tasks.h"
 
 #define BALANCING_THRESHOLD_V (0.05F)      /*!< Imbalance tolerated above the minimum cell voltage in V */
-#define BALANCING_RUN_PERIOD_MS (1000U)    /*!< Discharge mask refresh period in ms, well under the LTC 30 s discharge timeout */
-#define BALANCING_STATE_TIMEOUT_MS (3000U) /*!< The period of time without receiving balancing state updates in ms */
 
 /*!
  * \brief            Return codes for the balancing module functions.
@@ -27,22 +24,15 @@ enum BalancingReturnCode {
     BALANCING_RC_NULL_POINTER,   /*!< Unexpected NULL pointer */
     BALANCING_RC_OUT_OF_BOUNDS,  /*!< A value is outside the allowed cell voltage range */
     BALANCING_RC_STATE_TIMEOUT,  /*!< State wasn't updated for a period of time >= 3s */
-    BALANCING_RC_SCHEDULER_ERROR /*!< The task scheduler failed an operation */
 };
-
-/*!
- * \brief            Callback returning the current tick in ms.
- */
-typedef uint32_t (*balancing_get_tick_callback)(void);
 
 /*!
  * \brief            Balancing module handler structure.
  */
 struct BalancingHandler {
-    struct TasksHandler tasks;             /*!< Task scheduler driving the refresh and timeout tasks */
-    enum BalancingReturnCode result;       /*!< Result of the last balancing run */
     volt target;                           /*!< The voltage each discharged cell should reach in V, captured as the minimum cell voltage at start */
     volt threshold;                        /*!< The imbalance tolerated above target in V */
+    bool toggle_request;
     bool is_active;                        /*!< Indicates if balancing is active (true) or not (false) */
     bool odd_phase;                        /*!< Discharge odd-indexed cells this cycle, even-indexed the next */
 };

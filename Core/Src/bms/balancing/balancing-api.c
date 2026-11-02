@@ -18,34 +18,15 @@
 #include "eagletrt.h"
 #include "voltage-api.h"
 #include "bms-monitor-api.h"
-#include "tasks-api.h"
+#include "logger-api.h"
+#include "logger.h"
+#include "bms-tasks.h"
+#include "bms-tasks-api.h"
 
 #ifdef CONFIG_BALANCING_MODULE_ENABLE
 
-EAGLETRT_STATIC struct BalancingHandler balancing_handler; /*!< Private balancing handler instance. */
-
-/*!
- * \brief            Identifiers of the internal balancing tasks.
- */
-enum BalancingTaskId {
-    BALANCING_TASK_TIMEOUT, /*!< Timeout from the tick of the last executed state set */
-    BALANCING_TASK_REFRESH, /*!< Periodic cadence gating of the executed runs */
-    BALANCING_TASK_COUNT /*!< Number of balancing tasks */
-};
-
-EAGLETRT_STATIC void prv_balancing_api_refresh(uint8_t task_id);
-
-/*!
- * \brief            Stop balancing when the state-update timeout expires.
- *
- * \param[in]        task_id The ID of the task that is being executed.
- */
-EAGLETRT_STATIC void prv_balancing_api_timeout(uint8_t task_id) {
-    EAGLETRT_API_UNUSED(task_id);
-    if (balancing_api_stop() == BALANCING_RC_OK) {
-        balancing_handler.result = BALANCING_RC_STATE_TIMEOUT;
-    }
-}
+EAGLETRT_STATIC struct BalancingHandler
+    balancing_handler; /*!< Private balancing handler instance. */
 
 /*!
  * \brief            Check whether a cell should be discharged.
@@ -62,19 +43,22 @@ EAGLETRT_STATIC bool prv_balancing_api_cell_need_discharge(volt voltage) {
 /*!
  * \brief            Compute the bitmask of cells to discharge.
  *
- * \param[in]        odd_parity true to consider odd-indexed cells, false for even-indexed ones.
+ * \param[in]        odd_parity true to consider odd-indexed cells, false for
+ *                   even-indexed ones.
  *
  * \returns          uint8_t The cell bitmask, bit 0 being the first cell.
  */
 EAGLETRT_STATIC uint8_t prv_balancing_api_compute_mask(bool odd_parity) {
     volt voltages[DEFINES_CELLS_SERIES_COUNT] = { 0.F };
-    if (voltage_api_dump_voltages(voltages, 0U, DEFINES_CELLS_SERIES_COUNT) != VOLTAGE_RC_OK) {
+    if (voltage_api_dump_voltages(voltages, 0U, DEFINES_CELLS_SERIES_COUNT) !=
+        VOLTAGE_RC_OK) {
         return 0U;
     }
 
     uint8_t mask = 0U;
     for (size_t i = 0U; i < DEFINES_CELLS_SERIES_COUNT; ++i) {
-        if (prv_balancing_api_cell_need_discharge(voltages[i]) && (((i & 1U) != 0U) == odd_parity)) {
+        if (prv_balancing_api_cell_need_discharge(voltages[i]) &&
+            (((i & 1U) != 0U) == odd_parity)) {
             mask |= (uint8_t)(1U << i);
         }
     }
@@ -82,54 +66,31 @@ EAGLETRT_STATIC uint8_t prv_balancing_api_compute_mask(bool odd_parity) {
     return mask;
 }
 
-enum BalancingReturnCode balancing_api_init(balancing_get_tick_callback get_tick) {
-    if (get_tick == NULL) {
-        return BALANCING_RC_NULL_POINTER;
-    }
-
-    arena_allocator_api_free(&balancing_handler.tasks.arena_handler);
-    memset(&balancing_handler, 0, sizeof(balancing_handler));
-    TaskList tasks = {
-        [BALANCING_TASK_TIMEOUT] = {
-            .task_id = BALANCING_TASK_TIMEOUT,
-            .state = TASKS_STATE_DISABLED,
-            .repeats = 1U,
-            .function = prv_balancing_api_timeout,
-            .start = BALANCING_STATE_TIMEOUT_MS
-        },
-        [BALANCING_TASK_REFRESH] = {
-            .task_id = BALANCING_TASK_REFRESH,
-            .state = TASKS_STATE_DISABLED,
-            .function = prv_balancing_api_refresh,
-            .interval = BALANCING_RUN_PERIOD_MS,
-            .start = BALANCING_RUN_PERIOD_MS
-        }
-    };
-    if (tasks_api_init(&balancing_handler.tasks, tasks, BALANCING_TASK_COUNT, get_tick) != TASKS_RC_OK) {
-        balancing_handler.result = BALANCING_RC_SCHEDULER_ERROR;
-        return BALANCING_RC_SCHEDULER_ERROR;
-    }
+enum BalancingReturnCode balancing_api_init(void) {
+    balancing_handler.target = 0.F;
+    balancing_handler.threshold = 0.F;
+    balancing_handler.toggle_request = false;
+    balancing_handler.is_active = false;
+    balancing_handler.odd_phase = false;
 
     return BALANCING_RC_OK;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 enum BalancingReturnCode balancing_api_start(volt threshold) {
-    // TODO: add threshold check.
-
     balancing_handler.target = voltage_api_get_min();
     balancing_handler.threshold = threshold;
     balancing_handler.odd_phase = false;
-    balancing_handler.result = BALANCING_RC_OK;
-    if (tasks_api_enable_task(&balancing_handler.tasks, BALANCING_TASK_REFRESH) != TASKS_RC_OK ||
-        tasks_api_update_task(&balancing_handler.tasks, BALANCING_TASK_TIMEOUT,
-                              0U, BALANCING_STATE_TIMEOUT_MS, 1U) != TASKS_RC_OK ||
-        tasks_api_enable_task(&balancing_handler.tasks, BALANCING_TASK_TIMEOUT) != TASKS_RC_OK) {
-        EAGLETRT_API_UNUSED(balancing_api_stop());
-        balancing_handler.result = BALANCING_RC_SCHEDULER_ERROR;
-        return BALANCING_RC_SCHEDULER_ERROR;
-    }
     balancing_handler.is_active = true;
+
+    EAGLETRT_API_UNUSED(
+        bms_tasks_api_enable_task(BMS_TASKS_TASK_BALANCING_REFRESH));
+    EAGLETRT_API_UNUSED(
+        bms_tasks_api_update_task(BMS_TASKS_TASK_BALANCING_TIMEOUT,
+                                  0U,
+                                  BMS_TASKS_BALANCING_STATE_TIMEOUT_MS,
+                                  1U));
+    EAGLETRT_API_UNUSED(
+        bms_tasks_api_enable_task(BMS_TASKS_TASK_BALANCING_TIMEOUT));
 
     return BALANCING_RC_OK;
 }
@@ -137,21 +98,56 @@ enum BalancingReturnCode balancing_api_start(volt threshold) {
 enum BalancingReturnCode balancing_api_stop(void) {
     EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(0U));
     balancing_handler.is_active = false;
-    if (tasks_api_disable_task(&balancing_handler.tasks, BALANCING_TASK_REFRESH) != TASKS_RC_OK ||
-        tasks_api_disable_task(&balancing_handler.tasks, BALANCING_TASK_TIMEOUT) != TASKS_RC_OK) {
-        balancing_handler.result = BALANCING_RC_SCHEDULER_ERROR;
-        return BALANCING_RC_SCHEDULER_ERROR;
+
+    EAGLETRT_API_UNUSED(
+        bms_tasks_api_disable_task(BMS_TASKS_TASK_BALANCING_REFRESH));
+    EAGLETRT_API_UNUSED(
+        bms_tasks_api_disable_task(BMS_TASKS_TASK_BALANCING_TIMEOUT));
+
+    return BALANCING_RC_OK;
+}
+
+bool balancing_api_is_active(void) {
+    return balancing_handler.is_active;
+}
+
+enum BalancingReturnCode balancing_api_set_state_handle(bool active,
+                                                        volt threshold) {
+    if (active) {
+        if (!balancing_handler.is_active) {
+            return balancing_api_start(threshold);
+        }
+
+        EAGLETRT_API_UNUSED(
+            bms_tasks_api_update_task(BMS_TASKS_TASK_BALANCING_TIMEOUT,
+                                      0U,
+                                      BMS_TASKS_BALANCING_STATE_TIMEOUT_MS,
+                                      1U));
+    } else if (balancing_handler.is_active) {
+        return balancing_api_stop();
     }
+
+    return BALANCING_RC_OK;
+}
+
+enum BalancingReturnCode balancing_api_routine_toggle(void) {
+    balancing_handler.toggle_request = true;
     return BALANCING_RC_OK;
 }
 
 /*!
- * \brief            Recompute the discharge mask and push it to the monitor.
- *
- * \param[in]        task_id The ID of the task that is being executed.
+ * \defgroup         balancing_api_tasks Balancing module's tasks
+ * \{
  */
-EAGLETRT_STATIC void prv_balancing_api_refresh(uint8_t task_id) {
+
+void balancing_api_timeout_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
+    EAGLETRT_API_UNUSED(balancing_api_stop());
+}
+
+void balancing_api_refresh_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     if (!balancing_handler.is_active) {
         return;
     }
@@ -171,37 +167,26 @@ EAGLETRT_STATIC void prv_balancing_api_refresh(uint8_t task_id) {
     EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(mask));
 }
 
-enum BalancingReturnCode balancing_api_run(void) {
-    if (balancing_handler.result == BALANCING_RC_SCHEDULER_ERROR ||
-        tasks_api_routine(&balancing_handler.tasks) != TASKS_RC_OK) {
-        EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(0U));
-        balancing_handler.is_active = false;
-        balancing_handler.result = BALANCING_RC_SCHEDULER_ERROR;
+void balancing_api_routine_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (!balancing_handler.toggle_request) {
+        return;
     }
-    return balancing_handler.result;
+    balancing_handler.toggle_request = false;
+
+    if (balancing_handler.is_active) {
+        EAGLETRT_API_UNUSED(balancing_api_stop());
+        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] off");
+    } else if (balancing_api_start(BALANCING_THRESHOLD_V) == BALANCING_RC_OK) {
+        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] on");
+    } else {
+        logger_api_log(LOGGER_LEVEL_WARN,
+                       "[BAL] refused, pack voltages not valid");
+    }
 }
 
-bool balancing_api_is_active(void) {
-    return balancing_handler.is_active;
-}
-
-enum BalancingReturnCode balancing_api_set_state_handle(bool active, volt threshold) {
-    if (active && !balancing_handler.is_active) {
-        return balancing_api_start(threshold);
-    }
-    if (!active && balancing_handler.is_active) {
-        return balancing_api_stop();
-    }
-    if (active) {
-        if (tasks_api_update_task(&balancing_handler.tasks, BALANCING_TASK_TIMEOUT,
-                                  0U, BALANCING_STATE_TIMEOUT_MS, 1U) != TASKS_RC_OK) {
-            EAGLETRT_API_UNUSED(balancing_api_stop());
-            balancing_handler.result = BALANCING_RC_SCHEDULER_ERROR;
-            return BALANCING_RC_SCHEDULER_ERROR;
-        }
-    }
-
-    return BALANCING_RC_OK;
-}
+/*!
+ * \} */
 
 #endif /*! CONFIG_BALANCING_MODULE_ENABLE */

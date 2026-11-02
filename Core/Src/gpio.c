@@ -25,6 +25,7 @@
 /* USER CODE BEGIN 0 */
 
 #include "feedback-api.h"
+#include "fsm.h"
 
 /*!
  * \brief            Translate a pin level into the analog level the feedback
@@ -134,7 +135,12 @@ bool gpio_is_master_relay_closed(void) {
     return HAL_GPIO_ReadPin(OUTPUT_EN_GPIO_Port, OUTPUT_EN_Pin) == GPIO_PIN_SET;
 }
 
-void gpio_update_digital_feedbacks(uint8_t task_id) {
+/*!
+ * \defgroup         gpio_tasks GPIO module's tasks.
+ * \{
+ */
+
+void gpio_update_digital_feedbacks_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
     EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_SUPPLY_ENABLE_NEGATED, prv_gpio_read_feedback(SUPPLY_EN_FB_MCU_GPIO_Port, SUPPLY_EN_FB_MCU_Pin)));
@@ -145,5 +151,15 @@ void gpio_update_digital_feedbacks(uint8_t task_id) {
         still returns the level actually present on the pin (IDR). */
     EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_SUPPLY_DELAY, prv_gpio_read_feedback(SUPPLY_DELAY_FB_GPIO_Port, SUPPLY_DELAY_FB_Pin)));
 }
+
+void gpio_heartbeat_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, get_state() == STATE_FATAL ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+/*!
+ * \} */
 
 /* USER CODE END 2 */

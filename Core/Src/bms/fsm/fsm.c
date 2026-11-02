@@ -46,6 +46,17 @@ The finite state machine has:
  */
 constexpr uint8_t fsm_relay_close_confirmations = 3U;
 
+/*!
+ * \brief            The current FSM state.
+ *
+ * \details          This variable is needed inside gpio.c`to execute the heartbeat task
+ *                   correctly. The new FSM library already contains a getter to achieve that
+ *                   but it will be implemented in the near future. This is just the simple
+ *                   and ugly "easy-fix"; I promise that the future FSM implementation will be
+ *                   cleaner than this one :).
+ */
+EAGLETRT_STATIC state_t prv_curr_state;
+
 EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
 /*!
@@ -155,7 +166,9 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
  *                   logged only when it changes. First reads are 0 V so the relay
  *                   stays open until real data.
  */
-void fsm_relay_supervise(void) {
+void fsm_relay_supervise(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
     static enum FsmSafetyStatus last_status = FSM_SAFETY_OK;
     const enum FsmSafetyStatus status = prv_fsm_check_pack_safety();
 
@@ -489,7 +502,11 @@ state_t run_state(state_t cur_state, state_data_t *data) {
         transition(data);
     }
 
-    return new_state;
+    return prv_curr_state = new_state;
+}
+
+state_t get_state(void) {
+    return prv_curr_state;
 }
 
 #ifdef TEST_MAIN

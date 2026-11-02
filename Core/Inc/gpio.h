@@ -70,6 +70,11 @@ void gpio_set_master_relay(bool closed);
 bool gpio_is_master_relay_closed(void);
 
 /*!
+ * \defgroup         gpio_tasks GPIO module's tasks.
+ * \{
+ */
+
+/*!
  * \brief            Sample the digital feedback pins and publish them to the
  *                   feedback module.
  *
@@ -77,7 +82,17 @@ bool gpio_is_master_relay_closed(void);
  *
  * \param[in]        task_id The ID of the task that is being executed.
  */
-void gpio_update_digital_feedbacks(uint8_t task_id);
+void gpio_update_digital_feedbacks_task(uint8_t task_id);
+
+/*!
+ * \brief            TODO.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
+void gpio_heartbeat_task(uint8_t task_id);
+
+/*!
+ * \} */
 
 /* USER CODE END Prototypes */
 

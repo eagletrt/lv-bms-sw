@@ -94,7 +94,7 @@ void fsm_monitor_step(void);
 /*!
  * \brief            Re-check the pack and drive the master relay accordingly.
  */
-void fsm_relay_supervise(void);
+void fsm_relay_supervise(uint8_t task_id);
 
 // NOTHING SHALL BE CHANGED AFTER THIS LINE!
 
@@ -153,6 +153,13 @@ extern transition_func_t *const transition_table[NUM_STATES][NUM_STATES];
 
 // state manager
 state_t run_state(state_t cur_state, state_data_t *data);
+
+/*!
+ * \brief            Return the current state ID.
+ *
+ * \returns          The current state ID.
+ */
+state_t get_state(void);
 
 #ifdef __cplusplus
 }

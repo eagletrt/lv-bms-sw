@@ -23,7 +23,7 @@
  * \retval           BALANCING_RC_OK on success.
  * \retval           BALANCING_RC_NULL_POINTER if get_tick is NULL.
  */
-enum BalancingReturnCode balancing_api_init(balancing_get_tick_callback get_tick);
+enum BalancingReturnCode balancing_api_init();
 
 /*!
  * \brief            Start balancing.
@@ -49,26 +49,6 @@ enum BalancingReturnCode balancing_api_start(volt threshold);
 enum BalancingReturnCode balancing_api_stop(void);
 
 /*!
- * \brief            Run one balancing cycle.
- *
- * \details          Cooperative task, same shape as adc_routine(): meant to be
- *                   called on every loop iteration, scheduled by libtimebase, one
- *                   small step per deadline, never blocking. Recomputes the
- *                   discharge mask from the last measured voltages, alternates
- *                   between even and odd cell parities so adjacent cells never
- *                   discharge together, and pushes the mask to the monitor.
- *                   #BALANCING_RUN_PERIOD_MS is much shorter than the LTC
- *                   30 s discharge timeout, so the mask stays fresh.
- *
- * \note             The module reads the time base supplied to balancing_api_init().
- *
- * \retval           BALANCING_RC_OK on success.
- * \retval           BALANCING_RC_STATE_TIMEOUT if the last status update was more than 3 s ago.
- * \retval           BALANCING_RC_SCHEDULER_ERROR if the task scheduler failed.
- */
-enum BalancingReturnCode balancing_api_run(void);
-
-/*!
  * \brief            Check whether balancing is active.
  *
  * \returns          true if balancing is active, false otherwise.
@@ -88,7 +68,45 @@ bool balancing_api_is_active(void);
  * \retval           BALANCING_RC_OK on success.
  * \retval           BALANCING_RC_SCHEDULER_ERROR if the task scheduler failed.
  */
-enum BalancingReturnCode balancing_api_set_state_handle(bool active, volt threshold);
+enum BalancingReturnCode balancing_api_set_state_handle(bool active,
+                                                        volt threshold);
+
+/*!
+ * \brief            Make a balancing toggle request; this will be consumed by
+ *                   the balancing routine task.
+ *
+ * \reval            BALANCING_RC_OK on success.
+ */
+enum BalancingReturnCode balancing_api_routine_toggle(void);
+
+/*!
+ * \defgroup         balancing_api_tasks Balancing module's tasks.
+ * \{
+ */
+
+/*!
+ * \brief            Stop balancing when the state-update timeout expires.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
+void balancing_api_timeout_task(uint8_t task_id);
+
+/*!
+ * \brief            Recompute the discharge mask and push it to the monitor.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
+void balancing_api_refresh_task(uint8_t task_id);
+
+/*!
+ * \brief            TBD.
+ *
+ * \param[in]        task_id The ID of the task that is being executed.
+ */
+void balancing_api_routine_task(uint8_t task_id);
+
+/*!
+ * \} */
 
 #else /*! CONFIG_BALANCING_MODULE_ENABLE */
 
@@ -98,6 +116,10 @@ enum BalancingReturnCode balancing_api_set_state_handle(bool active, volt thresh
 #define balancing_api_run() (BALANCING_RC_OK)
 #define balancing_api_is_active() (false)
 #define balancing_api_set_state_handle(active, threshold) (BALANCING_RC_OK)
+#define balancing_api_routine_toggle() (BALANCING_RC_OK)
+#define balancing_api_timeout_task() (EAGLETRT_API_NOP())
+#define balancing_api_refresh_task() (EAGLETRT_API_NOP())
+#define balancing_api_routine_task() (EAGLETRT_API_NOP())
 
 #endif /*! CONFIG_BALANCING_MODULE_ENABLE */
 

@@ -22,6 +22,7 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+#include "timebase.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,7 +54,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+struct TimebaseHandler *main_get_timebase_handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

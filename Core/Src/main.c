@@ -24,6 +24,7 @@
 #include "logger.h"
 #include "spi.h"
 #include "temperature-api.h"
+#include "timebase.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -46,7 +47,7 @@
 #include "current-api.h"
 #include "tasks-api.h"
 #include "timebase-api.h"
-#include "application-api.h"
+#include "bms-tasks-api.h"
 
 /* USER CODE END Includes */
 
@@ -79,7 +80,7 @@
 /* USER CODE BEGIN PV */
 
 state_t current_state = STATE_INIT;
-EAGLETRT_STATIC struct TasksHandler main_tasks;
+EAGLETRT_STATIC struct TimebaseHandler timebase_handler;
 EAGLETRT_STATIC bool main_scheduler_failed;
 EAGLETRT_STATIC bool main_monitor_shutdown_complete;
 
@@ -98,12 +99,7 @@ EAGLETRT_STATIC struct PalHandler logger_pal_handler;
 /* USER CODE BEGIN 0 */
 
 EAGLETRT_STATIC uint32_t prv_main_timebase_get_tick(void) {
-    const uint32_t tick = timebase_get_tick(&application_timebase);
-    if (tick > UINT32_MAX - UINT16_MAX) {
-        main_scheduler_failed = true;
-        return UINT32_MAX - UINT16_MAX;
-    }
-    return tick;
+    return timebase_get_tick(&timebase_handler);
 }
 
 /*!
@@ -142,11 +138,6 @@ EAGLETRT_STATIC char console_rx_buffer[CONSOLE_RX_BUFFER_SIZE];
 EAGLETRT_STATIC uint8_t console_rx_index = 0U;
 
 /*! Set from the console interrupt, consumed by prv_main_discharge_test_routine(). */
-EAGLETRT_STATIC EAGLETRT_VOLATILE bool discharge_test_toggle_request = false;
-
-EAGLETRT_STATIC EAGLETRT_VOLATILE bool balancing_toggle_request = false;
-EAGLETRT_STATIC bool discharge_test_active = false; /*!< True while the sweep is running. */
-EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being discharged, 0-based. */
 
 /*!
  * \brief            Collect everything the FSM reports but does not measure itself.
@@ -176,81 +167,6 @@ EAGLETRT_STATIC void prv_main_read_board_measurements(struct FsmBoardMeasurement
 
     for (size_t i = 0U; i < DEFINES_CELLS_NTC_COUNT; ++i) {
         out->ntc_voltages[i] = adc_get_ntc_voltage(i);
-    }
-}
-
-/*!
- * \brief            Walk the balancing FET of one cell at a time, for bench testing.
- *
- * \details          Toggled from the console with 'a'. While running it discharges cell 1,
- *                   then 2, and so on up to cell 6, #APPLICATION_DISCHARGE_PERIOD_MS on each, then
- *                   wraps. Only one cell at a time: the LTC6810 rejects adjacent cells, and
- *                   bms_monitor_api_set_discharge() enforces that.
- *
- *                   Nothing here talks to the LTC. It only moves the requested
- *                   configuration, which the BMS monitor FSM already pushes out on every
- *                   one of its cycles, so the change reaches the chip on its own.
- *
- * \note             The application task scheduler supplies the discharge dwell timing.
- */
-EAGLETRT_STATIC void prv_main_discharge_test_routine(void) {
-    if (balancing_api_is_active()) {
-        return;
-    }
-
-    if (discharge_test_toggle_request) {
-        discharge_test_toggle_request = false;
-        discharge_test_active = !discharge_test_active;
-        discharge_test_cell = 0U;
-        enum TasksReturnCode rc = discharge_test_active
-                                      ? tasks_api_enable_task(&main_tasks, APPLICATION_TASK_DISCHARGE)
-                                      : tasks_api_disable_task(&main_tasks, APPLICATION_TASK_DISCHARGE);
-        if (rc != TASKS_RC_OK) {
-            main_scheduler_failed = true;
-            discharge_test_active = false;
-        }
-
-        EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(discharge_test_active ? (uint8_t)(1U << discharge_test_cell) : 0U));
-        logger_api_log(LOGGER_LEVEL_INFO,
-                       "[DCHG] %s",
-                       discharge_test_active ? "sweep on, cell 1" : "sweep off");
-    }
-}
-
-/*!
- * \brief            Consume a console 'b' press by toggling the balancing module.
- *
- */
-EAGLETRT_STATIC void prv_main_balancing_routine(void) {
-    if (!balancing_toggle_request) {
-        return;
-    }
-    balancing_toggle_request = false;
-
-    if (balancing_api_is_active()) {
-        EAGLETRT_API_UNUSED(balancing_api_stop());
-        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] off");
-    } else if (balancing_api_start(BALANCING_THRESHOLD_V) == BALANCING_RC_OK) {
-        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] on");
-    } else {
-        logger_api_log(LOGGER_LEVEL_WARN, "[BAL] refused, pack voltages not valid");
-    }
-}
-
-EAGLETRT_STATIC void prv_main_heartbeat(uint8_t task_id) {
-    EAGLETRT_API_UNUSED(task_id);
-
-    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, current_state == STATE_FATAL ? GPIO_PIN_SET : GPIO_PIN_RESET);
-}
-
-EAGLETRT_STATIC void prv_main_discharge_step(uint8_t task_id) {
-    EAGLETRT_API_UNUSED(task_id);
-
-    if (discharge_test_active && !balancing_api_is_active()) {
-        discharge_test_cell = (uint8_t)((discharge_test_cell + 1U) % DEFINES_CELLS_SERIES_COUNT);
-        EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge((uint8_t)(1U << discharge_test_cell)));
-        logger_api_log(LOGGER_LEVEL_INFO, "[DCHG] cell %d", (int)(discharge_test_cell + 1U));
     }
 }
 
@@ -359,6 +275,10 @@ EAGLETRT_STATIC void prv_print_info() {
     logger_api_log(LOGGER_LEVEL_INFO, "OpenWire 0x%lx %s", (unsigned long)open_wire, (open_wire == 0U) ? "none" : "DETECTED");
 }
 
+struct TimebaseHandler *main_get_timebase_handler(void) {
+    return &timebase_handler;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -385,8 +305,8 @@ int main(void) {
 
     /* USER CODE BEGIN SysInit */
 
-    EAGLETRT_API_UNUSED(timebase_api_init(&application_timebase, 1U));
-    EAGLETRT_API_UNUSED(timebase_set_enable(&application_timebase, true));
+    EAGLETRT_API_UNUSED(timebase_api_init(&timebase_handler, 1U));
+    EAGLETRT_API_UNUSED(timebase_set_enable(&timebase_handler, true));
 
     /* USER CODE END SysInit */
 
@@ -423,17 +343,9 @@ int main(void) {
     };
 
     current_state = run_state(STATE_INIT, &post_init_data);
-    if (application_api_init(&current_state,
-                             &main_scheduler_failed,
-                             gpio_update_digital_feedbacks,
-                             prv_main_heartbeat,
-                             prv_main_discharge_step) != APPLICATION_RC_OK) {
-        main_scheduler_failed = true;
-    }
-    if (tasks_api_init(&main_tasks, application_task_list, APPLICATION_TASK_COUNT, prv_main_timebase_get_tick) != TASKS_RC_OK ||
-        !adc_init_tasks(prv_main_timebase_get_tick)) {
-        main_scheduler_failed = true;
-    }
+    bms_tasks_api_init(prv_main_timebase_get_tick,
+                       gpio_update_digital_feedbacks_task,
+                       gpio_heartbeat_task);
 
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
@@ -448,10 +360,8 @@ int main(void) {
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1) {
-        if (!main_scheduler_failed &&
-            tasks_api_routine(&main_tasks) != TASKS_RC_OK) {
-            main_scheduler_failed = true;
-        }
+        // bms_tasks_api_routine();
+
         /* Drive the ADC scan and the NTC multiplexer. One scan samples one
            multiplexer channel, so the whole pack is refreshed every
            DEFINES_NTC_MUX_USED_CHANNEL_COUNT scans. The snapshot of the board is
@@ -459,15 +369,12 @@ int main(void) {
         if (!main_scheduler_failed && !adc_routine()) {
             main_scheduler_failed = true;
         }
-        enum BalancingReturnCode balancing_rc = balancing_api_run();
-        if (balancing_rc == BALANCING_RC_SCHEDULER_ERROR) {
-            main_scheduler_failed = true;
-        }
+
         if (main_scheduler_failed) {
             current_state = STATE_FATAL;
             gpio_set_master_relay(false);
             EAGLETRT_API_UNUSED(balancing_api_stop());
-            discharge_test_active = false;
+            // discharge_test_active = false;
             EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(0U));
             if (!main_monitor_shutdown_complete) {
                 main_monitor_shutdown_complete =
@@ -476,11 +383,6 @@ int main(void) {
             HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
         }
         current_state = run_state(current_state, NULL);
-
-        if (!main_scheduler_failed) {
-            prv_main_discharge_test_routine();
-            prv_main_balancing_routine();
-        }
 
         /* USER CODE END WHILE */
 
