@@ -44,7 +44,7 @@ void identity_api_send_state(enum CanPrimaryLvacfsmStatus status) {
     }
 }
 
-void identity_api_send_version(uint8_t task_id) {
+void identity_api_send_version_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
     union CanPrimaryMessages message;
@@ -79,7 +79,7 @@ void identity_api_send_version(uint8_t task_id) {
     }
 }
 
-void identity_api_send_libcan_version(uint8_t task_id) {
+void identity_api_send_libcan_version_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
     union CanPrimaryMessages message;

@@ -27,7 +27,7 @@ enum DischargeReturnCode discharge_api_init(void) {
     return DISCHARGE_RC_OK;
 }
 
-enum DischargeReturnCode discharge_api_toggle(void) {
+enum DischargeReturnCode discharge_api_routine_toggle(void) {
     discharge_handler.toggle_request = true;
     return DISCHARGE_RC_OK;
 }

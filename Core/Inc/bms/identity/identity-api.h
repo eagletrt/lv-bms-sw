@@ -27,13 +27,18 @@ enum IdentityReturnCode identity_api_init(void);
 void identity_api_send_state(enum CanPrimaryLvacfsmStatus status);
 
 /*!
+ * \defgroup         identity_api_tasks Identity module's tasks.
+ * \{
+ */
+
+/*!
  * \brief            Periodically send the version of the board firmware and information related to it.
  *
  * \note             The application task scheduler supplies the CAN cycle timing.
  *
  * \param[in]        task_id The ID of the task that is being executed.
  */
-void identity_api_send_version(uint8_t task_id);
+void identity_api_send_version_task(uint8_t task_id);
 
 /*!
  * \brief            Periodically send the version of the libcan dependency and information related to it.
@@ -42,6 +47,9 @@ void identity_api_send_version(uint8_t task_id);
  *
  * \param[in]        task_id The ID of the task that is being executed.
  */
-void identity_api_send_libcan_version(uint8_t task_id);
+void identity_api_send_libcan_version_task(uint8_t task_id);
+
+/*!
+ * \} */
 
 #endif // IDENTITY_API_H

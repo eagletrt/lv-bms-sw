@@ -87,13 +87,18 @@ volt voltage_api_get_sum(void);
 enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t size);
 
 /*!
+ * \defgroup         voltages_api_tasks Voltages module's tasks.
+ * \{
+ */
+
+/*!
  * \brief            Periodically send cell voltages over CAN.
  *
  * \note             The application task scheduler supplies the CAN cycle timing.
  *
  * \param[in]        task_id The ID of the task that is being executed.
  */
-void voltage_api_send_cell_voltages(uint8_t task_id);
+void voltage_api_send_cell_voltages_task(uint8_t task_id);
 
 /*!
  * \brief            Periodically send voltage info summary over CAN.
@@ -102,7 +107,10 @@ void voltage_api_send_cell_voltages(uint8_t task_id);
  *
  * \param[in]        task_id The ID of the task that is being executed.
  */
-void voltage_api_send_voltage_information(uint8_t task_id);
+void voltage_api_send_voltage_information_task(uint8_t task_id);
+
+/*!
+ * \} */
 
 #else /*! CONFIG_VOLTAGE_MODULE_ENABLE */
 

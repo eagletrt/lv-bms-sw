@@ -133,6 +133,11 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
 celsius temperature_api_volt_to_celsius(volt value);
 
 /*!
+ * \defgroup         temperatures_api_tasks Temperature module's tasks.
+ * \{
+ */
+
+/*!
  * \brief            Periodically send temperatures over CAN.
  *
  * \details          Sends one multiplexed LvacTemperature frame per call,
@@ -144,7 +149,10 @@ celsius temperature_api_volt_to_celsius(volt value);
  *
  * \param[in]        task_id The ID of the task that is being executed.
  */
-void temperature_api_send_temperatures(uint8_t task_id);
+void temperature_api_send_temperatures_task(uint8_t task_id);
+
+/*!
+ * \} */
 
 #else /*! CONFIG_TEMPERATURE_MODULE_ENABLE */
 

@@ -103,7 +103,7 @@ enum VoltageReturnCode voltage_api_dump_voltages(volt *out, size_t start, size_t
     return VOLTAGE_RC_OK;
 }
 
-void voltage_api_send_cell_voltages(uint8_t task_id) {
+void voltage_api_send_cell_voltages_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
     volt cells[DEFINES_CELLS_SERIES_COUNT];
@@ -130,7 +130,7 @@ void voltage_api_send_cell_voltages(uint8_t task_id) {
     }
 }
 
-void voltage_api_send_voltage_information(uint8_t task_id) {
+void voltage_api_send_voltage_information_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
     union CanPrimaryMessages message = {

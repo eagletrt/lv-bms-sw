@@ -170,7 +170,7 @@ enum TemperatureReturnCode temperature_api_dump_temperatures(celsius *out, size_
     return TEMPERATURE_RC_OK;
 }
 
-void temperature_api_send_temperatures(uint8_t task_id) {
+void temperature_api_send_temperatures_task(uint8_t task_id) {
     EAGLETRT_API_UNUSED(task_id);
 
     celsius temperatures[DEFINES_CELLS_NTC_COUNT];
