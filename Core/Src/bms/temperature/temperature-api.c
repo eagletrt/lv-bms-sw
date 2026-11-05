@@ -182,8 +182,11 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
 
     union CanPrimaryMessages message;
 
+    /*! Three groups carry the twelve NTCs (5 + 5 + 2): walk through all of them,
+        otherwise the last two channels would never reach the bus. */
+    constexpr uint8_t group_count = 3U;
     const uint8_t group = temperature_handler.current_group;
-    temperature_handler.current_group = (group == 0U) ? 1U : 0U;
+    temperature_handler.current_group = (uint8_t)((group + 1U) % group_count);
 
     message = (union CanPrimaryMessages){ 0 };
 

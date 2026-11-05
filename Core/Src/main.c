@@ -145,6 +145,62 @@ EAGLETRT_STATIC uint8_t console_rx_index = 0U;
 EAGLETRT_STATIC EAGLETRT_VOLATILE bool discharge_test_toggle_request = false;
 
 EAGLETRT_STATIC EAGLETRT_VOLATILE bool balancing_toggle_request = false;
+/*! Set from the console interrupt, consumed by the main loop: the dump is far too slow to print from an interrupt. */
+EAGLETRT_STATIC EAGLETRT_VOLATILE bool print_info_request = false;
+
+/*! RCC reset flags found at boot, before they were cleared. */
+EAGLETRT_STATIC uint32_t boot_reset_flags = 0U;
+
+/*!
+ * \brief Remember why the MCU just restarted, then clear the flags.
+ *
+ * \details Every restart of the MCU drops OUTPUT_EN, which opens the master relay
+ *          and takes the whole car down for as long as the boot takes. Telling a
+ *          restart apart from a verdict of the pack supervision is the first
+ *          thing to know when K1 clicks, so the cause is logged once the logger
+ *          is up, see prv_main_log_reset_cause(). The flags are cleared so that
+ *          the next restart is not mixed with this one.
+ */
+EAGLETRT_STATIC void prv_main_capture_reset_cause(void) {
+    boot_reset_flags = RCC->CSR2 & (RCC_CSR2_OBLRSTF | RCC_CSR2_PINRSTF | RCC_CSR2_PWRRSTF | RCC_CSR2_SFTRSTF | RCC_CSR2_IWDGRSTF | RCC_CSR2_WWDGRSTF | RCC_CSR2_LPWRRSTF);
+    __HAL_RCC_CLEAR_RESET_FLAGS();
+}
+
+/*!
+ * \brief Print the reset cause captured by prv_main_capture_reset_cause().
+ */
+EAGLETRT_STATIC void prv_main_log_reset_cause(void) {
+    const struct {
+        uint32_t mask;
+        const char *name;
+    } causes[] = {
+        { RCC_CSR2_PWRRSTF, " POR/BOR" },
+        { RCC_CSR2_PINRSTF, " NRST-pin" },
+        { RCC_CSR2_SFTRSTF, " software" },
+        { RCC_CSR2_IWDGRSTF, " IWDG" },
+        { RCC_CSR2_WWDGRSTF, " WWDG" },
+        { RCC_CSR2_LPWRRSTF, " low-power" },
+        { RCC_CSR2_OBLRSTF, " option-bytes" },
+    };
+
+    char text[LOGGER_UART_MAX_MSG_SIZE] = "";
+    size_t used = 0U;
+    for (size_t i = 0U; i < (sizeof(causes) / sizeof(causes[0])); ++i) {
+        if ((boot_reset_flags & causes[i].mask) == 0U) {
+            continue;
+        }
+
+        const int written = snprintf(text + used, sizeof(text) - used, "%s", causes[i].name);
+        if (written < 0 || (size_t)written >= (sizeof(text) - used)) {
+            break;
+        }
+        used += (size_t)written;
+    }
+
+    /* The raw flags come first: the line is cut at the logger's width. */
+    logger_api_log(LOGGER_LEVEL_INFO, "[BOOT] CSR2 0x%lx:%s", (unsigned long)boot_reset_flags, (used == 0U) ? " unknown" : text);
+}
+
 EAGLETRT_STATIC bool discharge_test_active = false; /*!< True while the sweep is running. */
 EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being discharged, 0-based. */
 EAGLETRT_STATIC uint32_t discharge_test_tick = 0U;  /*!< Tick at which the current cell was selected. */
@@ -357,6 +413,7 @@ int main(void) {
 
     /* USER CODE BEGIN 1 */
     VectorBase_Config(); // bootloader code
+    prv_main_capture_reset_cause();
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
@@ -386,6 +443,7 @@ int main(void) {
 
     prv_main_init_logging_configuration();
     EAGLETRT_API_UNUSED(logger_api_init(&logger_pal_handler, LOGGER_ENABLED));
+    prv_main_log_reset_cause();
 
     HAL_FDCAN_Start(&hfdcan1);
 
@@ -447,6 +505,11 @@ int main(void) {
         adc_routine(tick);
         prv_main_discharge_test_routine(tick);
         prv_main_balancing_routine();
+
+        if (print_info_request) {
+            print_info_request = false;
+            prv_print_info();
+        }
 
         if (tick - feedback_tick >= FEEDBACK_POLL_PERIOD_MS) {
             feedback_tick = tick;
@@ -516,8 +579,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
             console_rx_buffer[console_rx_index++] = (char)console_rx_char;
         }
     } else if (console_rx_char == 'i' || console_rx_char == 'A') {
-        // print debug infos
-        prv_print_info();
+        /* The dump takes ~100 ms of blocking serial output: raise a request for
+           the main loop instead of printing from inside the interrupt, which
+           froze the system tick (it has the lowest priority) and delayed the
+           CAN interrupt handling for the whole print. */
+        print_info_request = true;
     } else if (console_rx_char == '\r' || console_rx_char == '\n') {
         if (console_rx_index > 0U) {
             uint32_t channel = 0U;
@@ -540,6 +606,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     }
 
     HAL_UART_Receive_IT(&huart1, &console_rx_char, 1U);
+}
+
+/*!
+ * \brief Keep the console alive after a line error.
+ *
+ * \details The RX pin is not driven when no cable is plugged in and picks up
+ *          noise in the car; an overrun makes the HAL abort the reception for
+ *          good, which would silence the console until the next reset.
+ */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance != USART1) {
+        return;
+    }
+
+    console_rx_index = 0U;
+    (void)HAL_UART_Receive_IT(&huart1, &console_rx_char, 1U);
 }
 
 /* USER CODE END 4 */

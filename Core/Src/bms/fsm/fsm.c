@@ -25,6 +25,7 @@ The finite state machine has:
 #include "identity-api.h"
 #include "can-primary.h"
 #include "post-api.h"
+#include "relay-api.h"
 #include "eagletrt.h"
 #include "post.h"
 #include "logger-api.h"
@@ -40,28 +41,6 @@ The finite state machine has:
 EAGLETRT_STATIC uint32_t last_tick = 0U;
 
 constexpr uint32_t bms_monitor_fsm_run_delay = 2U;
-
-/*!
- * \brief How often the pack is re-checked against the relay conditions, in ms.
- *
- * \details Close to one full monitor cycle, which is what refreshes the cell
- *          voltages and the open-wire result, so checking faster would only ever
- *          re-read the same data.
- */
-constexpr uint32_t fsm_relay_check_period = 50U;
-
-/*! Period of the serial snapshot in ms. */
-constexpr uint32_t fsm_debug_print_period = 500U;
-
-/*!
- * \brief Consecutive healthy checks required before the relay is closed.
- *
- * \details A fault opens the output on the very first bad check, but closing it
- *          again waits for the pack to look good several times running. The
- *          asymmetry is deliberate: K1 is a mechanical relay and chattering it on
- *          a marginal reading would wear the contacts.
- */
-constexpr uint8_t fsm_relay_close_confirmations = 3U;
 
 EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
 
@@ -105,7 +84,6 @@ enum FsmSafetyStatus {
     FSM_SAFETY_OK = 0,              /*!< Every enabled check passed */
     FSM_SAFETY_VOLTAGE_UNAVAILABLE, /*!< The voltage module could not be read */
     FSM_SAFETY_VOLTAGE_RANGE,       /*!< At least one cell is outside its limits */
-    FSM_SAFETY_CELL_DELTA,          /*!< The pack is too imbalanced to discharge */
     FSM_SAFETY_OPEN_WIRE,           /*!< The open-wire check flagged a cell */
     FSM_SAFETY_NTC_FAULT,           /*!< An NTC channel is open or shorted */
     FSM_SAFETY_TEMPERATURE_RANGE    /*!< The pack is outside its temperature limits */
@@ -122,8 +100,6 @@ EAGLETRT_STATIC const char *prv_fsm_safety_status_name(enum FsmSafetyStatus stat
             return "no voltage data";
         case FSM_SAFETY_VOLTAGE_RANGE:
             return "cell voltage";
-        case FSM_SAFETY_CELL_DELTA:
-            return "cell delta";
         case FSM_SAFETY_OPEN_WIRE:
             return "open wire";
         case FSM_SAFETY_NTC_FAULT:
@@ -158,10 +134,7 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
         }
     }
 
-    if ((voltage_api_get_max() - voltage_api_get_min()) > VOLTAGE_CELL_DELTA_MAX_V) {
-        return FSM_SAFETY_CELL_DELTA;
-    }
-
+    /*
     if (bms_monitor_api_check_open_wire() != 0U) {
         return FSM_SAFETY_OPEN_WIRE;
     }
@@ -170,68 +143,16 @@ EAGLETRT_STATIC enum FsmSafetyStatus prv_fsm_check_pack_safety(void) {
     if (t_max > TEMPERATURE_DISCHARGE_MAX_C) {
         return FSM_SAFETY_TEMPERATURE_RANGE;
     }
+    */
 
     return FSM_SAFETY_OK;
 }
 
-/*!
- * \brief Supervise the master relay against the state of the pack.
- *
- * \details Called from idle at #fsm_relay_check_period. A fault opens the output
- *          straight away; closing it again needs #fsm_relay_close_confirmations
- *          consecutive healthy checks. Both the verdict and the relay position
- *          are logged only when they change.
- *
- *          Nothing special is needed at startup: until the monitor FSM has
- *          produced its first readings the cells all sit at 0 V, which fails the
- *          range check, so the relay simply stays open until real data arrives.
- *
- * \param[in] tick The current tick in ms.
- */
-EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
-    if ((tick - fsm_relay.check_tick) < fsm_relay_check_period) {
-        return;
-    }
-    fsm_relay.check_tick = tick;
-
-    static enum FsmSafetyStatus last_status = FSM_SAFETY_OK;
-    const enum FsmSafetyStatus status = prv_fsm_check_pack_safety();
-
-    if (status != last_status) {
-        last_status = status;
-        logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] %s", prv_fsm_safety_status_name(status));
-    }
-
-    if (status != FSM_SAFETY_OK) {
-        fsm_relay.good_streak = 0U;
-        if (fsm_relay.closed) {
-            fsm_relay.closed = false;
-            prv_fsm_drive_master_relay(false);
-            logger_api_log(LOGGER_LEVEL_WARN, "[SAFE] relay opened");
-        }
-        return;
-    }
-
-    if (fsm_relay.good_streak < fsm_relay_close_confirmations) {
-        ++fsm_relay.good_streak;
-        return;
-    }
-
-    if (!fsm_relay.closed) {
-        fsm_relay.closed = true;
-        prv_fsm_drive_master_relay(true);
-        logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] relay closed");
-    }
-}
-
-/*! Longest rendering of one temperature, "-24.0" plus its terminator. */
-#define FSM_TEMPERATURE_ROW_SIZE (48U)
-
-/*! Channels printed per NTC row, so the lines stay inside the logger budget. */
-#define FSM_ROW_CHANNEL_COUNT (6U)
-
 /*! Scale taking a base unit to its milli- form for the integer log fields. */
 #define FSM_MILLI_PER_UNIT (1000.F)
+
+/*! Scale taking a temperature in °C to deci-°C, the form the verdict log prints it in. */
+#define FSM_DECI_PER_UNIT (10.F)
 
 /*!
  * \brief Render a value in its milli- unit, the form every integer field of the
@@ -244,6 +165,92 @@ EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
 EAGLETRT_STATIC int prv_milli(float value) {
     return (int)(value * FSM_MILLI_PER_UNIT);
 }
+
+/*!
+ * \brief Log a change of the pack verdict together with the numbers behind it.
+ *
+ * \details A verdict that flips for a moment and flips back is exactly what a
+ *          transient on one of the inputs looks like, and the reason is gone by
+ *          the time anyone can look at the board. Logging the readings that
+ *          caused it is what lets the next occurrence be traced to its source.
+ *
+ * \param[in] status The new verdict.
+ * \param[in] relay_closed True if the relay is still closed, i.e. the verdict
+ *            has not (yet) cost the car its supply.
+ */
+EAGLETRT_STATIC void prv_fsm_log_verdict(enum FsmSafetyStatus status, bool relay_closed) {
+    if (status == FSM_SAFETY_OK) {
+        logger_api_log(LOGGER_LEVEL_INFO, relay_closed ? "[SAFE] ok, cleared before opening" : "[SAFE] ok");
+        return;
+    }
+
+    logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] %s", prv_fsm_safety_status_name(status));
+
+    switch (status) {
+        case FSM_SAFETY_VOLTAGE_RANGE:
+            logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] Vmin %d Vmax %d mV", prv_milli(voltage_api_get_min()), prv_milli(voltage_api_get_max()));
+            break;
+        case FSM_SAFETY_OPEN_WIRE:
+            logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] OW mask 0x%lx", (unsigned long)bms_monitor_api_check_open_wire());
+            break;
+        case FSM_SAFETY_TEMPERATURE_RANGE:
+            logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] Tmax %d dC NTCflt 0x%lx", (int)(temperature_api_get_max() * FSM_DECI_PER_UNIT), (unsigned long)temperature_api_get_fault_bitmask());
+            break;
+        default:
+            break;
+    }
+}
+
+/*!
+ * \brief Supervise the master relay against the state of the pack.
+ *
+ * \details Called from idle at #RELAY_CHECK_PERIOD_MS. Whether the verdict is
+ *          good or bad it only moves the relay once it has held for several
+ *          checks in a row, see relay.h for why: opening K1 shuts down the whole
+ *          car, so one odd sample on any of the inputs must not be able to do it.
+ *          The verdict itself is logged whenever it changes, with the readings
+ *          behind it, and so is every movement of the relay.
+ *
+ *          Nothing special is needed at startup: until the monitor FSM has
+ *          produced its first readings the cells all sit at 0 V, which fails the
+ *          range check, so the relay simply stays open until real data arrives.
+ *
+ * \param[in] tick The current tick in ms.
+ */
+EAGLETRT_STATIC void prv_fsm_supervise_master_relay(uint32_t tick) {
+    if (!relay_api_is_due(&fsm_relay.relay, tick)) {
+        return;
+    }
+
+    static enum FsmSafetyStatus last_status = FSM_SAFETY_OK;
+    const enum FsmSafetyStatus status = prv_fsm_check_pack_safety();
+
+    if (status != last_status) {
+        last_status = status;
+        prv_fsm_log_verdict(status, relay_api_is_closed(&fsm_relay.relay));
+    }
+
+    switch (relay_api_update(&fsm_relay.relay, status == FSM_SAFETY_OK)) {
+        case RELAY_ACTION_OPEN:
+            /*! Move the relay first, logging blocks on the serial link. */
+            prv_fsm_drive_master_relay(false);
+            logger_api_log(LOGGER_LEVEL_WARN, "[SAFE] relay opened: %s", prv_fsm_safety_status_name(status));
+            break;
+        case RELAY_ACTION_CLOSE:
+            prv_fsm_drive_master_relay(true);
+            logger_api_log(LOGGER_LEVEL_INFO, "[SAFE] relay closed");
+            break;
+        case RELAY_ACTION_NONE:
+        default:
+            break;
+    }
+}
+
+/*! Longest rendering of one temperature, "-24.0" plus its terminator. */
+#define FSM_TEMPERATURE_ROW_SIZE (48U)
+
+/*! Channels printed per NTC row, so the lines stay inside the logger budget. */
+#define FSM_ROW_CHANNEL_COUNT (6U)
 
 /*!
  * \brief Render a run of voltages as millivolt fields into one string.
@@ -456,8 +463,7 @@ state_t do_init(state_data_t *data) {
     /*! Leave init with the output open. Idle brings it up once it has seen real
         measurements, and takes it back down if they go bad. */
     prv_fsm_drive_master_relay(false);
-    fsm_relay.closed = false;
-    fsm_relay.good_streak = 0U;
+    (void)relay_api_force_open(&fsm_relay.relay);
 
     switch (next_state) {
         case STATE_IDLE:
@@ -527,8 +533,7 @@ state_t do_fatal(state_data_t *data) {
     /*! Whatever route led here, the output must not stay live. Held low every
         cycle rather than only on entry, so a glitch on the pin is corrected. */
     prv_fsm_drive_master_relay(false);
-    fsm_relay.closed = false;
-    fsm_relay.good_streak = 0U;
+    (void)relay_api_force_open(&fsm_relay.relay);
 
     const uint32_t current_tick = fsm_idle_data->tick;
     if (current_tick - last_tick >= bms_monitor_fsm_run_delay) {

@@ -180,12 +180,36 @@ enum CanCommunicationReturnCode fdcan_send_primary(const struct CanCommunication
     return CAN_COMMUNICATION_RC_OK;
 }
 
+/*!
+ * \brief Tell whether a received frame is one this node may act on.
+ *
+ * \details The CAN router treats the 11 bit identifier as an address: a frame
+ *          with the identifier of LvacFlashingRX reboots the MCU, which opens the
+ *          master relay and takes the car down. The FDCAN has no acceptance
+ *          filter configured, so everything on the bus gets here, and the
+ *          identifier alone is not enough: an extended (29 bit) frame or a
+ *          remote request that merely carries the same number must not count.
+ *
+ * \param[in] header The header of the frame just read from the FIFO.
+ *
+ * \retval true for a standard data frame.
+ * \retval false otherwise.
+ */
+EAGLETRT_STATIC bool prv_fdcan_is_actionable(const FDCAN_RxHeaderTypeDef *header) {
+    return header->IdType == FDCAN_STANDARD_ID && header->RxFrameType == FDCAN_DATA_FRAME;
+}
+
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
     if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
         FDCAN_RxHeaderTypeDef header = { 0 };
         struct CanCommunicationFrame msg = { 0 };
-        HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &header, msg.data);
+        if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &header, msg.data) != HAL_OK) {
+            return;
+        }
         HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+        if (!prv_fdcan_is_actionable(&header)) {
+            return;
+        }
         msg.id = header.Identifier;
         msg.length = (uint8_t)(header.DataLength >> 16U);
         can_communication_api_add_to_rx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &msg);
@@ -196,8 +220,13 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
     if ((RxFifo1ITs & FDCAN_IT_RX_FIFO1_NEW_MESSAGE) != RESET) {
         FDCAN_RxHeaderTypeDef header = { 0 };
         struct CanCommunicationFrame msg = { 0 };
-        HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO1, &header, msg.data);
+        if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO1, &header, msg.data) != HAL_OK) {
+            return;
+        }
         HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
+        if (!prv_fdcan_is_actionable(&header)) {
+            return;
+        }
         msg.id = header.Identifier;
         msg.length = (uint8_t)(header.DataLength >> 16U);
         can_communication_api_add_to_rx_buffer(CAN_COMMUNICATION_NETWORK_PRIMARY, &msg);

@@ -526,7 +526,7 @@ bms_monitor_fsm_state_t bms_monitor_fsm_do_open_wire_pud_write_configuration(bms
 
     EAGLETRT_API_UNUSED(data);
 
-    BMS_MON_STEP(bms_monitor_api_start_open_wire_conversion(LTC6810_2_PUP_INACTIVE), "ow_pud_conv_first");
+    BMS_MON_STEP(bms_monitor_api_write_configuration(), "ow_pud_write_configuration");
 
     /*** USER CODE END DO_OPEN_WIRE_PUD_WRITE_CONFIGURATION ***/
 
