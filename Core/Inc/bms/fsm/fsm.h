@@ -24,6 +24,7 @@ extern "C" {
 #include <stddef.h>
 
 #include "defines.h"
+#include "relay.h"
 #include "types.h"
 
 struct FsmData {
@@ -86,9 +87,7 @@ struct FsmRelayHandler {
     fsm_set_master_relay_callback set_master_relay;         /*!< Opens or closes K1, NULL if the board supplied none */
     fsm_read_board_measurements_callback read_measurements; /*!< Fills #board, NULL if the board supplied none */
     struct FsmBoardMeasurements board;                      /*!< Kept out of the stack: prv_print_debug() already carries a good deal of it */
-    uint32_t check_tick;                                    /*!< Tick of the last supervision pass, for the period gate */
-    uint8_t good_streak;                                    /*!< Consecutive healthy checks, any fault resets it */
-    bool closed;                                            /*!< True while the relay output is connected */
+    struct RelayHandler relay;                              /*!< Debounced open/close decision, see relay.h */
 };
 
 // NOTHING SHALL BE CHANGED AFTER THIS LINE!

@@ -14,6 +14,7 @@
 #include "feedback-api.h"
 #include "temperature-api.h"
 #include "balancing-api.h"
+#include "bootloader-api.h"
 
 enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
     if (post_init_data == nullptr ||
@@ -23,6 +24,11 @@ enum PostReturnCode post_api_run(struct PostInitData *post_init_data) {
     }
 
     enum PostReturnCode post_return_code = POST_RC_OK;
+
+    if (bootloader_api_init(post_init_data->watchdog_handler,
+                            post_init_data->reboot) != BOOTLOADER_RC_OK) {
+        post_return_code = POST_RC_UNINITIALIZED_MODULE;
+    }
 
     if (can_communication_api_init(post_init_data->can_network_configurations) != CAN_COMMUNICATION_RC_OK) {
         post_return_code = POST_RC_UNINITIALIZED_MODULE;

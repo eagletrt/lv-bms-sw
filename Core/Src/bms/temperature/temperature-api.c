@@ -182,22 +182,44 @@ enum TemperatureReturnCode temperature_api_periodically_send_temperatures(uint32
 
     union CanPrimaryMessages message;
 
+    /*! Three groups carry the twelve NTCs (5 + 5 + 2): walk through all of them,
+        otherwise the last two channels would never reach the bus. */
+    constexpr uint8_t group_count = 3U;
     const uint8_t group = temperature_handler.current_group;
-    temperature_handler.current_group = (group == 0U) ? 1U : 0U;
+    temperature_handler.current_group = (uint8_t)((group + 1U) % group_count);
 
     message = (union CanPrimaryMessages){ 0 };
 
     message.lvactemperature.group = group;
 
-    constexpr size_t group_size = 6U;
-    message.lvactemperature.group_payload.mux_0 = (struct CanPrimaryLvactemperatureGroupMux0){
-        .temperature1 = temperatures[group * group_size + 0U],
-        .temperature2 = temperatures[group * group_size + 1U],
-        .temperature3 = temperatures[group * group_size + 2U],
-        .temperature4 = temperatures[group * group_size + 3U],
-        .temperature5 = temperatures[group * group_size + 4U],
-        .temperature6 = temperatures[group * group_size + 5U],
-    };
+    switch (group) {
+        case 0U:
+            message.lvactemperature.group_payload.mux_0 = (struct CanPrimaryLvactemperatureGroupMux0){
+                .temperature1 = temperatures[0U],
+                .temperature2 = temperatures[1U],
+                .temperature3 = temperatures[2U],
+                .temperature4 = temperatures[3U],
+                .temperature5 = temperatures[4U],
+            };
+            break;
+
+        case 1U:
+            message.lvactemperature.group_payload.mux_1 = (struct CanPrimaryLvactemperatureGroupMux1){
+                .temperature6 = temperatures[5U],
+                .temperature7 = temperatures[6U],
+                .temperature8 = temperatures[7U],
+                .temperature9 = temperatures[8U],
+                .temperature10 = temperatures[9U],
+            };
+            break;
+
+        case 2U:
+            message.lvactemperature.group_payload.mux_2 = (struct CanPrimaryLvactemperatureGroupMux2){
+                .temperature11 = temperatures[10U],
+                .temperature12 = temperatures[11U],
+            };
+            break;
+    }
 
     struct CanCommunicationFrame frame = {
         .id = CAN_PRIMARY_MESSAGE_FRAME_ID_LVACTEMPERATURE,
