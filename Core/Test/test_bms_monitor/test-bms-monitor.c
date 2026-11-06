@@ -213,14 +213,14 @@ void test_bms_monitor_api_read_open_wire_voltages_decode_error(void) {
     bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_OK;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_DECODE_ERROR,
-                      bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP));
+                      bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MONITOR_OPEN_WIRE_OPERATION_PUP));
 }
 
 void test_bms_monitor_api_read_open_wire_voltages_send_receive_error(void) {
     bms_monitor_api_init(send_fake, send_receive_fake);
     send_receive_fake_fake.return_val = BMS_MONITOR_RC_COMMUNICATION_ERROR;
     TEST_ASSERT_EQUAL(BMS_MONITOR_RC_COMMUNICATION_ERROR,
-                      bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MANAGER_OPEN_WIRE_OPERATION_PUP));
+                      bms_monitor_api_read_open_wire_voltages(BMS_MONITOR_VOLTAGE_REGISTER_A, BMS_MONITOR_OPEN_WIRE_OPERATION_PUP));
 }
 
 /*! \} */

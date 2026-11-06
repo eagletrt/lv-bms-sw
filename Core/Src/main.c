@@ -24,6 +24,7 @@
 #include "logger.h"
 #include "spi.h"
 #include "temperature-api.h"
+#include "timebase.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -44,6 +45,9 @@
 #include "voltage-api.h"
 #include "defines.h"
 #include "current-api.h"
+#include "tasks-api.h"
+#include "timebase-api.h"
+#include "bms-tasks-api.h"
 
 /* USER CODE END Includes */
 
@@ -58,10 +62,7 @@
 #define LOGGER_RX_CAPACITY (1U)        /*!< Receive queue depth. Set to 1 because the logger is transmit-only but needs to be > 0 because of arena allocator. */
 #define LOGGER_TX_CAPACITY (10U)       /*!< Maximum number of log message packets allowed to sit in the outbound transmission queue. */
 #define LOGGER_UART_MAX_MSG_SIZE (64U) /*!< Maximum allocation allowed for an individual log string. */
-#define HEARTBEAT_PERIOD_MS (500U)     /*!< Toggling period of the heartbeat LED. */
-#define FEEDBACK_POLL_PERIOD_MS (10U)  /*!< Sampling period of the digital feedbacks. */
 #define CONSOLE_RX_BUFFER_SIZE (8U)    /*!< Longest console command accepted, in characters. */
-#define DISCHARGE_TEST_STEP_MS (5000U) /*!< Dwell on each cell during the discharge sweep. */
 #define MILLI_PER_UNIT (1000.F)        /*!< Scale taking a base unit to its milli- form for the integer log fields. */
 #define ROW_SIZE (48U)
 #define ROW_CHANNEL_COUNT (6U)
@@ -79,6 +80,7 @@
 /* USER CODE BEGIN PV */
 
 state_t current_state = STATE_INIT;
+EAGLETRT_STATIC struct TimebaseHandler timebase_handler;
 
 /* USER CODE END PV */
 
@@ -94,8 +96,12 @@ EAGLETRT_STATIC struct PalHandler logger_pal_handler;
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+EAGLETRT_STATIC uint32_t prv_main_timebase_get_tick(void) {
+    return timebase_get_tick(&timebase_handler);
+}
+
 /*!
- * \brief Initializes the low-level memory allocation and logging framework.
+ * \brief            Initializes the low-level memory allocation and logging framework.
  */
 EAGLETRT_STATIC void prv_main_init_logging_configuration() {
     arena_allocator_api_init(&arena_allocator_handler);
@@ -111,37 +117,33 @@ EAGLETRT_STATIC void prv_main_init_logging_configuration() {
                                      &arena_allocator_handler));
 }
 /*!
- * \brief Console state used by the NTC multiplexer command.
+ * \brief            Console state used by the NTC multiplexer command.
  *
- * \details The serial console, typed on the same USART the logger prints on:
- *            - a number 0..15 followed by ENTER pins the NTC multiplexer to that
- *              channel, so a single NTC can be watched. A number out of range
- *              releases it, so a typo cannot leave it stuck;
- *            - 'm' releases the multiplexer explicitly;
- *            - 'a' toggles the discharge sweep, see
- *              prv_main_discharge_test_routine();
- *            - 'b' toggles cell balancing, see prv_main_balancing_routine().
- *          Anything else is ignored. The pinning itself is done by the ADC
- *          module, which owns the address lines, so the command and the scan
- *          loop no longer fight over them.
+ * \details          The serial console, typed on the same USART the logger prints on:
+ *                   - a number 0..15 followed by ENTER pins the NTC multiplexer to that
+ *                   channel, so a single NTC can be watched. A number out of range
+ *                   releases it, so a typo cannot leave it stuck;
+ *                   - 'm' releases the multiplexer explicitly;
+ *                   - 'a' toggles the discharge sweep, see
+ *                   prv_main_discharge_test_routine();
+ *                   - 'b' toggles cell balancing, see prv_main_balancing_routine().
+ *                   Anything else is ignored. The pinning itself is done by the ADC
+ *                   module, which owns the address lines, so the command and the scan
+ *                   loop no longer fight over them.
  */
 EAGLETRT_STATIC uint8_t console_rx_char;
 EAGLETRT_STATIC char console_rx_buffer[CONSOLE_RX_BUFFER_SIZE];
 EAGLETRT_STATIC uint8_t console_rx_index = 0U;
 
 /*! Set from the console interrupt, consumed by prv_main_discharge_test_routine(). */
-EAGLETRT_STATIC EAGLETRT_VOLATILE bool discharge_test_toggle_request = false;
-
-EAGLETRT_STATIC EAGLETRT_VOLATILE bool balancing_toggle_request = false;
-EAGLETRT_STATIC bool discharge_test_active = false; /*!< True while the sweep is running. */
-EAGLETRT_STATIC uint8_t discharge_test_cell = 0U;   /*!< Cell currently being discharged, 0-based. */
-EAGLETRT_STATIC uint32_t discharge_test_tick = 0U;  /*!< Tick at which the current cell was selected. */
 
 /*!
- * \brief Collect everything the FSM reports but does not measure itself. * * \details The FSM lives under Core/Src/bms, which may not include the HAL, so
- *          the peripheral getters are read here and handed over as plain values.
+ * \brief            Collect everything the FSM reports but does not measure itself.
  *
- * \param[out] out The snapshot to fill.
+ * \details          The FSM may not include the HAL, so the getters are read here
+ *                   and handed over as plain values.
+ *
+ * \param[out]       out The snapshot to fill.
  */
 EAGLETRT_STATIC void prv_main_read_board_measurements(struct FsmBoardMeasurements *out) {
     if (out == NULL) {
@@ -167,89 +169,25 @@ EAGLETRT_STATIC void prv_main_read_board_measurements(struct FsmBoardMeasurement
 }
 
 /*!
- * \brief Walk the balancing FET of one cell at a time, for bench testing.
+ * \brief            Render a value in its milli- unit, the form every integer field of the
+ *                   log uses.
  *
- * \details Toggled from the console with 'a'. While running it discharges cell 1,
- *          then 2, and so on up to cell 6, #DISCHARGE_TEST_STEP_MS on each, then
- *          wraps. Only one cell at a time: the LTC6810 rejects adjacent cells, and
- *          bms_monitor_api_set_discharge() enforces that.
+ * \param[in]        value The value in its base unit.
  *
- *          Nothing here talks to the LTC. It only moves the requested
- *          configuration, which the BMS monitor FSM already pushes out on every
- *          one of its cycles, so the change reaches the chip on its own.
- *
- * \param[in] tick The current tick in ms.
- */
-EAGLETRT_STATIC void prv_main_discharge_test_routine(uint32_t tick) {
-    if (balancing_api_is_active()) {
-        return;
-    }
-
-    if (discharge_test_toggle_request) {
-        discharge_test_toggle_request = false;
-        discharge_test_active = !discharge_test_active;
-        discharge_test_cell = 0U;
-        discharge_test_tick = tick;
-
-        (void)bms_monitor_api_set_discharge(discharge_test_active ? (uint8_t)(1U << discharge_test_cell) : 0U);
-        logger_api_log(LOGGER_LEVEL_INFO,
-                       "[DCHG] %s",
-                       discharge_test_active ? "sweep on, cell 1" : "sweep off");
-    }
-
-    if (!discharge_test_active) {
-        return;
-    }
-
-    if ((tick - discharge_test_tick) >= DISCHARGE_TEST_STEP_MS) {
-        discharge_test_tick = tick;
-        discharge_test_cell = (uint8_t)((discharge_test_cell + 1U) % DEFINES_CELLS_SERIES_COUNT);
-
-        (void)bms_monitor_api_set_discharge((uint8_t)(1U << discharge_test_cell));
-        logger_api_log(LOGGER_LEVEL_INFO, "[DCHG] cell %d", (int)(discharge_test_cell + 1U));
-    }
-}
-
-/*!
- * \brief           Consume a console 'b' press by toggling the balancing module.
- *
- */
-EAGLETRT_STATIC void prv_main_balancing_routine(void) {
-    if (!balancing_toggle_request) {
-        return;
-    }
-    balancing_toggle_request = false;
-
-    if (balancing_api_is_active()) {
-        (void)balancing_api_stop();
-        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] off");
-    } else if (balancing_api_start(BALANCING_THRESHOLD_V) == BALANCING_RC_OK) {
-        logger_api_log(LOGGER_LEVEL_INFO, "[BAL] on");
-    } else {
-        logger_api_log(LOGGER_LEVEL_WARN, "[BAL] refused, pack voltages not valid");
-    }
-}
-
-/*!
- * \brief Render a value in its milli- unit, the form every integer field of the
- *        log uses.
- *
- * \param[in] value The value in its base unit.
- *
- * \returns int The value in milli-units, truncated.
+ * \returns          int The value in milli-units, truncated.
  */
 EAGLETRT_STATIC int prv_milli(float value) {
     return (int)(value * MILLI_PER_UNIT);
 }
 
 /*!
- * \brief Render a run of voltages as millivolt fields into one string.
+ * \brief            Render a run of voltages as millivolt fields into one string.
  *
- * \param[in]  values The array to read from.
- * \param[in]  first  Index of the first value in the row.
- * \param[in]  count  Number of values in the row.
- * \param[out] out    Buffer receiving the row, leading space included.
- * \param[in]  size   Size of \p out.
+ * \param[in]        values The array to read from.
+ * \param[in]        first  Index of the first value in the row.
+ * \param[in]        count  Number of values in the row.
+ * \param[out]       out    Buffer receiving the row, leading space included.
+ * \param[in]        size   Size of \p out.
  */
 EAGLETRT_STATIC void prv_format_milli_row(const volt *values, size_t first, size_t count, char *out, size_t size) {
     size_t used = 0U;
@@ -266,21 +204,21 @@ EAGLETRT_STATIC void prv_format_milli_row(const volt *values, size_t first, size
 }
 
 /*!
- * \brief Render a row of NTC temperatures into one string.
+ * \brief            Render a row of NTC temperatures into one string.
  *
- * \details A channel flagged open or shorted is never converted, so its slot
- *          still holds the 0 °C it was initialised with, which would read as a
- *          real measurement near freezing. Those get a dash instead.
+ * \details          A channel flagged open or shorted is never converted, so its slot
+ *                   still holds the 0 °C it was initialised with, which would read as a
+ *                   real measurement near freezing. Those get a dash instead.
  *
- *          The whole row is built here rather than passed to the logger as
- *          floats because printf cannot pick between a number and a literal per
- *          field, and that choice is exactly what the dash needs.
+ *                   The whole row is built here rather than passed to the logger as
+ *                   floats because printf cannot pick between a number and a literal per
+ *                   field, and that choice is exactly what the dash needs.
  *
- * \param[in]  first        Index of the first channel in the row.
- * \param[in]  count        Number of channels in the row.
- * \param[in]  temperatures The dumped temperatures.
- * \param[out] out          Buffer receiving the rendered row, leading space included.
- * \param[in]  size         Size of \p out.
+ * \param[in]        first        Index of the first channel in the row.
+ * \param[in]        count        Number of channels in the row.
+ * \param[in]        temperatures The dumped temperatures.
+ * \param[out]       out          Buffer receiving the rendered row, leading space included.
+ * \param[in]        size         Size of \p out.
  */
 EAGLETRT_STATIC void prv_format_temperature_row(size_t first, size_t count, const celsius *temperatures, char *out, size_t size) {
     size_t used = 0U;
@@ -335,6 +273,10 @@ EAGLETRT_STATIC void prv_print_info() {
     logger_api_log(LOGGER_LEVEL_INFO, "OpenWire 0x%lx %s", (unsigned long)open_wire, (open_wire == 0U) ? "none" : "DETECTED");
 }
 
+struct TimebaseHandler *main_get_timebase_handler(void) {
+    return &timebase_handler;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -360,6 +302,9 @@ int main(void) {
     SystemClock_Config();
 
     /* USER CODE BEGIN SysInit */
+
+    EAGLETRT_API_UNUSED(timebase_api_init(&timebase_handler, 1U));
+    EAGLETRT_API_UNUSED(timebase_set_enable(&timebase_handler, true));
 
     /* USER CODE END SysInit */
 
@@ -389,17 +334,16 @@ int main(void) {
         .bms_monitor_send = spi_bms_monitor_send,
         .bms_monitor_send_receive = spi_bms_monitor_send_receive,
         /*! do_init() needs a time base to run its pre-flight acquisition. */
-        .get_tick = HAL_GetTick,
+        .get_tick = prv_main_timebase_get_tick,
         /*! Board services the FSM cannot reach for itself. */
         .set_master_relay = gpio_set_master_relay,
         .read_board_measurements = prv_main_read_board_measurements
     };
 
-    struct FsmData fsm_data = {
-        .tick = HAL_GetTick()
-    };
-
     current_state = run_state(STATE_INIT, &post_init_data);
+    bms_tasks_api_init(prv_main_timebase_get_tick,
+                       gpio_update_digital_feedbacks_task,
+                       gpio_heartbeat_task);
 
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
@@ -413,38 +357,9 @@ int main(void) {
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    uint32_t heartbeat_tick = HAL_GetTick();
-    uint32_t feedback_tick = HAL_GetTick();
-
     while (1) {
-        const uint32_t tick = HAL_GetTick();
-
-        fsm_data.tick = tick;
-        current_state = run_state(current_state, &fsm_data);
-
-        /* Drive the ADC scan and the NTC multiplexer. One scan samples one
-           multiplexer channel, so the whole pack is refreshed every
-           DEFINES_NTC_MUX_USED_CHANNEL_COUNT scans. The snapshot of the board is
-           printed by the FSM debug interface (prv_print_debug). */
-        adc_routine(tick);
-        prv_main_discharge_test_routine(tick);
-        prv_main_balancing_routine();
-
-        if (tick - feedback_tick >= FEEDBACK_POLL_PERIOD_MS) {
-            feedback_tick = tick;
-            gpio_update_digital_feedbacks();
-        }
-
-        if (tick - heartbeat_tick >= HEARTBEAT_PERIOD_MS) {
-            heartbeat_tick = tick;
-            HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-            /* LED1 mirrors the health of the board: off while the FSM runs
-               normally, steady on once it has fallen into the fatal state. */
-            HAL_GPIO_WritePin(LED1_GPIO_Port,
-                              LED1_Pin,
-                              (current_state == STATE_FATAL) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        }
-
+        bms_tasks_api_routine();
+        adc_routine();
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -507,8 +422,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
                 channel = (channel * 10U) + (uint32_t)(console_rx_buffer[i] - '0');
             }
 
-            /*! Out of range means "go back to automatic" rather than nothing,
-                so a typo cannot leave the multiplexer stuck. */
             if (channel < DEFINES_NTC_MUX_CHANNEL_COUNT) {
                 adc_set_mux_hold((size_t)channel);
             } else {

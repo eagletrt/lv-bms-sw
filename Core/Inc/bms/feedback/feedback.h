@@ -14,20 +14,20 @@
 #define FEEDBACK_CYCLE_TIME_MS (1U) /*!< The period with which feedbacks are updated */
 
 /*!
- * \defgroup        feedback_threshold Thresholds for the analog feedbacks in V.
+ * \defgroup         feedback_threshold Thresholds for the analog feedbacks in V.
  *
- * \details         If the voltage of a feedback is greater than the HIGH threshold it is considered as logically high,
- *                  if it is lower than the LOW threshold is considered low otherwise it is in an implausible state and
- *                  considered as error.
+ * \details          If the voltage of a feedback is greater than the HIGH threshold it is considered as logically high,
+ *                   if it is lower than the LOW threshold is considered low otherwise it is in an implausible state and
+ *                   considered as error.
  *
- * \{
+ *                   \{
  */
 
 #define FEEDBACK_THRESHOLD_HIGH_V (1.9F) /*!< Feedback high threshold in V */
 #define FEEDBACK_THRESHOLD_LOW_V (0.7F)  /*!< Feedback low threshold in V */
 
 /*!
- * \}
+ *                   \}
  */
 
 /*!
@@ -39,18 +39,18 @@ enum FeedbackReturnCode {
 };
 
 /*!
- * \brief           Type definition of the feedback identifiers.
+ * \brief            Type definition of the feedback identifiers.
  *
- * \details         The charger IC provides two related signals that must be evaluated together:
- *                  - FEEDBACK_CHARGE_STATUS_NEGATED (STAT)
- *                  - FEEDBACK_CHARGE_VIN_VALID_NEGATED (ACOK)
+ * \details          The charger IC provides two related signals that must be evaluated together:
+ *                   - FEEDBACK_CHARGE_STATUS_NEGATED (STAT)
+ *                   - FEEDBACK_CHARGE_VIN_VALID_NEGATED (ACOK)
  *
- *                  | IN      | Charging State                               | ACON | STAT            |
- *                  |---------|----------------------------------------------|------|-----------------|
- *                  | Absent  | NA                                           | Hi-Z | Hi-Z            |
- *                  | Present | In charging                                  | Low  | Low             |
- *                  | Present | Charging complete, charging disabled         | Low  | Hi-Z            |
- *                  | Present | NTC fault, safety timer expires, battery OVP | Low  | Blinking at 2Hz |
+ *                   | IN      | Charging State                               | ACON | STAT            |
+ *                   |---------|----------------------------------------------|------|-----------------|
+ *                   | Absent  | NA                                           | Hi-Z | Hi-Z            |
+ *                   | Present | In charging                                  | Low  | Low             |
+ *                   | Present | Charging complete, charging disabled         | Low  | Hi-Z            |
+ *                   | Present | NTC fault, safety timer expires, battery OVP | Low  | Blinking at 2Hz |
  */
 enum Feedback {
     FEEDBACK_SUPPLY_ENABLE_NEGATED,    /*!< Indicates if the supply of the board is enabled */
@@ -65,7 +65,7 @@ enum Feedback {
 };
 
 /*!
- * \brief           Status of the feedbacks.
+ * \brief            Status of the feedbacks.
  */
 enum FeedbackStatus {
     FEEDBACK_STATUS_LOW,   /*!< Feedback status considered as low */
@@ -80,4 +80,4 @@ struct FeedbackHandler {
     volt analog[FEEDBACK_COUNT]; /*!< An array of raw voltages of the feedbacks. */
 };
 
-#endif /*! FEEDBACK */
+#endif /*! FEEDBACK_H */

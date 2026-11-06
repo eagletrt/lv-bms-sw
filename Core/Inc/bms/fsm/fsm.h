@@ -26,10 +26,6 @@ extern "C" {
 #include "defines.h"
 #include "types.h"
 
-struct FsmData {
-    uint32_t tick;
-};
-
 /*!
  * \brief            Everything the FSM wants to report that is measured by the
  *                   board rather than by one of the abstract modules.
@@ -85,11 +81,15 @@ typedef void (*fsm_read_board_measurements_callback)(struct FsmBoardMeasurements
 struct FsmRelayHandler {
     fsm_set_master_relay_callback set_master_relay;         /*!< Opens or closes K1, NULL if the board supplied none */
     fsm_read_board_measurements_callback read_measurements; /*!< Fills #board, NULL if the board supplied none */
-    struct FsmBoardMeasurements board;                      /*!< Kept out of the stack: prv_print_debug() already carries a good deal of it */
-    uint32_t check_tick;                                    /*!< Tick of the last supervision pass, for the period gate */
+    struct FsmBoardMeasurements board;                      /*!< Board measurements read by the supervision path */
     uint8_t good_streak;                                    /*!< Consecutive healthy checks, any fault resets it */
     bool closed;                                            /*!< True while the relay output is connected */
 };
+
+/*!
+ * \brief            Re-check the pack and drive the master relay accordingly.
+ */
+void fsm_relay_supervise(uint8_t task_id);
 
 // NOTHING SHALL BE CHANGED AFTER THIS LINE!
 
@@ -148,6 +148,28 @@ extern transition_func_t *const transition_table[NUM_STATES][NUM_STATES];
 
 // state manager
 state_t run_state(state_t cur_state, state_data_t *data);
+
+/*!
+ * \brief            Return the current state ID.
+ *
+ * \returns          The current state ID.
+ */
+state_t get_state(void);
+
+/*!
+ * \brief            The FSM task i.
+ *
+ * \description      This is a temporary function that aims to implement the
+ *                   main FSM loop. This will be removed after libfsm
+ *                   implementation (see prv_curr_state too for more details).
+ *
+ * \description      This is a temporary function that aims to implement the
+ *                   main FSM loop. This will be removed after libfsm
+ *                   implementation (see prv_curr_state for more details).
+ *
+ * \returns          The current state ID.
+ */
+void fsm_task(uint8_t task_id);
 
 #ifdef __cplusplus
 }

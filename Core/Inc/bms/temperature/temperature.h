@@ -24,12 +24,12 @@
  * \brief            Health of a single NTC channel.
  *
  * \details          Every cell NTC is the bottom leg of a divider whose top leg
- *                  is the pull-up on the multiplexer common node. That makes the
- *                  two failure modes trivial to tell apart from a real reading:
- *                  a disconnected NTC leaves the node sitting at the pull-up
- *                  rail, a shorted one pins it to ground. Both land far outside
- *                  the range the volt-to-celsius fit covers, so they have to be
- *                  reported rather than converted.
+ *                   is the pull-up on the multiplexer common node. That makes the
+ *                   two failure modes trivial to tell apart from a real reading:
+ *                   a disconnected NTC leaves the node sitting at the pull-up
+ *                   rail, a shorted one pins it to ground. Both land far outside
+ *                   the range the volt-to-celsius fit covers, so they have to be
+ *                   reported rather than converted.
  */
 enum TemperatureStatus {
     TEMPERATURE_STATUS_OK = 0,  /*!< The channel is reading a plausible NTC voltage. */
@@ -53,7 +53,6 @@ enum TemperatureReturnCode {
 struct TemperatureHandler {
     celsius temperatures[DEFINES_CELLS_NTC_COUNT];            /*!< An array of temperatures in °C */
     enum TemperatureStatus statuses[DEFINES_CELLS_NTC_COUNT]; /*!< Health of each NTC channel */
-    uint32_t last_tick_ms;                                    /*!< Last tick for periodic temperature CAN send */
     uint8_t current_group;                                    /*!< Mux group index alternating 0/1 */
 };
 
