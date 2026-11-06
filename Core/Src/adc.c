@@ -51,17 +51,17 @@ enum AdcScanState {
 EAGLETRT_STATIC EAGLETRT_VOLATILE uint16_t adc_buffer[ADC_READ_COUNT] = { 0 };                /*!< Raw DMA destination, written by the DMA only. */
 EAGLETRT_STATIC float voltages[ADC_READ_COUNT] = { 0.F };                                     /*!< Converted pin voltages in V, written by adc_routine() only. */
 EAGLETRT_STATIC EAGLETRT_VOLATILE enum AdcScanState adc_scan_state = ADC_SCAN_STATE_SETTLING; /*!< The state of the current scan. */
-EAGLETRT_STATIC struct TasksHandler adc_tasks; /*!< Tracks the time at which the current state was entered in ms. */
+EAGLETRT_STATIC struct TasksHandler adc_tasks;                                                /*!< Tracks the time at which the current state was entered in ms. */
 EAGLETRT_STATIC bool adc_scheduler_failed;
 enum AdcTaskId {
     ADC_TASK_SETTLE,
     ADC_TASK_TIMEOUT,
     ADC_TASK_COUNT
 };
-EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                                  /*!< The multiplexer channel currently selected. */
-EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                                           /*!< Supply voltage measured through VREFINT in V. */
-EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Last NTC voltage read on each multiplexer channel, in V. */
-EAGLETRT_STATIC bool adc_mux_hold = false;                                                    /*!< True while the multiplexer is pinned to one channel for debugging. */
+EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                      /*!< The multiplexer channel currently selected. */
+EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                               /*!< Supply voltage measured through VREFINT in V. */
+EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F }; /*!< Last NTC voltage read on each multiplexer channel, in V. */
+EAGLETRT_STATIC bool adc_mux_hold = false;                                        /*!< True while the multiplexer is pinned to one channel for debugging. */
 
 /*!
  * \defgroup         ntc_health Thresholds telling a real NTC reading from a broken channel.
@@ -501,15 +501,8 @@ bool adc_init_tasks(task_tick_callback get_tick) {
             .state = TASKS_STATE_ENABLED,
             .repeats = 1U,
             .function = prv_adc_settle,
-            .start = ADC_MUX_SETTLE_MS
-        },
-        [ADC_TASK_TIMEOUT] = {
-            .task_id = ADC_TASK_TIMEOUT,
-            .state = TASKS_STATE_DISABLED,
-            .repeats = 1U,
-            .function = prv_adc_timeout,
-            .start = ADC_SCAN_TIMEOUT_MS
-        }
+            .start = ADC_MUX_SETTLE_MS },
+        [ADC_TASK_TIMEOUT] = { .task_id = ADC_TASK_TIMEOUT, .state = TASKS_STATE_DISABLED, .repeats = 1U, .function = prv_adc_timeout, .start = ADC_SCAN_TIMEOUT_MS }
     };
     adc_scan_state = ADC_SCAN_STATE_SETTLING;
     adc_scheduler_failed = tasks_api_init(&adc_tasks, tasks, ADC_TASK_COUNT, get_tick) != TASKS_RC_OK;

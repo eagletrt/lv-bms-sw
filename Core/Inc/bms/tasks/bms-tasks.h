@@ -35,7 +35,8 @@ enum BmsTasksReturnCode {
  * \brief            Identifiers of the scheduled bms-tasks tasks.
  */
 enum BmsTasksTaskId {
-    BMS_TASKS_TASK_MONITOR,             /*!< */
+    BMS_TASKS_TASK_MAIN_FSM,            /*!< */
+    BMS_TASKS_TASK_MONITOR_FSM,         /*!< */
     BMS_TASKS_TASK_RELAY,               /*!< */
     BMS_TASKS_TASK_FEEDBACK,            /*!< */
     BMS_TASKS_TASK_HEARTBEAT,           /*!< */
@@ -57,9 +58,9 @@ enum BmsTasksTaskId {
  * \brief            BMS tasks handler structure.
  */
 struct BmsTasksHandler {
-    struct TasksHandler task_handler;         /*!< The tasks handler structure */
-    void (*feedback)(uint8_t task_id);        /*!< Samples the digital feedbacks */
-    void (*heartbeat)(uint8_t task_id);       /*!< Toggles the heartbeat LED */
+    struct TasksHandler task_handler;   /*!< The tasks handler structure */
+    void (*feedback)(uint8_t task_id);  /*!< Samples the digital feedbacks */
+    void (*heartbeat)(uint8_t task_id); /*!< Toggles the heartbeat LED */
 };
 
 #endif /*! BMS_TASKS_H */

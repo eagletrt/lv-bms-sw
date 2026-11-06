@@ -81,8 +81,6 @@
 
 state_t current_state = STATE_INIT;
 EAGLETRT_STATIC struct TimebaseHandler timebase_handler;
-EAGLETRT_STATIC bool main_scheduler_failed;
-EAGLETRT_STATIC bool main_monitor_shutdown_complete;
 
 /* USER CODE END PV */
 
@@ -360,30 +358,8 @@ int main(void) {
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1) {
-        // bms_tasks_api_routine();
-
-        /* Drive the ADC scan and the NTC multiplexer. One scan samples one
-           multiplexer channel, so the whole pack is refreshed every
-           DEFINES_NTC_MUX_USED_CHANNEL_COUNT scans. The snapshot of the board is
-           printed by the FSM debug interface (prv_print_debug). */
-        if (!main_scheduler_failed && !adc_routine()) {
-            main_scheduler_failed = true;
-        }
-
-        if (main_scheduler_failed) {
-            current_state = STATE_FATAL;
-            gpio_set_master_relay(false);
-            EAGLETRT_API_UNUSED(balancing_api_stop());
-            // discharge_test_active = false;
-            EAGLETRT_API_UNUSED(bms_monitor_api_set_discharge(0U));
-            if (!main_monitor_shutdown_complete) {
-                main_monitor_shutdown_complete =
-                    bms_monitor_api_write_configuration() == BMS_MONITOR_RC_OK;
-            }
-            HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-        }
-        current_state = run_state(current_state, NULL);
-
+        bms_tasks_api_routine();
+        adc_routine();
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */

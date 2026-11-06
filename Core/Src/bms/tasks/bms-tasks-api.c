@@ -7,6 +7,7 @@
 
 #include "bms-tasks-api.h"
 #include "balancing.h"
+#include "bms-monitor-fsm.h"
 #include "bms-tasks.h"
 
 #include "discharge-api.h"
@@ -16,17 +17,9 @@
 #include "tasks.h"
 #include "tasks-api.h"
 #include "balancing-api.h"
+#include "fsm.h"
 
 EAGLETRT_STATIC struct BmsTasksHandler bms_tasks_handler;
-
-EAGLETRT_STATIC void prv_bms_tasks_monitor_task(uint8_t task_id) {
-    EAGLETRT_API_UNUSED(task_id);
-    fsm_monitor_step();
-}
-
-EAGLETRT_STATIC void prv_bms_tasks_relay_task(uint8_t task_id) {
-    fsm_relay_supervise(task_id);
-}
 
 /*!
  * \brief            Sample the digital feedbacks.
@@ -61,19 +54,19 @@ EAGLETRT_STATIC void prv_bms_tasks_state_task(uint8_t task_id) {
 }
 
 EAGLETRT_STATIC TaskList bms_tasks_task_list = {
-    [BMS_TASKS_TASK_MONITOR] = {
-        .task_id = BMS_TASKS_TASK_MONITOR,
+    [BMS_TASKS_TASK_MAIN_FSM] = {
+        .task_id = BMS_TASKS_TASK_MAIN_FSM,
         .state = TASKS_STATE_ENABLED,
-        .function = prv_bms_tasks_monitor_task,
+        .function = fsm_task,
         .interval = BMS_TASKS_MONITOR_PERIOD_MS,
         .start = BMS_TASKS_MONITOR_PERIOD_MS,
     },
-    [BMS_TASKS_TASK_RELAY] = {
-        .task_id = BMS_TASKS_TASK_RELAY,
+    [BMS_TASKS_TASK_MONITOR_FSM] = {
+        .task_id = BMS_TASKS_TASK_MONITOR_FSM,
         .state = TASKS_STATE_ENABLED,
-        .function = prv_bms_tasks_relay_task,
-        .interval = BMS_TASKS_RELAY_PERIOD_MS,
-        .start = BMS_TASKS_RELAY_PERIOD_MS,
+        .function = bms_monitor_fsm_task,
+        .interval = BMS_TASKS_MONITOR_PERIOD_MS,
+        .start = BMS_TASKS_MONITOR_PERIOD_MS,
     },
     [BMS_TASKS_TASK_FEEDBACK] = {
         .task_id = BMS_TASKS_TASK_FEEDBACK,
@@ -171,7 +164,7 @@ EAGLETRT_STATIC TaskList bms_tasks_task_list = {
 enum TasksReturnCode bms_tasks_api_init(uint32_t (*get_tick_callback)(void),
                                         void (*feedback)(uint8_t task_id),
                                         void (*heartbeat)(uint8_t task_id)) {
-    if (get_tick_callback == NULL || heartbeat == NULL || heartbeat == NULL) {
+    if (get_tick_callback == NULL || feedback == NULL || heartbeat == NULL) {
         return TASKS_RC_NULL_POINTER;
     }
 
@@ -222,4 +215,8 @@ enum TasksReturnCode bms_tasks_api_update_task(enum BmsTasksTaskId task_id,
                                  new_interval,
                                  new_start,
                                  repeats);
+}
+
+enum TasksReturnCode bms_tasks_api_routine(void) {
+    return tasks_api_routine(&bms_tasks_handler.task_handler);
 }

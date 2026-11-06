@@ -57,8 +57,6 @@ constexpr uint8_t fsm_relay_close_confirmations = 3U;
  */
 EAGLETRT_STATIC state_t prv_curr_state;
 
-EAGLETRT_STATIC bms_monitor_fsm_state_t bms_monitor_fsm_state = BMS_MONITOR_FSM_STATE_INIT;
-
 /*!
  * \brief            Board services handed to the FSM at init, plus the relay supervision state.
  *
@@ -198,10 +196,6 @@ void fsm_relay_supervise(uint8_t task_id) {
     }
 }
 
-void fsm_monitor_step(void) {
-    bms_monitor_fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_state, NULL);
-}
-
 // GLOBALS
 // State human-readable names
 __attribute__((unused))
@@ -267,8 +261,6 @@ state_t do_init(state_data_t *data) {
     }
 
     identity_api_send_state(CAN_PRIMARY_LVACFSM_STATUS_INIT);
-    bms_monitor_fsm_state = bms_monitor_fsm_run_state(BMS_MONITOR_FSM_STATE_INIT, nullptr);
-    logger_api_log(LOGGER_LEVEL_INFO, "[FSM] monitor fsm primed, state=%d", (int)bms_monitor_fsm_state);
 
     /* Leave init with the output open. Idle brings it up once it has seen real
         measurements, and takes it back down if they go bad. */
@@ -507,6 +499,11 @@ state_t run_state(state_t cur_state, state_data_t *data) {
 
 state_t get_state(void) {
     return prv_curr_state;
+}
+
+void fsm_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+    prv_curr_state = run_state(prv_curr_state, NULL);
 }
 
 #ifdef TEST_MAIN

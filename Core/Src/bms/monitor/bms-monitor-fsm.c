@@ -694,7 +694,10 @@ bms_monitor_fsm_state_t bms_monitor_fsm_run_state(bms_monitor_fsm_state_t cur_st
 }
 
 /*** USER CODE BEGIN FUNCTIONS ***/
-
+void bms_monitor_fsm_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+    bms_monitor_fsm_handler.fsm_state = bms_monitor_fsm_run_state(bms_monitor_fsm_handler.fsm_state, NULL);
+}
 /*** USER CODE END FUNCTIONS ***/
 
 #ifdef TEST_MAIN

@@ -15,6 +15,7 @@ Functions and types have been generated with prefix "bms_monitor_fsm_"
 
 #ifndef BMS_MONITOR_FSM_H
 #define BMS_MONITOR_FSM_H
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -196,7 +197,7 @@ extern transition_func_t *const bms_monitor_fsm_transition_table[BMS_MONITOR_FSM
 bms_monitor_fsm_state_t bms_monitor_fsm_run_state(bms_monitor_fsm_state_t cur_state, bms_monitor_fsm_state_data_t *data);
 
 /*** USER CODE BEGIN FUNCTIONS ***/
-
+void bms_monitor_fsm_task(uint8_t task_id);
 /*** USER CODE END FUNCTIONS ***/
 
 #endif

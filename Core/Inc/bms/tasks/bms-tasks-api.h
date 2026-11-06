@@ -81,4 +81,16 @@ enum TasksReturnCode bms_tasks_api_update_task(
     uint16_t new_start,
     uint8_t repeats);
 
+/*!
+ * \brief            Routine to be called in the main loop to execute the scheduled tasks.
+ *
+ * \details          It's a `tasks_api_routine` function wrapper.
+ *
+ * \retval           TASKS_RC_OK The operation was successful
+ * \retval           TASKS_RC_NULL_POINTER A null pointer was passed as argument
+ * \retval           TASKS_RC_ERROR An error occurred during the operation
+ * \retval           TASKS_RC_TEMPORAL_DISCONTINUITY The user tried to travel to the past
+ */
+enum TasksReturnCode bms_tasks_api_routine(void);
+
 #endif /*! BMS_TASKS_API_H */

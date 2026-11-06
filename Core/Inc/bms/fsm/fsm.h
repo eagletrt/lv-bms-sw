@@ -87,11 +87,6 @@ struct FsmRelayHandler {
 };
 
 /*!
- * \brief            Step the monitor FSM once, from its own task.
- */
-void fsm_monitor_step(void);
-
-/*!
  * \brief            Re-check the pack and drive the master relay accordingly.
  */
 void fsm_relay_supervise(uint8_t task_id);
@@ -160,6 +155,21 @@ state_t run_state(state_t cur_state, state_data_t *data);
  * \returns          The current state ID.
  */
 state_t get_state(void);
+
+/*!
+ * \brief            The FSM task i.
+ *
+ * \description      This is a temporary function that aims to implement the
+ *                   main FSM loop. This will be removed after libfsm
+ *                   implementation (see prv_curr_state too for more details).
+ *
+ * \description      This is a temporary function that aims to implement the
+ *                   main FSM loop. This will be removed after libfsm
+ *                   implementation (see prv_curr_state for more details).
+ *
+ * \returns          The current state ID.
+ */
+void fsm_task(uint8_t task_id);
 
 #ifdef __cplusplus
 }
