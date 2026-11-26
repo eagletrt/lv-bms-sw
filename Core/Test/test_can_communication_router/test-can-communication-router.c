@@ -25,17 +25,9 @@
 
 extern struct BalancingHandler balancing_handler;
 
-/*! The board time base, handed to balancing at init instead of a HAL_GetTick(). */
-static uint32_t test_tick = 0U;
-
-static uint32_t prv_test_get_tick(void) {
-    return test_tick;
-}
-
 void setUp(void) {
     voltage_api_init();
-    test_tick = 0U;
-    balancing_api_init(prv_test_get_tick);
+    balancing_api_init();
 }
 
 void tearDown(void) {
@@ -71,7 +63,6 @@ void test_receive_primary_balancing_set_starts(void) {
     EAGLETRT_API_UNUSED(voltage_api_update_voltages(0U, voltages, DEFINES_CELLS_SERIES_COUNT));
 
     struct CanCommunicationFrame frame = prv_make_balancing_set_frame(true, 0.05F);
-    test_tick = 1234U;
 
     TEST_ASSERT_EQUAL(CAN_COMMUNICATION_RC_OK, can_communication_router_api_receive_primary(&frame));
 
@@ -89,7 +80,6 @@ void test_receive_primary_balancing_set_stops(void) {
     TEST_ASSERT_TRUE(balancing_api_is_active());
 
     struct CanCommunicationFrame stop_frame = prv_make_balancing_set_frame(false, 0.05F);
-    test_tick = 2000U;
 
     TEST_ASSERT_EQUAL(CAN_COMMUNICATION_RC_OK, can_communication_router_api_receive_primary(&stop_frame));
     TEST_ASSERT_FALSE(balancing_api_is_active());
