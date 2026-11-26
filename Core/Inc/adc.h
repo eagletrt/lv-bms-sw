@@ -34,13 +34,14 @@ extern "C" {
 #include <stddef.h>
 
 #include "types.h"
-#include "tasks.h"
 
 /* USER CODE END Includes */
 
 extern ADC_HandleTypeDef hadc1;
 
 /* USER CODE BEGIN Private defines */
+
+#define ADC_RESOLUTION_BITS (12U)  /*!< ADC resolution in bits, has to match hadc1.Init.Resolution. */
 
 /*!
  * \brief            Index of every conversion inside the ADC1 DMA buffer.
@@ -74,9 +75,14 @@ enum AdcRead {
     ADC_READ_COUNT              /*!< The number of conversions in a single scan */
 };
 
-#define ADC_RESOLUTION_BITS (12U)  /*!< ADC resolution in bits, has to match hadc1.Init.Resolution. */
-#define ADC_MUX_SETTLE_MS (2U)     /*!< Time given to the multiplexer and to the NTC divider to settle after an address change. */
-#define ADC_SCAN_TIMEOUT_MS (200U) /*!< A scan that does not complete within this time is aborted and restarted. Has to stay above the worst-case blocking time of the debug print. */
+/*!
+ * \brief            Lifecycle of a single ADC scan.
+ */
+enum AdcScanState {
+    ADC_SCAN_STATE_SETTLING,   /*!< The multiplexer address just changed, waiting for it to settle. */
+    ADC_SCAN_STATE_CONVERTING, /*!< A DMA scan is in flight. */
+    ADC_SCAN_STATE_COMPLETE,   /*!< The scan completed, its data is waiting to be processed. */
+};
 
 /* USER CODE END Private defines */
 
@@ -90,22 +96,6 @@ void MX_ADC1_Init(void);
  * \details          Initial kick and tests only; the app uses adc_routine(), which drives scan and multiplexer together.
  */
 void adc_start_read(void);
-
-bool adc_init_tasks(task_tick_callback get_tick);
-
-/*!
- * \brief            Run the ADC/multiplexer state machine.
- *
- * \details          Driven periodically. It processes a completed scan
- *                   (temperature and feedback modules), steps the NTC
- *                   multiplexer to the next channel, waits #ADC_MUX_SETTLE_MS
- *                   and starts the next scan. A scan stuck longer than
- *                   #ADC_SCAN_TIMEOUT_MS is aborted and restarted, so a lost DMA
- *                   completion cannot stall the acquisition.
- *
- * \returns          bool False if the task scheduler or DMA recovery failed.
- */
-bool adc_routine(void);
 
 /*!
  * \brief            Get the last converted voltages, indexed by enum AdcRead.
@@ -190,7 +180,7 @@ ampere adc_get_output_current(void);     /*!< Pack output current in A, positive
  *                   stops the stepping, the scans keep running, so the held
  *                   channel keeps being refreshed.
  *
- *                   \{
+ * \{
  */
 
 /*!
@@ -220,6 +210,30 @@ bool adc_is_mux_held(void);
  * \returns          float The NTC divider voltage in V, 0 V if the channel is out of bounds.
  */
 float adc_get_ntc_voltage(size_t mux_channel);
+
+/*! \} */
+
+/*!
+ * \defgroup         adc_api_tasks ADC module's tasks.
+ * \{
+ */
+
+/*!
+ * \brief            Run the ADC/multiplexer state machine.
+ *
+ * \details          Driven periodically. It processes a completed scan
+ *                   (temperature and feedback modules), steps the NTC
+ *                   multiplexer to the next channel, waits #ADC_MUX_SETTLE_MS
+ *                   and starts the next scan. A scan stuck longer than
+ *                   #ADC_SCAN_TIMEOUT_MS is aborted and restarted, so a lost DMA
+ *                   completion cannot stall the acquisition.
+ *
+ */
+void adc_routine_task(uint8_t task_id);
+
+void adc_settle_task(uint8_t task_id);
+
+void adc_timeout_task(uint8_t task_id);
 
 /*! \} */
 

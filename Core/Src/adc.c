@@ -22,6 +22,7 @@
 
 /* USER CODE BEGIN 0 */
 
+#include "bms-tasks.h"
 #include "eagletrt.h"
 #include "eagletrt-api.h"
 
@@ -29,7 +30,7 @@
 #include "current-api.h"
 #include "feedback-api.h"
 #include "temperature-api.h"
-#include "tasks-api.h"
+#include "bms-tasks-api.h"
 
 /*! Full scale of a #ADC_RESOLUTION_BITS conversion. */
 #define ADC_FULL_SCALE ((float)((1UL << ADC_RESOLUTION_BITS) - 1UL))
@@ -39,29 +40,14 @@
 
 /*! Internal temperature sensor average slope in uV/°C (STM32C0 datasheet "Avg_Slope"). */
 #define ADC_MCU_TEMPSENSOR_AVG_SLOPE_UV_C (2530.F)
-/*!
- * \brief            Lifecycle of a single ADC scan.
- */
-enum AdcScanState {
-    ADC_SCAN_STATE_SETTLING,   /*!< The multiplexer address just changed, waiting for it to settle. */
-    ADC_SCAN_STATE_CONVERTING, /*!< A DMA scan is in flight. */
-    ADC_SCAN_STATE_COMPLETE,   /*!< The scan completed, its data is waiting to be processed. */
-};
 
 EAGLETRT_STATIC EAGLETRT_VOLATILE uint16_t adc_buffer[ADC_READ_COUNT] = { 0 };                /*!< Raw DMA destination, written by the DMA only. */
 EAGLETRT_STATIC float voltages[ADC_READ_COUNT] = { 0.F };                                     /*!< Converted pin voltages in V, written by adc_routine() only. */
 EAGLETRT_STATIC EAGLETRT_VOLATILE enum AdcScanState adc_scan_state = ADC_SCAN_STATE_SETTLING; /*!< The state of the current scan. */
-EAGLETRT_STATIC struct TasksHandler adc_tasks;                                                /*!< Tracks the time at which the current state was entered in ms. */
-EAGLETRT_STATIC bool adc_scheduler_failed;
-enum AdcTaskId {
-    ADC_TASK_SETTLE,
-    ADC_TASK_TIMEOUT,
-    ADC_TASK_COUNT
-};
-EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                      /*!< The multiplexer channel currently selected. */
-EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                               /*!< Supply voltage measured through VREFINT in V. */
-EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F }; /*!< Last NTC voltage read on each multiplexer channel, in V. */
-EAGLETRT_STATIC bool adc_mux_hold = false;                                        /*!< True while the multiplexer is pinned to one channel for debugging. */
+EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                                  /*!< The multiplexer channel currently selected. */
+EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                                           /*!< Supply voltage measured through VREFINT in V. */
+EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Last NTC voltage read on each multiplexer channel, in V. */
+EAGLETRT_STATIC bool adc_mux_hold = false;                                                    /*!< True while the multiplexer is pinned to one channel for debugging. */
 
 /*!
  * \defgroup         ntc_health Thresholds telling a real NTC reading from a broken channel.
@@ -464,69 +450,16 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *adcHandle) {
 
 /* USER CODE BEGIN 1 */
 
-EAGLETRT_STATIC void prv_adc_settle(uint8_t task_id) {
-    EAGLETRT_API_UNUSED(task_id);
-    if (adc_scan_state == ADC_SCAN_STATE_SETTLING && !adc_scheduler_failed) {
-        /*! adc_start_read() re-arms the timeout, which then times the
-            conversion instead of the settling. */
-        adc_start_read();
-    }
-}
-
-EAGLETRT_STATIC void prv_adc_timeout(uint8_t task_id) {
-    EAGLETRT_API_UNUSED(task_id);
-    if (adc_scan_state != ADC_SCAN_STATE_CONVERTING) {
-        return;
-    }
-    /*! A conversion that never completes (aborted DMA, overrun) would
-        otherwise freeze the acquisition: recover by restarting it. */
-    if (HAL_ADC_Stop_DMA(&hadc1) != HAL_OK) {
-        adc_scheduler_failed = true;
-        return;
-    }
-    adc_scan_state = ADC_SCAN_STATE_SETTLING;
-    if (tasks_api_enable_task(&adc_tasks, ADC_TASK_SETTLE) != TASKS_RC_OK) {
-        adc_scheduler_failed = true;
-    }
-}
-
-bool adc_init_tasks(task_tick_callback get_tick) {
-    if (get_tick == NULL) {
-        return false;
-    }
-    arena_allocator_api_free(&adc_tasks.arena_handler);
-    TaskList tasks = {
-        [ADC_TASK_SETTLE] = {
-            .task_id = ADC_TASK_SETTLE,
-            .state = TASKS_STATE_ENABLED,
-            .repeats = 1U,
-            .function = prv_adc_settle,
-            .start = ADC_MUX_SETTLE_MS },
-        [ADC_TASK_TIMEOUT] = { .task_id = ADC_TASK_TIMEOUT, .state = TASKS_STATE_DISABLED, .repeats = 1U, .function = prv_adc_timeout, .start = ADC_SCAN_TIMEOUT_MS }
-    };
-    adc_scan_state = ADC_SCAN_STATE_SETTLING;
-    adc_scheduler_failed = tasks_api_init(&adc_tasks, tasks, ADC_TASK_COUNT, get_tick) != TASKS_RC_OK;
-    return !adc_scheduler_failed;
-}
-
 void adc_start_read(void) {
-    if (adc_scheduler_failed || adc_tasks.get_tick == NULL ||
-        tasks_api_disable_task(&adc_tasks, ADC_TASK_SETTLE) != TASKS_RC_OK ||
-        tasks_api_update_task(&adc_tasks, ADC_TASK_TIMEOUT, 0U, ADC_SCAN_TIMEOUT_MS, 1U) != TASKS_RC_OK ||
-        tasks_api_enable_task(&adc_tasks, ADC_TASK_TIMEOUT) != TASKS_RC_OK) {
-        adc_scheduler_failed = true;
-        return;
-    }
     /*! Publish the new state before arming the DMA, so that a completion
         interrupt firing straight away cannot have its COMPLETE overwritten. */
     adc_scan_state = ADC_SCAN_STATE_CONVERTING;
+    EAGLETRT_API_UNUSED(bms_tasks_api_disable_task(BMS_TASKS_TASK_ADC_SETTLE));
     if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_READ_COUNT) != HAL_OK) {
         /*! Nothing was started: fall back to SETTLING so adc_routine() retries. */
         adc_scan_state = ADC_SCAN_STATE_SETTLING;
-        if (tasks_api_disable_task(&adc_tasks, ADC_TASK_TIMEOUT) != TASKS_RC_OK ||
-            tasks_api_enable_task(&adc_tasks, ADC_TASK_SETTLE) != TASKS_RC_OK) {
-            adc_scheduler_failed = true;
-        }
+        EAGLETRT_API_UNUSED(bms_tasks_api_disable_task(BMS_TASKS_TASK_ADC_TIMEOUT));
+        EAGLETRT_API_UNUSED(bms_tasks_api_enable_task(BMS_TASKS_TASK_ADC_SETTLE));
     }
 }
 
@@ -570,30 +503,6 @@ EAGLETRT_STATIC void prv_adc_process_scan(void) {
         adc_mux_channel = (adc_mux_channel + 1U) % DEFINES_NTC_MUX_USED_CHANNEL_COUNT;
         prv_adc_mux_select(adc_mux_channel);
     }
-}
-
-bool adc_routine(void) {
-    if (adc_scheduler_failed || adc_tasks.get_tick == NULL) {
-        return false;
-    }
-    if (adc_scan_state == ADC_SCAN_STATE_COMPLETE) {
-        if (tasks_api_disable_task(&adc_tasks, ADC_TASK_TIMEOUT) != TASKS_RC_OK) {
-            adc_scheduler_failed = true;
-            return false;
-        }
-        prv_adc_process_scan();
-        adc_scan_state = ADC_SCAN_STATE_SETTLING;
-        if (tasks_api_enable_task(&adc_tasks, ADC_TASK_SETTLE) != TASKS_RC_OK) {
-            adc_scheduler_failed = true;
-        }
-    }
-    if (!adc_scheduler_failed && tasks_api_routine(&adc_tasks) != TASKS_RC_OK) {
-        adc_scheduler_failed = true;
-    }
-    if (adc_scheduler_failed) {
-        EAGLETRT_API_UNUSED(HAL_ADC_Stop_DMA(&hadc1));
-    }
-    return !adc_scheduler_failed;
 }
 
 volatile float *get_adc_voltages(void) {
@@ -704,6 +613,43 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     if (adc_scan_state == ADC_SCAN_STATE_CONVERTING) {
         adc_scan_state = ADC_SCAN_STATE_COMPLETE;
     }
+}
+
+void adc_routine_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (adc_scan_state == ADC_SCAN_STATE_COMPLETE) {
+        EAGLETRT_API_UNUSED(bms_tasks_api_disable_task(BMS_TASKS_TASK_ADC_TIMEOUT));
+        prv_adc_process_scan();
+        adc_scan_state = ADC_SCAN_STATE_SETTLING;
+        EAGLETRT_API_UNUSED(bms_tasks_api_enable_task(BMS_TASKS_TASK_ADC_SETTLE));
+    }
+}
+
+void adc_settle_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (adc_scan_state == ADC_SCAN_STATE_SETTLING) {
+        /*! adc_start_read() re-arms the timeout, which then times the
+            conversion instead of the settling. */
+        adc_start_read();
+    }
+}
+
+void adc_timeout_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (adc_scan_state != ADC_SCAN_STATE_CONVERTING) {
+        return;
+    }
+    /*! A conversion that never completes (aborted DMA, overrun) would
+        otherwise freeze the acquisition: recover by restarting it. */
+    if (HAL_ADC_Stop_DMA(&hadc1) != HAL_OK) {
+        return;
+    }
+
+    adc_scan_state = ADC_SCAN_STATE_SETTLING;
+    EAGLETRT_API_UNUSED(bms_tasks_api_enable_task(BMS_TASKS_TASK_ADC_SETTLE));
 }
 
 /* USER CODE END 1 */
