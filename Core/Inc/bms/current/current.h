@@ -13,7 +13,7 @@
 #include "types.h"
 
 /*!
- * \brief            Return codes for the voltage module functions.
+ * \brief            Return codes for the current module functions.
  */
 enum CurrentReturnCode {
     CURRENT_RC_OK,            /*!< Function executed successfully */

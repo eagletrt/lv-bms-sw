@@ -1,8 +1,9 @@
 /*!
- * \file logger.h
- * \author Dorijan Di Zepp
- * \date 2026-06-14
- * \brief Data types and structures for the system logger module.
+ * \file            logger.h
+ * \authors         Dorijan Di Zepp
+ * \date            2026-06-14
+ *
+ * \brief           Data types and structures for the system logger module.
  */
 
 #ifndef LOGGER_H
@@ -13,7 +14,7 @@
 #include "pal-api.h"
 
 /*!
- * \brief System logger return/status codes.
+ * \brief            System logger return/status codes.
  */
 enum LoggerReturnCode {
     LOGGER_RC_OK,                 /*!< Operation completed successfully. */
@@ -24,7 +25,7 @@ enum LoggerReturnCode {
 };
 
 /*!
- * \brief Severity level for logging records.
+ * \brief            Severity level for logging records.
  */
 enum LoggerLevel {
     LOGGER_LEVEL_DEBUG, /*!< Verbose diagnostics for developer use. */
@@ -35,13 +36,13 @@ enum LoggerLevel {
 };
 
 /*!
- * \brief Internal context state handler container.
- * \note The \ref pal_handler member points to a unique PAL interface dedicated 
- * to logging/console output (typically mapped to a specific UART channel).
+ * \brief            Internal context state handler container.
+ * \note             The \ref pal_handler member points to a unique PAL interface dedicated
+ *                   to logging/console output (typically mapped to a specific UART channel).
  */
 struct LoggerHandler {
     struct PalHandler *pal_handler; /*!< Referenced PAL tracking instance for UART routing. */
     bool logger_state;              /*!< Active execution flag: true to process logs, false to mute logging output. */
 };
 
-#endif
+#endif /*! LOGGER_H */

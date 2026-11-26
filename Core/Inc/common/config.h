@@ -10,8 +10,8 @@
 #define CONFIG_H
 
 /*!
- * \defgroup        modules Enable or disable the internal modules of the project.
- * \{
+ * \defgroup         modules Enable or disable the internal modules of the project.
+ *                   \{
  */
 
 #define CONFIG_CURRENT_MODULE_ENABLE

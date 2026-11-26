@@ -22,6 +22,7 @@
 
 /* USER CODE BEGIN 0 */
 
+#include "bms-tasks.h"
 #include "eagletrt.h"
 #include "eagletrt-api.h"
 
@@ -29,6 +30,7 @@
 #include "current-api.h"
 #include "feedback-api.h"
 #include "temperature-api.h"
+#include "bms-tasks-api.h"
 
 /*! Full scale of a #ADC_RESOLUTION_BITS conversion. */
 #define ADC_FULL_SCALE ((float)((1UL << ADC_RESOLUTION_BITS) - 1UL))
@@ -39,36 +41,26 @@
 /*! Internal temperature sensor average slope in uV/°C (STM32C0 datasheet "Avg_Slope"). */
 #define ADC_MCU_TEMPSENSOR_AVG_SLOPE_UV_C (2530.F)
 
-/*!
- * \brief           Lifecycle of a single ADC scan.
- */
-enum AdcScanState {
-    ADC_SCAN_STATE_SETTLING,   /*!< The multiplexer address just changed, waiting for it to settle. */
-    ADC_SCAN_STATE_CONVERTING, /*!< A DMA scan is in flight. */
-    ADC_SCAN_STATE_COMPLETE,   /*!< The scan completed, its data is waiting to be processed. */
-};
-
 EAGLETRT_STATIC EAGLETRT_VOLATILE uint16_t adc_buffer[ADC_READ_COUNT] = { 0 };                /*!< Raw DMA destination, written by the DMA only. */
 EAGLETRT_STATIC float voltages[ADC_READ_COUNT] = { 0.F };                                     /*!< Converted pin voltages in V, written by adc_routine() only. */
 EAGLETRT_STATIC EAGLETRT_VOLATILE enum AdcScanState adc_scan_state = ADC_SCAN_STATE_SETTLING; /*!< The state of the current scan. */
 EAGLETRT_STATIC size_t adc_mux_channel = 0U;                                                  /*!< The multiplexer channel currently selected. */
-EAGLETRT_STATIC uint32_t adc_state_tick = 0U;                                                 /*!< Tick at which the current state was entered in ms. */
 EAGLETRT_STATIC volt adc_vdda = ADC_VDDA_NOMINAL_V;                                           /*!< Supply voltage measured through VREFINT in V. */
 EAGLETRT_STATIC float ntc_voltages[DEFINES_NTC_MUX_USED_CHANNEL_COUNT] = { 0.F };             /*!< Last NTC voltage read on each multiplexer channel, in V. */
 EAGLETRT_STATIC bool adc_mux_hold = false;                                                    /*!< True while the multiplexer is pinned to one channel for debugging. */
 
 /*!
- * \defgroup ntc_health Thresholds telling a real NTC reading from a broken channel.
+ * \defgroup         ntc_health Thresholds telling a real NTC reading from a broken channel.
  *
- * \details  The multiplexer common node is pulled up to 3V3 through R59 and each
- *           NTC pulls it down. A channel with no NTC on it therefore parks at the
- *           pull-up rail and a shorted one sits at ground, neither of which the
- *           volt-to-celsius fit can represent. The open threshold is a fraction of
- *           the measured VDDA rather than a fixed voltage so it tracks the supply,
- *           and it sits above the top of the fitted range, so it can only ever
- *           flag readings that were already unusable.
+ * \details          The multiplexer common node is pulled up to 3V3 through R59 and each
+ *                   NTC pulls it down. A channel with no NTC on it therefore parks at the
+ *                   pull-up rail and a shorted one sits at ground, neither of which the
+ *                   volt-to-celsius fit can represent. The open threshold is a fraction of
+ *                   the measured VDDA rather than a fixed voltage so it tracks the supply,
+ *                   and it sits above the top of the fitted range, so it can only ever
+ *                   flag readings that were already unusable.
  *
- * \{
+ *                   \{
  */
 #define ADC_NTC_OPEN_RATIO (0.95F) /*!< Fraction of VDDA at or above which the channel counts as open. */
 #define ADC_NTC_SHORT_V (0.05F)    /*!< Voltage at or below which the channel counts as shorted. */
@@ -79,11 +71,11 @@ EAGLETRT_STATIC bool adc_mux_hold = false;                                      
 #define ADC_ACS_SUPPLY_MAX_V (5.5F)
 
 /*!
- * \brief           Transfer function of a ratiometric Allegro bidirectional Hall sensor.
+ * \brief            Transfer function of a ratiometric Allegro bidirectional Hall sensor.
  *
- * \details         Both current sensors on the board are this shape: they idle at
- *                  a fixed fraction of their supply and move a fixed number of
- *                  volts per ampere, with both figures scaling with the supply.
+ * \details          Both current sensors on the board are this shape: they idle at
+ *                   a fixed fraction of their supply and move a fixed number of
+ *                   volts per ampere, with both figures scaling with the supply.
  */
 struct AdcAcsSensor {
     float supply_nominal_v; /*!< Vcc the sensitivity is specified at, in V */
@@ -104,18 +96,18 @@ EAGLETRT_STATIC const struct AdcAcsSensor adc_acs_output = {
 };
 
 /*!
- * \brief           Turn a Hall sensor output voltage into a current.
+ * \brief            Turn a Hall sensor output voltage into a current.
  *
- * \details         The sensors are ratiometric, so the +5 V rail the board
- *                  measures is used for both the quiescent point and the
- *                  sensitivity. If that reading is not plausible (rail down,
- *                  sense line open) the nominal supply is used instead, rather
- *                  than dividing by something meaningless.
+ * \details          The sensors are ratiometric, so the +5 V rail the board
+ *                   measures is used for both the quiescent point and the
+ *                   sensitivity. If that reading is not plausible (rail down,
+ *                   sense line open) the nominal supply is used instead, rather
+ *                   than dividing by something meaningless.
  *
- * \param[in]       sensor   The sensor's transfer function.
- * \param[in]       v_sensed The sensor output in V, divider already undone.
+ * \param[in]        sensor   The sensor's transfer function.
+ * \param[in]        v_sensed The sensor output in V, divider already undone.
  *
- * \returns         ampere The current in A, sign as the sensor sees it.
+ * \returns          ampere The current in A, sign as the sensor sees it.
  */
 EAGLETRT_STATIC ampere prv_adc_acs_decode(const struct AdcAcsSensor *sensor, volt v_sensed) {
     volt supply = adc_get_mcu_5v();
@@ -132,10 +124,10 @@ EAGLETRT_STATIC ampere prv_adc_acs_decode(const struct AdcAcsSensor *sensor, vol
 #define ADC_RAW_VALUE_TO_VOLT(VALUE, VREF) ((float)(VALUE) / ADC_FULL_SCALE * (VREF))
 
 /*!
- * \brief           Drive the NTC multiplexer address lines.
+ * \brief            Drive the NTC multiplexer address lines.
  *
- * \param[in]       channel The multiplexer channel to select, wrapped to
- *                  #DEFINES_NTC_MUX_CHANNEL_COUNT.
+ * \param[in]        channel The multiplexer channel to select, wrapped to
+ *                   #DEFINES_NTC_MUX_CHANNEL_COUNT.
  */
 EAGLETRT_STATIC void prv_adc_mux_select(size_t channel) {
     channel %= DEFINES_NTC_MUX_CHANNEL_COUNT;
@@ -147,12 +139,12 @@ EAGLETRT_STATIC void prv_adc_mux_select(size_t channel) {
 }
 
 /*!
- * \brief           Convert the whole raw scan into pin voltages.
+ * \brief            Convert the whole raw scan into pin voltages.
  *
- * \details         VREFINT is converted first so that every other channel is
- *                  scaled with the actual supply voltage instead of the nominal
- *                  one. A VREFINT reading of zero (sensor not settled yet) keeps
- *                  the previous value.
+ * \details          VREFINT is converted first so that every other channel is
+ *                   scaled with the actual supply voltage instead of the nominal
+ *                   one. A VREFINT reading of zero (sensor not settled yet) keeps
+ *                   the previous value.
  */
 EAGLETRT_STATIC void prv_adc_convert_scan(void) {
     const uint16_t vrefint_raw = adc_buffer[ADC_READ_VREFINT];
@@ -166,15 +158,15 @@ EAGLETRT_STATIC void prv_adc_convert_scan(void) {
 }
 
 /*!
- * \brief           Push the analog feedbacks of the completed scan into the feedback module.
+ * \brief            Push the analog feedbacks of the completed scan into the feedback module.
  *
- * \note            The remaining feedbacks are digital and are updated by
- *                  gpio_update_digital_feedbacks().
+ * \note             The remaining feedbacks are digital and are updated by
+ *                   gpio_update_digital_feedbacks().
  */
 EAGLETRT_STATIC void prv_adc_update_feedbacks(void) {
-    (void)feedback_api_set_analog(FEEDBACK_OUTPUT_ENABLE_NEGATED, voltages[ADC_READ_OUTPUT_EN_FB]);
-    (void)feedback_api_set_analog(FEEDBACK_OUTPUT_FUSE, voltages[ADC_READ_OUT_FUSE_FB]);
-    (void)feedback_api_set_analog(FEEDBACK_VOUT, voltages[ADC_READ_VOUT_FB]);
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_OUTPUT_ENABLE_NEGATED, voltages[ADC_READ_OUTPUT_EN_FB]));
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_OUTPUT_FUSE, voltages[ADC_READ_OUT_FUSE_FB]));
+    EAGLETRT_API_UNUSED(feedback_api_set_analog(FEEDBACK_VOUT, voltages[ADC_READ_VOUT_FB]));
 }
 
 /* USER CODE END 0 */
@@ -461,86 +453,55 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *adcHandle) {
 void adc_start_read(void) {
     /*! Publish the new state before arming the DMA, so that a completion
         interrupt firing straight away cannot have its COMPLETE overwritten. */
-    adc_state_tick = HAL_GetTick();
     adc_scan_state = ADC_SCAN_STATE_CONVERTING;
-
+    EAGLETRT_API_UNUSED(bms_tasks_api_disable_task(BMS_TASKS_TASK_ADC_SETTLE));
     if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_READ_COUNT) != HAL_OK) {
         /*! Nothing was started: fall back to SETTLING so adc_routine() retries. */
         adc_scan_state = ADC_SCAN_STATE_SETTLING;
+        EAGLETRT_API_UNUSED(bms_tasks_api_disable_task(BMS_TASKS_TASK_ADC_TIMEOUT));
+        EAGLETRT_API_UNUSED(bms_tasks_api_enable_task(BMS_TASKS_TASK_ADC_SETTLE));
     }
 }
 
-void adc_routine(uint32_t tick) {
-    switch (adc_scan_state) {
-        case ADC_SCAN_STATE_COMPLETE: {
-            prv_adc_convert_scan();
-            prv_adc_update_feedbacks();
+EAGLETRT_STATIC void prv_adc_process_scan(void) {
+    prv_adc_convert_scan();
+    prv_adc_update_feedbacks();
 
-            /*! The pack current is a plain per-scan measurement; hand it to the
+    /*! The pack current is a plain per-scan measurement; hand it to the
                 current module the same way the feedbacks are handed over. */
-            (void)current_api_set_cells_output_current(adc_get_output_current());
+    EAGLETRT_API_UNUSED(current_api_set_cells_output_current(adc_get_output_current()));
 
-            /*! The NTC channel of this scan belongs to the multiplexer channel
+    /*! The NTC channel of this scan belongs to the multiplexer channel
                 that was selected while it ran; mux channel n carries NTC n. */
-            if (adc_mux_channel < DEFINES_NTC_MUX_USED_CHANNEL_COUNT) {
-                ntc_voltages[adc_mux_channel] = voltages[ADC_READ_NTC_SENSE];
-            }
+    if (adc_mux_channel < DEFINES_NTC_MUX_USED_CHANNEL_COUNT) {
+        ntc_voltages[adc_mux_channel] = voltages[ADC_READ_NTC_SENSE];
+    }
 
-            if (adc_mux_channel < DEFINES_CELLS_NTC_COUNT) {
-                const volt ntc = voltages[ADC_READ_NTC_SENSE];
-                enum TemperatureStatus status = TEMPERATURE_STATUS_OK;
+    if (adc_mux_channel < DEFINES_CELLS_NTC_COUNT) {
+        const volt ntc = voltages[ADC_READ_NTC_SENSE];
+        enum TemperatureStatus status = TEMPERATURE_STATUS_OK;
 
-                if (ntc >= (adc_vdda * ADC_NTC_OPEN_RATIO)) {
-                    status = TEMPERATURE_STATUS_OPEN;
-                } else if (ntc <= ADC_NTC_SHORT_V) {
-                    status = TEMPERATURE_STATUS_SHORTED;
-                }
+        if (ntc >= (adc_vdda * ADC_NTC_OPEN_RATIO)) {
+            status = TEMPERATURE_STATUS_OPEN;
+        } else if (ntc <= ADC_NTC_SHORT_V) {
+            status = TEMPERATURE_STATUS_SHORTED;
+        }
 
-                (void)temperature_api_update_temperature_status(adc_mux_channel, status);
+        EAGLETRT_API_UNUSED(temperature_api_update_temperature_status(adc_mux_channel, status));
 
-                /*! Only convert what the fit can actually represent: a broken
+        /*! Only convert what the fit can actually represent: a broken
                     channel would otherwise be clamped and read as a very cold
                     cell, which is indistinguishable from a real fault. */
-                if (status == TEMPERATURE_STATUS_OK) {
-                    (void)temperature_api_update_temperature(adc_mux_channel, temperature_api_volt_to_celsius(ntc));
-                }
-            }
+        if (status == TEMPERATURE_STATUS_OK) {
+            EAGLETRT_API_UNUSED(temperature_api_update_temperature(adc_mux_channel, temperature_api_volt_to_celsius(ntc)));
+        }
+    }
 
-            /*! Step to the next populated channel and let it settle, unless a
+    /*! Step to the next populated channel and let it settle, unless a
                 debug hold is pinning the multiplexer to one channel. */
-            if (!adc_mux_hold) {
-                adc_mux_channel = (adc_mux_channel + 1U) % DEFINES_NTC_MUX_USED_CHANNEL_COUNT;
-                prv_adc_mux_select(adc_mux_channel);
-            }
-
-            adc_state_tick = tick;
-            adc_scan_state = ADC_SCAN_STATE_SETTLING;
-            break;
-        }
-
-        case ADC_SCAN_STATE_SETTLING: {
-            if ((tick - adc_state_tick) >= ADC_MUX_SETTLE_MS) {
-                /*! adc_start_read() re-stamps adc_state_tick, which then times the
-                    conversion instead of the settling. */
-                adc_start_read();
-            }
-            break;
-        }
-
-        case ADC_SCAN_STATE_CONVERTING: {
-            /*! A conversion that never completes (aborted DMA, overrun) would
-                otherwise freeze the acquisition: recover by restarting it. */
-            if ((tick - adc_state_tick) >= ADC_SCAN_TIMEOUT_MS) {
-                (void)HAL_ADC_Stop_DMA(&hadc1);
-                adc_state_tick = tick;
-                adc_scan_state = ADC_SCAN_STATE_SETTLING;
-            }
-            break;
-        }
-
-        default:
-            adc_scan_state = ADC_SCAN_STATE_SETTLING;
-            break;
+    if (!adc_mux_hold) {
+        adc_mux_channel = (adc_mux_channel + 1U) % DEFINES_NTC_MUX_USED_CHANNEL_COUNT;
+        prv_adc_mux_select(adc_mux_channel);
     }
 }
 
@@ -649,7 +610,46 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     /*! Keep the ISR trivial: the raw buffer is stable until the next scan is
         started, so the (soft-float, NTC polynomial) conversion is deferred to
         adc_routine() in the main loop. */
-    adc_scan_state = ADC_SCAN_STATE_COMPLETE;
+    if (adc_scan_state == ADC_SCAN_STATE_CONVERTING) {
+        adc_scan_state = ADC_SCAN_STATE_COMPLETE;
+    }
+}
+
+void adc_routine_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (adc_scan_state == ADC_SCAN_STATE_COMPLETE) {
+        EAGLETRT_API_UNUSED(bms_tasks_api_disable_task(BMS_TASKS_TASK_ADC_TIMEOUT));
+        prv_adc_process_scan();
+        adc_scan_state = ADC_SCAN_STATE_SETTLING;
+        EAGLETRT_API_UNUSED(bms_tasks_api_enable_task(BMS_TASKS_TASK_ADC_SETTLE));
+    }
+}
+
+void adc_settle_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (adc_scan_state == ADC_SCAN_STATE_SETTLING) {
+        /*! adc_start_read() re-arms the timeout, which then times the
+            conversion instead of the settling. */
+        adc_start_read();
+    }
+}
+
+void adc_timeout_task(uint8_t task_id) {
+    EAGLETRT_API_UNUSED(task_id);
+
+    if (adc_scan_state != ADC_SCAN_STATE_CONVERTING) {
+        return;
+    }
+    /*! A conversion that never completes (aborted DMA, overrun) would
+        otherwise freeze the acquisition: recover by restarting it. */
+    if (HAL_ADC_Stop_DMA(&hadc1) != HAL_OK) {
+        return;
+    }
+
+    adc_scan_state = ADC_SCAN_STATE_SETTLING;
+    EAGLETRT_API_UNUSED(bms_tasks_api_enable_task(BMS_TASKS_TASK_ADC_SETTLE));
 }
 
 /* USER CODE END 1 */
