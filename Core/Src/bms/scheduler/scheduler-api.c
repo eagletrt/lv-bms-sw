@@ -5,12 +5,11 @@
  * \brief           LV BMS Tasks module APIs.
  */
 
+#include "scheduler.h"
 #include "scheduler-api.h"
-#include "adc.h"
+
 #include "balancing.h"
 #include "bms-monitor-fsm.h"
-#include "scheduler.h"
-
 #include "discharge-api.h"
 #include "identity-api.h"
 #include "temperature-api.h"
@@ -19,6 +18,8 @@
 #include "tasks-api.h"
 #include "balancing-api.h"
 #include "fsm.h"
+#include "watchdogs.h"
+#include "watchdogs-api.h"
 
 EAGLETRT_STATIC struct SchedulerHandler scheduler_handler;
 
@@ -68,27 +69,6 @@ EAGLETRT_STATIC TaskList scheduler_task_list = {
         .function = bms_monitor_fsm_task,
         .interval = SCHEDULER_MONITOR_PERIOD_MS,
         .start = SCHEDULER_MONITOR_PERIOD_MS,
-    },
-    [SCHEDULER_TASK_ADC_ROUTINE] = {
-        .task_id = SCHEDULER_TASK_ADC_ROUTINE,
-        .state = TASKS_STATE_ENABLED,
-        .function = adc_routine_task,
-        .interval = 1U,
-        .start = 0U,
-    },
-    [SCHEDULER_TASK_ADC_SETTLE] = {
-        .task_id = SCHEDULER_TASK_ADC_SETTLE,
-        .state = TASKS_STATE_ENABLED,
-        .function = adc_settle_task,
-        .interval = SCHEDULER_ADC_MUX_SETTLE_PERIOD_MS,
-        .start = SCHEDULER_ADC_MUX_SETTLE_PERIOD_MS,
-    },
-    [SCHEDULER_TASK_ADC_TIMEOUT] = {
-        .task_id = SCHEDULER_TASK_ADC_TIMEOUT,
-        .state = TASKS_STATE_DISABLED,
-        .function = adc_timeout_task,
-        .interval = SCHEDULER_ADC_SCAN_TIMEOUT_MS,
-        .start = SCHEDULER_ADC_SCAN_TIMEOUT_MS,
     },
     [SCHEDULER_TASK_FEEDBACK] = {
         .task_id = SCHEDULER_TASK_FEEDBACK,
@@ -237,6 +217,18 @@ enum TasksReturnCode scheduler_api_update_task(enum SchedulerTaskId task_id,
                                  repeats);
 }
 
-enum TasksReturnCode scheduler_api_routine(void) {
+enum TasksReturnCode scheduler_api_task_routine(void) {
     return tasks_api_routine(&scheduler_handler.task_handler);
+}
+
+enum WatchdogReturnCode scheduler_api_watchdog_pet(struct Watchdog *watchdog) {
+    return watchdogs_api_watchdog_pet(&scheduler_handler.watchdog_handler, watchdog);
+}
+
+enum WatchdogReturnCode scheduler_api_watchdog_reset(struct Watchdog *watchdog) {
+    return watchdogs_api_watchdog_reset(&scheduler_handler.watchdog_handler, watchdog);
+}
+
+enum WatchdogReturnCode scheduler_api_watchdog_start(struct Watchdog *watchdog) {
+    return watchdogs_api_watchdog_start(&scheduler_handler.watchdog_handler, watchdog);
 }

@@ -10,6 +10,7 @@
 
 #include "scheduler.h"
 #include "timebase.h"
+#include "watchdogs.h"
 
 /*!
  * \brief            Initialize the scheduler module.
@@ -91,6 +92,13 @@ enum TasksReturnCode scheduler_api_update_task(
  * \retval           TASKS_RC_ERROR An error occurred during the operation
  * \retval           TASKS_RC_TEMPORAL_DISCONTINUITY The user tried to travel to the past
  */
-enum TasksReturnCode scheduler_api_routine(void);
+enum TasksReturnCode scheduler_api_task_routine(void);
+
+enum WatchdogReturnCode scheduler_api_watchdog_pet(struct Watchdog *watchdog);
+
+enum WatchdogReturnCode scheduler_api_watchdog_reset(struct Watchdog *watchdog);
+
+enum WatchdogReturnCode scheduler_api_watchdog_start(struct Watchdog *watchdog);
+
 
 #endif /*! SCHEDULER_API_H */
