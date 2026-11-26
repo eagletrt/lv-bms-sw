@@ -341,9 +341,11 @@ int main(void) {
     };
 
     current_state = run_state(STATE_INIT, &post_init_data);
-    bms_tasks_api_init(prv_main_timebase_get_tick,
-                       gpio_update_digital_feedbacks_task,
-                       gpio_heartbeat_task);
+    if (bms_tasks_api_init(prv_main_timebase_get_tick,
+                           gpio_update_digital_feedbacks_task,
+                           gpio_heartbeat_task) == TASKS_RC_OK) {
+        // TODO: Error handling should be treated (invalid parameters or number of tasks).
+    }
 
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
@@ -359,7 +361,6 @@ int main(void) {
     /* USER CODE BEGIN WHILE */
     while (1) {
         bms_tasks_api_routine();
-        adc_routine();
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -413,7 +414,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
             console_rx_buffer[console_rx_index++] = (char)console_rx_char;
         }
     } else if (console_rx_char == 'i' || console_rx_char == 'A') {
-        // print debug infos
         prv_print_info();
     } else if (console_rx_char == '\r' || console_rx_char == '\n') {
         if (console_rx_index > 0U) {

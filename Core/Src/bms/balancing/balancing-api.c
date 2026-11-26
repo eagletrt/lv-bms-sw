@@ -20,8 +20,8 @@
 #include "bms-monitor-api.h"
 #include "logger-api.h"
 #include "logger.h"
-#include "bms-tasks.h"
-#include "bms-tasks-api.h"
+#include "scheduler.h"
+#include "scheduler-api.h"
 
 #ifdef CONFIG_BALANCING_MODULE_ENABLE
 
@@ -83,14 +83,14 @@ enum BalancingReturnCode balancing_api_start(volt threshold) {
     balancing_handler.is_active = true;
 
     EAGLETRT_API_UNUSED(
-        bms_tasks_api_enable_task(BMS_TASKS_TASK_BALANCING_REFRESH));
+        scheduler_api_enable_task(SCHEDULER_TASK_BALANCING_REFRESH));
     EAGLETRT_API_UNUSED(
-        bms_tasks_api_update_task(BMS_TASKS_TASK_BALANCING_TIMEOUT,
+        scheduler_api_update_task(SCHEDULER_TASK_BALANCING_TIMEOUT,
                                   0U,
-                                  BMS_TASKS_BALANCING_STATE_TIMEOUT_MS,
+                                  SCHEDULER_BALANCING_STATE_TIMEOUT_MS,
                                   1U));
     EAGLETRT_API_UNUSED(
-        bms_tasks_api_enable_task(BMS_TASKS_TASK_BALANCING_TIMEOUT));
+        scheduler_api_enable_task(SCHEDULER_TASK_BALANCING_TIMEOUT));
 
     return BALANCING_RC_OK;
 }
@@ -100,9 +100,9 @@ enum BalancingReturnCode balancing_api_stop(void) {
     balancing_handler.is_active = false;
 
     EAGLETRT_API_UNUSED(
-        bms_tasks_api_disable_task(BMS_TASKS_TASK_BALANCING_REFRESH));
+        scheduler_api_disable_task(SCHEDULER_TASK_BALANCING_REFRESH));
     EAGLETRT_API_UNUSED(
-        bms_tasks_api_disable_task(BMS_TASKS_TASK_BALANCING_TIMEOUT));
+        scheduler_api_disable_task(SCHEDULER_TASK_BALANCING_TIMEOUT));
 
     return BALANCING_RC_OK;
 }
@@ -119,9 +119,9 @@ enum BalancingReturnCode balancing_api_set_state_handle(bool active,
         }
 
         EAGLETRT_API_UNUSED(
-            bms_tasks_api_update_task(BMS_TASKS_TASK_BALANCING_TIMEOUT,
+            scheduler_api_update_task(SCHEDULER_TASK_BALANCING_TIMEOUT,
                                       0U,
-                                      BMS_TASKS_BALANCING_STATE_TIMEOUT_MS,
+                                      SCHEDULER_BALANCING_STATE_TIMEOUT_MS,
                                       1U));
     } else if (balancing_handler.is_active) {
         return balancing_api_stop();
